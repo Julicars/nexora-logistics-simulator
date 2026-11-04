@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--HEAD-->
+<title>NEXORA Logistics Intelligence</title>
+<link rel="icon" type="image/png" href="../shared/img/favicon.png">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="../shared/css/base.css">
+<link rel="stylesheet" href="css/style.css">
+<!--/HEAD-->
+</head>
+<body>
+<!--BODY-->
+<div class="app">
+  <nav class="nav" aria-label="Navegação principal" data-i18n-aria="nav.label">
+    <a class="nav-logo" href="../home/index.html"><img class="logo-img" src="../shared/img/logo-nav.png" alt="NEXORA Logistics Intelligence"></a>
+    <ul class="nav-links">
+      <li><a href="../home/index.html" data-i18n="nav.home">Home</a></li>
+      <li><a href="index.html" class="ativo" aria-current="page" data-i18n="nav.cubage">Cubagem</a></li>
+      <li><a href="../home/sobre.html" data-i18n="nav.about">Sobre</a></li>
+      <li><a href="../home/contato.html" data-i18n="nav.contact">Contato</a></li>
+    </ul>
+  </nav>
+
+  <header class="topo">
+    <div class="marca">
+      <div>
+        <h1 data-i18n="nav.cubage">Cubagem</h1>
+        <p class="sub" id="subtitulo"></p>
+      </div>
+    </div>
+    <div class="topo-acoes">
+      <label class="campo"><span data-i18n="label.vehicle">Veículo</span><select id="selVeiculo"></select></label>
+      <label class="campo"><span data-i18n="label.howToLoad">Como carregar</span>
+        <select id="selEstrategia">
+          <option value="blocos" data-i18n="strategy.blocos">Agrupar por produto</option>
+          <option value="peso" data-i18n="strategy.peso">Mais pesado primeiro</option>
+          <option value="pedido" data-i18n="strategy.pedido">Ordem dos pedidos (rota)</option>
+        </select>
+      </label>
+      <label class="campo"><span data-i18n="lang.label">Idioma</span><select id="selIdioma" class="sel-lang"></select></label>
+      <button class="btn primario" id="btnSimular" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span data-i18n="btn.simulate">Simular</span></button>
+      <button class="ico-btn" id="btnConfig" type="button" data-i18n-title="btn.config">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 6.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.6 1.8h2.8l.4 2.3 1.6.9 2.2-.8 1.4 2.4-1.8 1.5v1.8l1.8 1.5-1.4 2.4-2.2-.8-1.6.9-.4 2.3H8.6l-.4-2.3-1.6-.9-2.2.8L3 13.4l1.8-1.5v-1.8L3 8.6 4.4 6.2l2.2.8 1.6-.9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <aside class="painel esq" id="painelEsq" aria-label="Carga">
+    <div class="painel-cab">
+      <span class="painel-titulo" data-i18n="panel.cargo">Carga</span>
+      <button type="button" class="recolher" data-painel="esq" aria-expanded="true" aria-controls="corpoEsq" data-i18n-aria="panel.collapse"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <div class="painel-corpo" id="corpoEsq">
+    <section class="bloco">
+      <h2 data-i18n="panel.vehicle">Veículo</h2>
+      <p class="resumo-veiculo" id="resumoVeiculo"></p>
+    </section>
+    <section class="bloco">
+      <div class="bloco-cab">
+        <h2 data-i18n="panel.orders">Pedidos</h2>
+        <span class="mudo" id="nLinhas"></span>
+      </div>
+      <ul class="pedidos" id="listaPedidos"></ul>
+      <p class="mudo" id="totalPedidos"></p>
+      <button class="btn" id="btnEditar" type="button" data-i18n="btn.editOrders">Editar pedidos</button>
+    </section>
+    <section class="bloco">
+      <h2 data-i18n="panel.scenarios">Cenários</h2>
+      <div class="linha-cenario">
+        <input type="text" id="nomeCenario" data-i18n-ph="scenario.namePlaceholder" placeholder="Nome do cenário">
+        <button class="btn" id="btnSalvarCenario" type="button" data-i18n="btn.saveScenario">Salvar</button>
+      </div>
+      <button class="link" id="btnCenarios" type="button" data-i18n="btn.viewScenarios">Ver cenários salvos</button>
+    </section>
+    </div>
+  </aside>
+
+  <main class="palco">
+    <div class="barra-vistas">
+      <div class="grupo" role="group" aria-label="Vista da câmera">
+        <button type="button" class="vista ativo" data-vista="iso" data-i18n="view.3d">3D</button>
+        <button type="button" class="vista" data-vista="sup" data-i18n="view.top">Topo</button>
+        <button type="button" class="vista" data-vista="lat" data-i18n="view.side">Lado</button>
+        <button type="button" class="vista" data-vista="tras" data-i18n="view.back">Traseira</button>
+        <button type="button" class="vista" data-vista="front" data-i18n="view.front">Frente</button>
+      </div>
+      <div id="infoItem" class="info-item" hidden aria-live="polite"><span class="info-pos"></span><span class="info-dims"></span></div>
+      <div class="grupo" role="group" aria-label="Exibição">
+        <button type="button" class="ico-btn" id="btnTrava" aria-pressed="false" data-i18n-title="lock.unlock">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="2" width="11" height="17" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 8.6h11M8.3 2v6.6" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="14.2" y="16.2" width="8.6" height="6.2" rx="1.4" fill="currentColor"/><path class="ic-trancado" d="M16.1 16.2v-2a2.4 2.4 0 0 1 4.8 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/><path class="ic-livre" d="M16.1 16.2v-2a2.4 2.4 0 0 1 4.6-.9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <button type="button" class="ico-btn" id="btnPorta" aria-pressed="false" data-i18n-title="door.open">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 17.5V3h12v14.5M2 17.5h16M10 3v14.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8.3" cy="10.5" r="1" fill="currentColor"/><circle cx="11.7" cy="10.5" r="1" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="ico-btn" id="btnAtraves" aria-pressed="true" data-i18n-title="through.hide">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M1.8 10S4.8 4.5 10 4.5 18.2 10 18.2 10 15.2 15.5 10 15.5 1.8 10 1.8 10Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="10" r="2.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="viewport" class="viewport" tabindex="0" role="application" data-i18n-aria="viewport.label">
+      <div id="ferramentas" class="ferramentas" role="group" data-i18n-aria="edit.tools" hidden>
+        <button type="button" class="ferr" id="btnGirar" data-i18n-title="edit.rotate.title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M20.5 3.5v4.6h-4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-i18n="edit.rotate">Girar 90°</span><kbd>R</kbd>
+        </button>
+        <button type="button" class="ferr" id="btnDeitar" data-i18n-title="edit.lay.title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="7" height="13" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 20.5h7M17.5 9.5l3.5 3-3.5 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20.5h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span data-i18n="edit.lay">Deitar</span><kbd>D</kbd>
+        </button>
+      </div>
+      <div id="dica" class="dica" hidden></div>
+    </div>
+    <div id="tooltip" class="tooltip" hidden></div>
+    <div class="player">
+      <button type="button" class="play" id="btnPlay" data-i18n-aria="player.play"><svg viewBox="0 0 16 16" id="icoPlay"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg></button>
+      <input type="range" id="rngPasso" min="0" max="0" value="0" data-i18n-aria="player.volumes">
+      <span class="contagem" id="lblPasso"></span>
+      <div class="vel">
+        <label for="rngVel" data-i18n="player.speed">Velocidade de encaixe</label>
+        <input type="range" id="rngVel" min="0" max="100" step="1" value="60">
+        <output id="outVel" for="rngVel">36 vol/s</output>
+      </div>
+    </div>
+  </main>
+
+  <aside class="painel dir" id="painelDir" aria-label="Resultado">
+    <div class="painel-cab">
+      <button type="button" class="recolher" data-painel="dir" aria-expanded="true" aria-controls="corpoDir" data-i18n-aria="panel.collapse"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <span class="painel-titulo"><span data-i18n="panel.result">Resultado</span> <span class="ponto-status" id="pontoStatus"></span></span>
+    </div>
+    <div class="painel-corpo" id="corpoDir">
+    <section class="bloco">
+      <div class="status" id="cardStatus"></div>
+      <div class="numeros">
+        <div><span class="rot" data-i18n="k.loaded">Carregados</span><strong id="kAcom"></strong><span class="mudo" id="kAcomDe"></span></div>
+        <div><span class="rot" data-i18n="k.occupation">Ocupação</span><strong id="kOcup"></strong><div class="barra"><span id="barOcup"></span></div></div>
+        <div><span class="rot" data-i18n="k.cargoWeight">Peso da carga</span><strong id="kPeso"></strong><span class="mudo" id="kPesoDe"></span></div>
+      </div>
+    </section>
+    <section class="bloco">
+      <div class="bloco-cab">
+        <h2 data-i18n="panel.axles">Peso por eixo</h2>
+        <span class="mudo" data-i18n="panel.axles.sub">carga + tara</span>
+      </div>
+      <ul class="eixos" id="listaEixos"></ul>
+    </section>
+    <section class="bloco">
+      <h2 data-i18n="panel.byProduct">Por produto</h2>
+      <ul class="por-produto" id="listaPorProduto"></ul>
+      <button class="link" id="btnDetalhes" type="button" data-i18n="btn.details">Ver detalhes da carga</button>
+      <button class="link" id="btnDescarga" type="button" data-i18n="btn.unloadOrder">Ver ordem de descarga</button>
+    </section>
+    <section class="bloco">
+      <h2 data-i18n="panel.export">Exportar</h2>
+      <div class="linha-cenario">
+        <button class="btn" id="btnImprimir" type="button" data-i18n="btn.print">Imprimir / PDF</button>
+        <button class="btn" id="btnExportarCSV" type="button" data-i18n="btn.exportCsv">Exportar CSV</button>
+      </div>
+    </section>
+    </div>
+  </aside>
+
+  <footer class="rodape" data-i18n="footer">Todos os direitos reservados por NEXORA · 2026–2027</footer>
+</div>
+
+<div id="toast" class="toast" role="alert" aria-live="assertive" hidden></div>
+<div id="areaImpressao" class="area-impressao" aria-hidden="true"></div>
+
+<!-- Pedidos -->
+<div class="modal" id="modalPedidos" hidden>
+  <div class="modal-caixa largo" role="dialog" aria-modal="true" aria-labelledby="tituloPedidos">
+    <div class="modal-cab">
+      <h2 id="tituloPedidos" data-i18n="modal.editOrders">Editar pedidos</h2>
+      <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <p class="nota" data-i18n="modal.orders.note">Medidas do volume em metros.</p>
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead><tr>
+          <th data-i18n="th.code">Código</th><th data-i18n="th.description">Descrição</th><th data-i18n="th.type">Tipo</th><th>C</th><th>L</th><th>A</th><th data-i18n="th.qty">Qtd</th>
+          <th data-i18n="th.piecesPerVol">Peças/vol</th><th data-i18n="th.kgPerPiece">kg/peça</th><th data-i18n="th.kgPerVol">kg/vol</th><th data-i18n="th.position">Posição</th><th data-i18n="th.topCapacity">Aguenta em cima (kg)</th><th data-i18n="th.fit">Encaixe</th><th><span class="sr" data-i18n="th.remove">Remover</span></th>
+        </tr></thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+    </div>
+    <p class="total-tabela" id="totalTabela"></p>
+    <ul class="avisos" id="avisoModal" hidden></ul>
+    <p class="erro" id="erroModal" hidden></p>
+    <div class="modal-acoes">
+      <button type="button" class="btn" id="btnAddLinha" data-i18n="btn.addLine">Adicionar linha</button>
+      <button type="button" class="btn" id="btnPadrao" data-i18n="btn.restoreDefault">Restaurar pedido padrão</button>
+      <span class="espaco"></span>
+      <button type="button" class="btn" data-fechar data-i18n="btn.cancel">Cancelar</button>
+      <button type="button" class="btn primario" id="btnAplicar" data-i18n="btn.applySimulate">Aplicar e simular</button>
+    </div>
+  </div>
+</div>
+
+<!-- Configurações -->
+<div class="modal" id="modalConfig" hidden>
+  <div class="modal-caixa config" role="dialog" aria-modal="true" aria-labelledby="tituloConfig">
+    <div class="modal-cab">
+      <h2 id="tituloConfig" data-i18n="modal.settings">Configurações</h2>
+      <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <div class="config-layout">
+      <nav class="config-nav" role="tablist">
+        <button type="button" role="tab" id="tab-atual" aria-controls="aba-atual" aria-selected="true" data-aba="atual" data-i18n="tab.currentVehicle">Veículo atual</button>
+        <button type="button" role="tab" id="tab-frota" aria-controls="aba-frota" aria-selected="false" data-aba="frota" data-i18n="tab.fleet">Configuração de veículos</button>
+      </nav>
+
+      <div class="config-aba" id="aba-atual" role="tabpanel" aria-labelledby="tab-atual">
+        <section class="config-secao">
+          <h3 data-i18n="section.vehicleDims">Medidas internas do veículo</h3>
+          <div class="grade-campos">
+            <label><span data-i18n="label.length">Comprimento (m)</span><input id="vC" type="text" inputmode="decimal"></label>
+            <label><span data-i18n="label.width">Largura (m)</span><input id="vL" type="text" inputmode="decimal"></label>
+            <label><span data-i18n="label.height">Altura (m)</span><input id="vH" type="text" inputmode="decimal"></label>
+            <label><span data-i18n="label.sections">Vagões</span><input id="vVag" type="text" inputmode="numeric"></label>
+            <label><span data-i18n="label.maxLoad">Carga máxima (kg)</span><input id="vKg" type="text" inputmode="numeric" data-i18n-ph="placeholder.noLimit" placeholder="Sem limite"></label>
+          </div>
+          <div class="salvar-veiculo">
+            <label><span data-i18n="label.name">Nome</span><input id="vNome" type="text" data-i18n-ph="placeholder.vehicleName" placeholder="Ex.: Truck da filial"></label>
+            <button type="button" class="btn" id="btnSalvarVeiculo" data-i18n="btn.saveToList">Salvar na lista de veículos</button>
+            <span class="mudo" id="msgSalvar" role="status"></span>
+          </div>
+        </section>
+        <section class="config-secao">
+          <div class="bloco-cab">
+            <h3 data-i18n="section.axles">Eixos</h3>
+            <button type="button" class="link" id="btnEixosPadrao" data-i18n="btn.restoreDefaults">Restaurar valores padrão</button>
+          </div>
+          <div class="tabela-rolagem">
+            <table class="tabela tabela-eixos">
+              <thead><tr><th data-i18n="th.axle">Eixo</th><th data-i18n="th.tara">Tara (kg)</th><th data-i18n="th.limit">Limite (kg)</th></tr></thead>
+              <tbody id="corpoEixos"></tbody>
+            </table>
+          </div>
+          <p class="nota" data-i18n="config.axlesNote">Tara é o peso do veículo vazio em cada eixo.</p>
+        </section>
+        <section class="config-secao">
+          <h3 data-i18n="section.loadingRules">Regras de carregamento</h3>
+          <label class="faixa"><span data-i18n="label.minSupport">Apoio mínimo da base</span> <output id="outApoio">75%</output>
+            <input id="inApoio" type="range" min="50" max="100" step="5" value="75">
+          </label>
+          <p class="nota" data-i18n="config.supportNote">Parte da base de cada volume que precisa estar apoiada.</p>
+        </section>
+      </div>
+
+      <div class="config-aba" id="aba-frota" role="tabpanel" aria-labelledby="tab-frota" hidden>
+        <section class="config-secao">
+          <div class="bloco-cab">
+            <h3 data-i18n="tab.fleet">Configuração de veículos</h3>
+            <span class="mudo" id="nFrota"></span>
+          </div>
+          <p class="nota" data-i18n="config.fleetNote">Cadastre os veículos da sua frota.</p>
+          <div class="tabela-rolagem">
+            <table class="tabela tabela-frota">
+              <thead><tr><th data-i18n="label.name">Nome</th><th data-i18n="th.category">Categoria</th><th>C (m)</th><th>L (m)</th><th>A (m)</th><th data-i18n="label.sections">Vagões</th><th data-i18n="label.maxLoad">Carga máx. (kg)</th><th data-i18n="th.volume">Volume</th><th><span class="sr" data-i18n="th.actions">Ações</span></th></tr></thead>
+              <tbody id="corpoFrota"></tbody>
+            </table>
+          </div>
+          <p class="erro" id="erroFrota" hidden></p>
+          <div class="modal-acoes">
+            <button type="button" class="btn" id="btnAddVeiculo" data-i18n="btn.addVehicle">Adicionar veículo</button>
+            <span class="espaco"></span>
+            <button type="button" class="link" id="btnFrotaPadrao" data-i18n="btn.restoreList">Restaurar lista original</button>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div class="modal-acoes">
+      <span class="espaco"></span>
+      <button type="button" class="btn primario" data-fechar data-i18n="btn.done">Concluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detalhes -->
+<div class="modal" id="modalDetalhes" hidden>
+  <div class="modal-caixa" role="dialog" aria-modal="true" aria-labelledby="tituloDetalhes">
+    <div class="modal-cab">
+      <h2 id="tituloDetalhes" data-i18n="modal.details">Detalhes da carga</h2>
+      <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <dl class="linhas" id="linhasRes"></dl>
+  </div>
+</div>
+
+<!-- Ordem de descarga -->
+<div class="modal" id="modalDescarga" hidden>
+  <div class="modal-caixa" role="dialog" aria-modal="true" aria-labelledby="tituloDescarga">
+    <div class="modal-cab">
+      <h2 id="tituloDescarga" data-i18n="modal.unloadOrder">Ordem de descarga</h2>
+      <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <p class="nota" data-i18n="modal.unloadOrder.note">Do item mais próximo da porta de cada vagão para o mais distante.</p>
+    <ul class="lista-descarga" id="listaDescarga"></ul>
+  </div>
+</div>
+
+<!-- Cenários -->
+<div class="modal" id="modalCenarios" hidden>
+  <div class="modal-caixa largo" role="dialog" aria-modal="true" aria-labelledby="tituloCenarios">
+    <div class="modal-cab">
+      <h2 id="tituloCenarios" data-i18n="modal.scenarios">Cenários salvos</h2>
+      <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
+    </div>
+    <p class="nota" data-i18n="modal.scenarios.note">Marque dois ou mais para comparar.</p>
+    <ul class="lista-cenarios" id="listaCenarios"></ul>
+    <div class="comparacao-cenarios" id="comparacaoCenarios" hidden></div>
+  </div>
+</div>
+<!--/BODY-->
+
+<script src="../shared/vendor/three-0.147.0.min.js"></script>
+<script src="../shared/vendor/OrbitControls-0.147.0.js"></script>
+<script src="../shared/js/i18n.js"></script>
+<script src="js/data.js"></script>
+<script src="js/packer.js"></script>
+<script src="js/eixos.js"></script>
+<script src="js/veiculos3d.js"></script>
+<script src="js/app/nucleo.js"></script>
+<script src="js/app/cena.js"></script>
+<script src="js/app/camera.js"></script>
+<script src="js/app/edicao.js"></script>
+<script src="js/app/resultados.js"></script>
+<script src="js/app/modais.js"></script>
+<script src="js/app/exportar.js"></script>
+<script src="js/app/descarga.js"></script>
+<script src="js/app/cenarios.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

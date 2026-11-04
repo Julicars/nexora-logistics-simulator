@@ -1,0 +1,13 @@
+{
+  "name": "simulador-carga-3d",
+  "version": "1.0.0",
+  "description": "Simulador 3D de carregamento de caminhões com heurística Extreme Points e Three.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/verificar.js",
+    "test:seguranca": "node test/seguranca.js"
+  },
+  "engines": { "node": ">=16" },
+  "license": "SEE LICENSE IN LICENSE"
+}

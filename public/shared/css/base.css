@@ -1,0 +1,70 @@
+/* Base compartilhada (Home, Sobre, Contato e Cubagem): paleta NEXORA, tipografia e barra de navegação. */
+:root {
+  color-scheme: dark;
+  --bg: #061024;
+  --painel: #0d1b36;
+  --painel-2: #16294a;
+  --linha: #223c6a;
+  --fg: #eef3fb;
+  --fg-2: #b6c3d9;
+  --mudo: #7f90ab;
+  --acento: #f5a033;
+  --acento-2: #e38a1a;
+  --acento-azul: #2b7ad9;
+  --ok: #22c55e;
+  --ok-fundo: #0e2823;
+  --aviso: #f0b429;
+  --aviso-fundo: #2b1f10;
+  --perigo: #ef4444;
+  --perigo-fundo: #2e1618;
+  --madeira: #b88a57;
+  --palco: #040b1c;
+  --f-ui: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --f-titulo: "Barlow Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --f-num: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --raio: 12px;
+}
+
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 var(--f-ui);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Barra de navegação ---------- */
+.nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px 28px; flex-wrap: wrap;
+  background: var(--painel); padding: 8px 20px;
+}
+.nav-direita { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; }
+.nav-logo { display: block; line-height: 0; }
+.logo-img { height: 46px; width: auto; flex: none; display: block; }
+.nav-links { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-links a {
+  display: block; padding: 9px 16px; border-radius: 9px; color: var(--fg-2); font-weight: 600; font-size: 14.5px;
+  text-decoration: none; position: relative;
+}
+.nav-links a:hover { color: var(--fg); background: var(--painel-2); }
+.nav-links a.ativo { color: var(--acento); }
+.nav-links a.ativo::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 2px; height: 2px; border-radius: 2px; background: var(--acento); }
+.nav a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+.sel-lang { background: var(--painel-2); border: 0; border-radius: 9px; padding: 8px 11px; cursor: pointer; color: var(--fg); font-size: 13.5px; min-width: 110px; }
+.sel-lang:hover { background: #1d345e; }
+
+@media (max-width: 640px) {
+  .nav { padding: 8px 14px; gap: 6px 12px; }
+  .nav-direita { width: 100%; justify-content: space-between; gap: 6px 10px; }
+  .nav-links { gap: 0; }
+  .nav-links a { padding: 8px 10px; font-size: 14px; }
+  .nav-links a.ativo::after { left: 10px; right: 10px; }
+  .sel-lang { min-width: 0; padding: 7px 8px; }
+  .logo-img { height: 38px; }
+}
