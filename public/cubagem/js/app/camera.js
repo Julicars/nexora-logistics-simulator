@@ -65,9 +65,11 @@ function irPara(vista, imediato) {
   st.vista = vista;
   document.querySelectorAll('.vista').forEach((b) => b.classList.toggle('ativo', b.dataset.vista === vista));
   if (!spec) return;
-  const total = Math.max(9, spec.comprimento), h = spec.H;
+  // com veículos extras ao lado (carga que não coube), enquadra o conjunto todo
+  const ext = typeof enquadreExtras === 'function' ? enquadreExtras() : { z: 0, larg: 0 };
+  const total = Math.max(9, spec.comprimento) + ext.larg * 0.9, h = spec.H;
   const f = Math.max(1, 1.7 / Math.max(0.4, camera.aspect || 1.6));
-  const alvo = new THREE.Vector3(0, DECK + h * 0.35, 0);
+  const alvo = new THREE.Vector3(0, DECK + h * 0.35, ext.z);
   let pos;
   switch (vista) {
     case 'sup': pos = new THREE.Vector3(0, total * 1.25 * f + 4, 0.01); alvo.y = DECK; break;
@@ -76,6 +78,8 @@ function irPara(vista, imediato) {
     case 'front': pos = new THREE.Vector3(-total / 2 - 6 - 3 * f, DECK + h * 1.05, -1.2); break;
     default: pos = new THREE.Vector3(-total * 0.42 * f, DECK + total * 0.4 * f + 2, total * 0.72 * f + 2);
   }
+  pos.z += ext.z;
+  if (vista === 'tras' || vista === 'front') alvo.z = ext.z;
   if (imediato) { camera.position.copy(pos); controls.target.copy(alvo); controls.update(); anim = null; return; }
   anim = { de: camera.position.clone(), para: pos, alvoDe: controls.target.clone(), alvoPara: alvo, t: 0 };
 }

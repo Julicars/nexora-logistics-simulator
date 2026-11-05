@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/home.css">
 </head>
 <body class="site">
+<div class="progresso" aria-hidden="true"><span></span></div>
 <nav class="nav nav-site" aria-label="Navegação principal" data-i18n-aria="nav.label">
   <a class="nav-logo" href="index.html"><img class="logo-img" src="../shared/img/logo-nav.png" alt="NEXORA Logistics Intelligence"></a>
   <div class="nav-direita">
@@ -49,6 +50,17 @@
         <p class="demo" data-i18n="h.demo">Exemplo ilustrativo</p>
       </div>
     </div>
+    <a class="rolar" href="#numeros" data-i18n-aria="h.scroll"><span></span></a>
+  </section>
+
+  <section class="faixa-numeros" id="numeros">
+    <div class="wrap numeros-site">
+      <div class="rev"><strong data-contar="12">0</strong><span data-i18n="h.n1">modelos de veículo prontos</span></div>
+      <div class="rev"><strong data-contar="3000" data-sep="1">0</strong><span data-i18n="h.n2">volumes por simulação</span></div>
+      <div class="rev"><strong data-contar="4">0</strong><span data-i18n="h.n3">idiomas</span></div>
+      <div class="rev"><strong data-contar="100" data-suf="%">0</strong><span data-i18n="h.n4">no navegador, sem instalar nada</span></div>
+    </div>
+    <div class="marquee" aria-hidden="true"><div class="marquee-trilho"><span>VAN</span><span>IVECO</span><span>3/4</span><span>Truck</span><span>Carreta</span><span>Rodotrem</span><span>Container 20'</span><span>Container 40' HC</span><span>Container 45' HC</span><span>VAN</span><span>IVECO</span><span>3/4</span><span>Truck</span><span>Carreta</span><span>Rodotrem</span><span>Container 20'</span><span>Container 40' HC</span><span>Container 45' HC</span></div></div>
   </section>
 
   <section class="secao wrap">
@@ -67,6 +79,12 @@
         <h3 data-i18n="h.f5.t"></h3><p data-i18n="h.f5.d"></p></article>
       <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
         <h3 data-i18n="h.f6.t"></h3><p data-i18n="h.f6.d"></p></article>
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 6h11v9H2zM13 9h4.5l3 3.2V15H13M5.5 18a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6ZM16.5 18a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+        <h3 data-i18n="h.f7.t"></h3><p data-i18n="h.f7.d"></p></article>
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></span>
+        <h3 data-i18n="h.f8.t"></h3><p data-i18n="h.f8.d"></p></article>
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v4h4M9 12h6M9 16h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></span>
+        <h3 data-i18n="h.f9.t"></h3><p data-i18n="h.f9.d"></p></article>
     </div>
   </section>
 
@@ -74,7 +92,7 @@
     <div class="wrap">
       <p class="eyebrow rev" data-i18n="h.how.eyebrow"></p>
       <h2 class="rev" data-i18n="h.how.title"></h2>
-      <ol class="passos">
+      <ol class="passos linha-passos">
       <li class="passo rev"><span class="passo-n">1</span><h3 data-i18n="h.s1.t"></h3><p data-i18n="h.s1.d"></p></li>
       <li class="passo rev"><span class="passo-n">2</span><h3 data-i18n="h.s2.t"></h3><p data-i18n="h.s2.d"></p></li>
       <li class="passo rev"><span class="passo-n">3</span><h3 data-i18n="h.s3.t"></h3><p data-i18n="h.s3.d"></p></li>
@@ -89,6 +107,7 @@
     </div>
   </section>
 </main>
+<button type="button" class="topo-btn" id="btnTopo" hidden data-i18n-aria="site.top"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 10 8 5.5l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
 <footer class="rodape-site"><span class="rod-links"><a href="https://www.linkedin.com/in/julio-c%C3%A9zar-de-paula-baldo-51774321a/" target="_blank" rel="noopener">LinkedIn</a><a href="https://github.com/Julicars" target="_blank" rel="noopener">GitHub</a></span><span data-i18n="site.rights">Todos os direitos reservados por NEXORA · 2026–2027</span></footer>
 <script src="../shared/js/i18n.js"></script>

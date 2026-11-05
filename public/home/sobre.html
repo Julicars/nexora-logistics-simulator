@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/home.css">
 </head>
 <body class="site">
+<div class="progresso" aria-hidden="true"><span></span></div>
 <nav class="nav nav-site" aria-label="Navegação principal" data-i18n-aria="nav.label">
   <a class="nav-logo" href="index.html"><img class="logo-img" src="../shared/img/logo-nav.png" alt="NEXORA Logistics Intelligence"></a>
   <div class="nav-direita">
@@ -27,6 +28,8 @@
 
 <main>
   <section class="pagina-topo">
+    <div class="orbs" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="hero-grade" aria-hidden="true"></div>
     <div class="wrap">
       <p class="eyebrow in" data-i18n="a.eyebrow">Sobre</p>
       <h1 class="in" data-i18n="a.title"></h1>
@@ -40,6 +43,27 @@
     <h2 class="rev" data-i18n="a.h.title"></h2>
     <div class="grade-cards"><article class="card rev"><span class="passo-n">1</span><h3 data-i18n="a.h1.t"></h3><p data-i18n="a.h1.d"></p></article><article class="card rev"><span class="passo-n">2</span><h3 data-i18n="a.h2.t"></h3><p data-i18n="a.h2.d"></p></article><article class="card rev"><span class="passo-n">3</span><h3 data-i18n="a.h3.t"></h3><p data-i18n="a.h3.d"></p></article></div>
   </section>
+  <section class="secao secao-alt">
+    <div class="wrap">
+      <p class="eyebrow rev" data-i18n="a.tl.eyebrow">Evolução</p>
+      <h2 class="rev" data-i18n="a.tl.title">Como o projeto cresceu</h2>
+      <ol class="linha-tempo">
+        <li class="rev"><span class="lt-ponto"></span><h3 data-i18n="a.tl1.t"></h3><p data-i18n="a.tl1.d"></p></li>
+        <li class="rev"><span class="lt-ponto"></span><h3 data-i18n="a.tl2.t"></h3><p data-i18n="a.tl2.d"></p></li>
+        <li class="rev"><span class="lt-ponto"></span><h3 data-i18n="a.tl3.t"></h3><p data-i18n="a.tl3.d"></p></li>
+        <li class="rev"><span class="lt-ponto"></span><h3 data-i18n="a.tl4.t"></h3><p data-i18n="a.tl4.d"></p></li>
+      </ol>
+    </div>
+  </section>
+  <section class="secao wrap">
+    <p class="eyebrow rev" data-i18n="a.v.eyebrow">Princípios</p>
+    <h2 class="rev" data-i18n="a.v.title">O que guia a NEXORA</h2>
+    <div class="grade-cards">
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v6c0 4.5 3.4 8 8 9 4.6-1 8-4.5 8-9V6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m8.5 12 2.4 2.4L15.5 10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><h3 data-i18n="a.v1.t"></h3><p data-i18n="a.v1.d"></p></article>
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 7v5l3.2 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h3 data-i18n="a.v2.t"></h3><p data-i18n="a.v2.d"></p></article>
+      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7.5" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c.8-4 3.7-6.2 7-6.2s6.2 2.2 7 6.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span><h3 data-i18n="a.v3.t"></h3><p data-i18n="a.v3.d"></p></article>
+    </div>
+  </section>
   <section class="secao wrap">
     <div class="autor rev">
       <div><p class="eyebrow" data-i18n="a.au.title"></p><h3>Julio Cézar de Paula Baldo</h3><p data-i18n="a.au.text"></p></div>
@@ -51,6 +75,7 @@
     <p class="rev" style="margin-top:30px"><a class="botao primario" href="../cubagem/index.html" data-i18n="a.cta"></a></p>
   </section>
 </main>
+<button type="button" class="topo-btn" id="btnTopo" hidden data-i18n-aria="site.top"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 10 8 5.5l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
 <footer class="rodape-site"><span class="rod-links"><a href="https://www.linkedin.com/in/julio-c%C3%A9zar-de-paula-baldo-51774321a/" target="_blank" rel="noopener">LinkedIn</a><a href="https://github.com/Julicars" target="_blank" rel="noopener">GitHub</a></span><span data-i18n="site.rights">Todos os direitos reservados por NEXORA · 2026–2027</span></footer>
 <script src="../shared/js/i18n.js"></script>

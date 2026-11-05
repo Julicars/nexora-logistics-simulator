@@ -123,3 +123,92 @@
   }
   desenhaHud();
 })();
+
+/* Interações do site: menu no celular, barra de progresso, contadores, destaque nos cards e voltar ao topo. */
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const reduzir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = (k) => I18N.T(k);
+
+  /* ---------- Menu hambúrguer ---------- */
+  const nav = $('.nav-site'), dir = nav && nav.querySelector('.nav-direita');
+  if (nav && dir) {
+    dir.id = dir.id || 'navMenu';
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'nav-toggle'; b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', dir.id);
+    b.innerHTML = '<span></span><span></span><span></span>';
+    const rot = () => b.setAttribute('aria-label', T('nav.menu'));
+    rot();
+    nav.insertBefore(b, dir);
+    const fechar = () => { nav.classList.remove('aberto'); b.setAttribute('aria-expanded', 'false'); };
+    b.addEventListener('click', () => { const a = nav.classList.toggle('aberto'); b.setAttribute('aria-expanded', String(a)); });
+    dir.querySelectorAll('a').forEach((a) => a.addEventListener('click', fechar));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && nav.classList.contains('aberto')) { fechar(); b.focus(); } });
+    document.addEventListener('click', (e) => { if (nav.classList.contains('aberto') && !nav.contains(e.target)) fechar(); });
+    window.matchMedia('(min-width: 761px)').addEventListener('change', (m) => { if (m.matches) fechar(); });
+    const selL = $('#selIdioma');
+    if (selL) selL.addEventListener('change', rot);   // roda depois da troca de idioma feita acima
+  }
+
+  /* ---------- Progresso de leitura, nav compacta e voltar ao topo ---------- */
+  const barra = $('.progresso span'), topo = $('#btnTopo');
+  let pend = false;
+  function rolagem() {
+    pend = false;
+    const h = document.documentElement, max = h.scrollHeight - h.clientHeight, y = h.scrollTop || document.body.scrollTop;
+    if (barra) barra.style.transform = `scaleX(${max > 0 ? Math.min(1, y / max) : 0})`;
+    if (nav) nav.classList.toggle('rolado', y > 12);
+    if (topo) topo.hidden = y < 600;
+  }
+  window.addEventListener('scroll', () => { if (!pend) { pend = true; requestAnimationFrame(rolagem); } }, { passive: true });
+  rolagem();
+  if (topo) topo.addEventListener('click', () => window.scrollTo({ top: 0, behavior: reduzir ? 'auto' : 'smooth' }));
+
+  /* ---------- Entrada escalonada: cada item de um grupo entra um pouco depois do anterior ---------- */
+  document.querySelectorAll('.grade-cards, .passos, .numeros-site, .linha-tempo, .faq, .canais-grade').forEach((g) => {
+    Array.from(g.querySelectorAll(':scope > .rev')).forEach((el, i) => el.style.setProperty('--d', (i * 0.08).toFixed(2) + 's'));
+  });
+
+  /* ---------- Contadores animados ---------- */
+  const fmt = (n, el) => (el.dataset.sep ? Math.round(n).toLocaleString(I18N.locale()) : String(Math.round(n))) + (el.dataset.suf || '');
+  function contar(el) {
+    const alvo = +el.dataset.contar;
+    if (reduzir) { el.textContent = fmt(alvo, el); return; }
+    const t0 = performance.now(), dur = 1400;
+    (function passo(t) {
+      const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+      el.textContent = fmt(alvo * e, el);
+      if (p < 1) requestAnimationFrame(passo);
+    })(t0);
+  }
+  const conts = document.querySelectorAll('[data-contar]');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { contar(e.target); io.unobserve(e.target); } }), { threshold: 0.4 });
+    conts.forEach((el) => io.observe(el));
+  } else conts.forEach(contar);
+
+  /* ---------- Luz que segue o mouse nos cards ---------- */
+  if (window.matchMedia('(hover: hover)').matches) {
+    document.querySelectorAll('.card, .canal-card, .faixa-cta').forEach((c) => {
+      c.addEventListener('pointermove', (e) => {
+        const r = c.getBoundingClientRect();
+        c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+        c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+      });
+    });
+    // inclinação leve da cena do hero
+    const cena = $('.hero-cena');
+    if (cena && !reduzir) {
+      cena.addEventListener('pointermove', (e) => {
+        const r = cena.getBoundingClientRect(), x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+        cena.style.transform = `perspective(1100px) rotateY(${x * 6}deg) rotateX(${-y * 5}deg)`;
+      });
+      cena.addEventListener('pointerleave', () => { cena.style.transform = ''; });
+    }
+  }
+
+  /* ---------- FAQ: abre um por vez ---------- */
+  const faqs = document.querySelectorAll('.faq-item');
+  faqs.forEach((d) => d.addEventListener('toggle', () => { if (d.open) faqs.forEach((o) => { if (o !== d) o.open = false; }); }));
+})();

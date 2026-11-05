@@ -66,7 +66,13 @@
         <h2 data-i18n="panel.orders">Pedidos</h2>
         <span class="mudo" id="nLinhas"></span>
       </div>
+      <div class="filtro">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="search" id="filtroPedidos" autocomplete="off" data-i18n-ph="filter.ph" data-i18n-aria="filter.ph" placeholder="Filtrar por nome ou código">
+        <button type="button" class="ico" id="filtroLimpar" hidden data-i18n-title="filter.clear"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      </div>
       <ul class="pedidos" id="listaPedidos"></ul>
+      <p class="mudo" id="filtroVazio" hidden data-i18n="filter.none">Nenhum pedido corresponde ao filtro</p>
       <p class="mudo" id="totalPedidos"></p>
       <button class="btn" id="btnEditar" type="button" data-i18n="btn.editOrders">Editar pedidos</button>
     </section>
@@ -92,6 +98,9 @@
       </div>
       <div id="infoItem" class="info-item" hidden aria-live="polite"><span class="info-pos"></span><span class="info-dims"></span></div>
       <div class="grupo" role="group" aria-label="Exibição">
+        <button type="button" class="ico-btn" id="btnDesfazer" disabled data-i18n-title="undo.title">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 3.5 8.5l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 8.5h7.5a4.5 4.5 0 0 1 0 9H8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </button>
         <button type="button" class="ico-btn" id="btnTrava" aria-pressed="false" data-i18n-title="lock.unlock">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.8" y="2" width="11" height="17" rx="5.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 8.6h11M8.3 2v6.6" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="14.2" y="16.2" width="8.6" height="6.2" rx="1.4" fill="currentColor"/><path class="ic-trancado" d="M16.1 16.2v-2a2.4 2.4 0 0 1 4.8 0v2" fill="none" stroke="currentColor" stroke-width="1.5"/><path class="ic-livre" d="M16.1 16.2v-2a2.4 2.4 0 0 1 4.6-.9" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
         </button>
@@ -113,6 +122,11 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="7" height="13" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 20.5h7M17.5 9.5l3.5 3-3.5 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 20.5h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
           <span data-i18n="edit.lay">Deitar</span><kbd>D</kbd>
         </button>
+        <button type="button" class="ferr" id="btnOrientacao" aria-haspopup="true" aria-expanded="false" data-i18n-title="ori.title">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9z M4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <span data-i18n="ori.btn">Orientação</span><kbd>O</kbd>
+        </button>
+        <div class="menu-ori" id="menuOrientacao" role="menu" hidden></div>
       </div>
       <div id="dica" class="dica" hidden></div>
     </div>
@@ -142,6 +156,13 @@
         <div><span class="rot" data-i18n="k.occupation">Ocupação</span><strong id="kOcup"></strong><div class="barra"><span id="barOcup"></span></div></div>
         <div><span class="rot" data-i18n="k.cargoWeight">Peso da carga</span><strong id="kPeso"></strong><span class="mudo" id="kPesoDe"></span></div>
       </div>
+    </section>
+    <section class="bloco extras" id="blocoExtras" hidden>
+      <div class="bloco-cab">
+        <h2 data-i18n="extra.title">Veículos adicionais</h2>
+      </div>
+      <div id="corpoExtras"></div>
+      <button type="button" class="btn" id="btnMostrarExtras" aria-pressed="true" data-i18n="extra.hide">Ocultar da cena 3D</button>
     </section>
     <section class="bloco">
       <div class="bloco-cab">
@@ -179,7 +200,13 @@
       <h2 id="tituloPedidos" data-i18n="modal.editOrders">Editar pedidos</h2>
       <button type="button" class="ico" data-fechar data-i18n-aria="close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" stroke="currentColor" stroke-width="1.8"/></svg></button>
     </div>
-    <p class="nota" data-i18n="modal.orders.note">Medidas do volume em metros.</p>
+    <div class="linha-nota">
+      <p class="nota" data-i18n="modal.orders.note">Medidas do volume em metros.</p>
+      <div class="filtro">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 10.4 14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="search" id="filtroTabela" autocomplete="off" data-i18n-ph="filter.ph" data-i18n-aria="filter.ph" placeholder="Filtrar por nome ou código">
+      </div>
+    </div>
     <div class="tabela-rolagem">
       <table class="tabela">
         <thead><tr>
@@ -213,6 +240,7 @@
       <nav class="config-nav" role="tablist">
         <button type="button" role="tab" id="tab-atual" aria-controls="aba-atual" aria-selected="true" data-aba="atual" data-i18n="tab.currentVehicle">Veículo atual</button>
         <button type="button" role="tab" id="tab-frota" aria-controls="aba-frota" aria-selected="false" data-aba="frota" data-i18n="tab.fleet">Configuração de veículos</button>
+        <button type="button" role="tab" id="tab-acess" aria-controls="aba-acess" aria-selected="false" data-aba="acess" data-i18n="tab.access">Acessibilidade</button>
       </nav>
 
       <div class="config-aba" id="aba-atual" role="tabpanel" aria-labelledby="tab-atual">
@@ -250,6 +278,15 @@
             <input id="inApoio" type="range" min="50" max="100" step="5" value="75">
           </label>
           <p class="nota" data-i18n="config.supportNote">Parte da base de cada volume que precisa estar apoiada.</p>
+        </section>
+      </div>
+
+      <div class="config-aba" id="aba-acess" role="tabpanel" aria-labelledby="tab-acess" hidden>
+        <section class="config-secao">
+          <h3 data-i18n="cb.title">Modo de cores (daltonismo)</h3>
+          <p class="nota" data-i18n="cb.note">Troca as cores dos produtos, dos avisos e das barras por paletas que podem ser diferenciadas por quem tem daltonismo.</p>
+          <div class="opcoes-cor" id="opcoesCor" role="radiogroup" data-i18n-aria="cb.title"></div>
+          <label class="check-linha"><input type="checkbox" id="chkNumeros"> <span data-i18n="cb.numbers">Mostrar o número do produto nos volumes (não depender só da cor)</span></label>
         </section>
       </div>
 
@@ -335,6 +372,8 @@
 <script src="js/app/exportar.js"></script>
 <script src="js/app/descarga.js"></script>
 <script src="js/app/cenarios.js"></script>
+<script src="js/app/extras.js"></script>
+<script src="js/app/cores.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

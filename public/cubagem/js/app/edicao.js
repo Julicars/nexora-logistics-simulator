@@ -266,7 +266,13 @@ document.addEventListener('keydown', (e) => {
     const c = st.res.colocados[st.sel], passo = e.shiftKey ? 0.5 : 0.1;
     const dgx = e.key === 'ArrowLeft' ? -passo : e.key === 'ArrowRight' ? passo : 0;
     const dy = e.key === 'ArrowUp' ? -passo : e.key === 'ArrowDown' ? passo : 0;
-    const cand = avaliar(st.sel, c.gx + dgx, c.y + dy);
+    let cand = avaliar(st.sel, c.gx + dgx, c.y + dy);
+    // na borda de um vagão, a seta horizontal pula para o vagão vizinho (rodotrem/bitrem)
+    const v = st.res.veiculo;
+    if (dgx && v.vagoes > 1 && cand.k === c.vagao && Math.abs(cand.x - c.x) < 1e-6) {
+      const k2 = c.vagao + (dgx > 0 ? 1 : -1);
+      if (k2 >= 0 && k2 < v.vagoes) cand = avaliar(st.sel, k2 * (v.c + v.gap) + (dgx > 0 ? 0 : v.c - c.dx), c.y);
+    }
     if (cand.ok) { confirmarMovimento(st.sel, cand); colorirVolumes(); restaurarDica(); }
     else mostrarDica(T('edit.invalid.' + cand.motivo), true, 1800);
   }
@@ -278,9 +284,9 @@ vp.addEventListener('pointerdown', (ev) => {
   if (ev.button !== 0 || !st.res) return;
   if (ev.target.closest && ev.target.closest('#ferramentas')) return;   // botões de girar/deitar
   const i = pegar(ev);
-  if (!st.editar) return;   // travado: o mouse só mostra as informações, não seleciona
   if (drag) return;
   clique = { x: ev.clientX, y: ev.clientY, i };
+  if (!st.editar) return;   // travado: o clique só seleciona (mostra a etiqueta 3D), não arrasta
   // só o item já selecionado é arrastado; em qualquer outro lugar o arraste gira a câmera
   if (i < 0 || i !== st.sel) return;
   if (bloqueado(i)) { mostrarDica(T('edit.blocked'), true, 2600); return; }   // deixa a câmera girar

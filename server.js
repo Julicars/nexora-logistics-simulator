@@ -161,6 +161,8 @@ function tratarEstatico(req, res, url) {
   if (rel.includes('\0') || rel.includes('\\')) return responder(req, res, 400, 'Requisição inválida');
   // nenhum segmento oculto (.git, .env, ...) nem ".."
   if (rel.split('/').some((s) => s === '..' || (s.startsWith('.') && s.length > 0))) return responder(req, res, 404, 'Não encontrado');
+  // a página inicial fica em /home/: a raiz redireciona para lá (os caminhos relativos de CSS e JS dependem disso)
+  if (rel === '/' || rel === '/index.html') return responder(req, res, 302, '', null, { Location: '/home/index.html' });
   if (rel.endsWith('/')) rel += 'index.html';
   const alvo = path.join(PUBLICO, rel);
   fs.realpath(alvo, (e1, real) => {

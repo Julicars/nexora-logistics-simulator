@@ -4,95 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NEXORA Logistics Intelligence</title>
-<link rel="icon" type="image/png" href="../shared/img/favicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap">
-<link rel="stylesheet" href="../shared/css/base.css">
-<link rel="stylesheet" href="css/home.css">
+<!-- A página inicial fica em home/. Este arquivo só redireciona (útil em hospedagens estáticas, ex.: GitHub Pages). -->
+<meta http-equiv="refresh" content="0; url=home/index.html">
+<link rel="canonical" href="home/index.html">
 </head>
-<body class="site">
-<nav class="nav nav-site" aria-label="Navegação principal" data-i18n-aria="nav.label">
-  <a class="nav-logo" href="index.html"><img class="logo-img" src="../shared/img/logo-nav.png" alt="NEXORA Logistics Intelligence"></a>
-  <div class="nav-direita">
-    <ul class="nav-links">
-      <li><a href="index.html" class="ativo" aria-current="page" data-i18n="nav.home">Home</a></li>
-      <li><a href="../cubagem/index.html" data-i18n="nav.cubage">Cubagem</a></li>
-      <li><a href="sobre.html" data-i18n="nav.about">Sobre</a></li>
-      <li><a href="contato.html" data-i18n="nav.contact">Contato</a></li>
-    </ul>
-    <select id="selIdioma" class="sel-lang" data-i18n-aria="lang.label"></select>
-  </div>
-</nav>
-
-<main>
-  <section class="hero">
-    <div class="orbs" aria-hidden="true"><i></i><i></i><i></i></div>
-    <div class="hero-grade" aria-hidden="true"></div>
-    <div class="wrap hero-in">
-      <div class="hero-txt">
-        <p class="eyebrow in" data-i18n="h.eyebrow">Logistics Intelligence</p>
-        <h1 class="hero-t in"><span data-i18n="h.t1">Sua logística.</span> <em data-i18n="h.t2">Sob controle.</em></h1>
-        <p class="hero-lead in" data-i18n="h.lead"></p>
-        <div class="hero-cta in">
-          <a class="botao primario" href="../cubagem/index.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span data-i18n="h.cta1">Abrir a Cubagem</span></a>
-          <a class="botao" href="sobre.html" data-i18n="h.cta2">Conhecer a NEXORA</a>
-        </div>
-      </div>
-      <div class="hero-cena in">
-        <canvas id="cena" aria-hidden="true"></canvas>
-        <div class="hud" aria-live="off">
-          <div><span data-i18n="h.hud.pal">Paletes</span><strong id="hudPal">0</strong></div>
-          <div><span data-i18n="h.hud.kg">Peso</span><strong id="hudKg">0 kg</strong></div>
-          <div><span data-i18n="h.hud.floor">Piso ocupado</span><strong id="hudPiso">0%</strong></div>
-        </div>
-        <p class="demo" data-i18n="h.demo">Exemplo ilustrativo</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="secao wrap">
-    <p class="eyebrow rev" data-i18n="h.feat.eyebrow"></p>
-    <h2 class="rev" data-i18n="h.feat.title"></h2>
-    <div class="grade-cards">
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f1.t"></h3><p data-i18n="h.f1.d"></p></article>
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h5v10zM10 20V4h5v16zM16 20v-7h4v7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f2.t"></h3><p data-i18n="h.f2.d"></p></article>
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18M6 17a2 2 0 1 0 4 0M14 17a2 2 0 1 0 4 0M5 13V8h9l3 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f3.t"></h3><p data-i18n="h.f3.d"></p></article>
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l12 8-5 1.2L9.5 18zM12 12l5.5 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f4.t"></h3><p data-i18n="h.f4.d"></p></article>
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h18M3 12h18M3 16h12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f5.t"></h3><p data-i18n="h.f5.d"></p></article>
-      <article class="card rev"><span class="card-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <h3 data-i18n="h.f6.t"></h3><p data-i18n="h.f6.d"></p></article>
-    </div>
-  </section>
-
-  <section class="secao secao-alt">
-    <div class="wrap">
-      <p class="eyebrow rev" data-i18n="h.how.eyebrow"></p>
-      <h2 class="rev" data-i18n="h.how.title"></h2>
-      <ol class="passos">
-      <li class="passo rev"><span class="passo-n">1</span><h3 data-i18n="h.s1.t"></h3><p data-i18n="h.s1.d"></p></li>
-      <li class="passo rev"><span class="passo-n">2</span><h3 data-i18n="h.s2.t"></h3><p data-i18n="h.s2.d"></p></li>
-      <li class="passo rev"><span class="passo-n">3</span><h3 data-i18n="h.s3.t"></h3><p data-i18n="h.s3.d"></p></li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="secao wrap">
-    <div class="faixa-cta rev">
-      <div><h2 data-i18n="h.cta.title"></h2><p data-i18n="h.cta.text"></p></div>
-      <a class="botao primario grande" href="../cubagem/index.html" data-i18n="h.cta1">Abrir a Cubagem</a>
-    </div>
-  </section>
-</main>
-
-<footer class="rodape-site"><span class="rod-links"><a href="https://www.linkedin.com/in/julio-c%C3%A9zar-de-paula-baldo-51774321a/" target="_blank" rel="noopener">LinkedIn</a><a href="https://github.com/Julicars" target="_blank" rel="noopener">GitHub</a></span><span data-i18n="site.rights">Todos os direitos reservados por NEXORA · 2026–2027</span></footer>
-<script src="../shared/js/i18n.js"></script>
-<script src="js/home-i18n.js"></script>
-<script src="js/home.js"></script>
+<body style="background:#061024;color:#eef3fb;font-family:sans-serif">
+<p><a href="home/index.html" style="color:#f5a033">NEXORA Logistics Intelligence</a></p>
 </body>
 </html>
