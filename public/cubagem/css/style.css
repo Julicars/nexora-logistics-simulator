@@ -614,3 +614,106 @@ body[class*="cb-"] .eixos li.tolerancia .barra span { background-image: repeatin
 .lista-extras li.principal .ext-n { background: var(--acento); color: #0a1428; }
 .lista-extras .ext-tag { flex: none; font-size: 12px; font-weight: 700; color: var(--acento); text-transform: uppercase; letter-spacing: 0.06em; }
 .lista-extras .btn.peq { flex: none; }
+
+/* ========== Acessibilidade: skip link ========== */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 16px;
+  z-index: 9999;
+  background: var(--acento);
+  color: #0a1428;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 0 0 10px 10px;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+.skip-link:focus { top: 0; outline: 3px solid #fff; outline-offset: 2px; }
+
+/* ========== Acessibilidade: sr-only (texto para leitores de tela) ========== */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important; border: 0 !important;
+}
+
+/* ========== Acessibilidade: dica de navegação por teclado ========== */
+.dica-nav-vol {
+  position: absolute;
+  bottom: 56px; left: 50%; transform: translateX(-50%);
+  background: rgba(8,18,40,0.92);
+  color: var(--fg);
+  font-size: 12.5px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  z-index: 20;
+}
+.dica-nav-vol.visivel { opacity: 1; }
+.dica-nav-vol.sr-hidden { display: none; }
+
+/* ========== Acessibilidade: zoom de texto ========== */
+:root { --zoom-texto: 1; }
+.painel, .modal-caixa, .topo, .rodape, .barra-vistas, .player {
+  font-size: calc(1em * var(--zoom-texto, 1));
+}
+/* garante que alvos de toque tenham mínimo 44px em zoom */
+@media (pointer: coarse) {
+  .btn, .ico-btn, .ico, .ferr, .vista, .recolher, .play, .link, .check-linha {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .ico-btn, .ico { width: 44px; height: 44px; }
+  .btn { padding-block: 11px; }
+  .ferr { padding: 10px 14px; }
+  .opcao-cor { padding: 14px; }
+  .check-linha { padding: 6px 2px; }
+}
+
+/* ========== Acessibilidade: alto contraste ========== */
+body.alto-contraste {
+  --linha: rgba(255,255,255,0.35);
+  --fg: #ffffff;
+  --fg-2: #d0d8f0;
+  --mudo: #a0b0cc;
+}
+body.alto-contraste .btn,
+body.alto-contraste .ico-btn,
+body.alto-contraste .vista,
+body.alto-contraste .ferr,
+body.alto-contraste select,
+body.alto-contraste input[type="text"],
+body.alto-contraste input[type="search"] {
+  outline: 1.5px solid rgba(255,255,255,0.22);
+}
+body.alto-contraste .btn:focus-visible,
+body.alto-contraste .ico-btn:focus-visible,
+body.alto-contraste a:focus-visible,
+body.alto-contraste input:focus-visible,
+body.alto-contraste select:focus-visible,
+body.alto-contraste [tabindex]:focus-visible {
+  outline: 3px solid var(--acento) !important;
+  outline-offset: 2px;
+}
+body.alto-contraste .painel,
+body.alto-contraste .modal-caixa {
+  border: 1.5px solid rgba(255,255,255,0.18);
+}
+body.alto-contraste .numeros .barra { border: 1px solid rgba(255,255,255,0.3); }
+
+/* ========== Acessibilidade: foco visível em todos os elementos ========== */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+/* ========== Acessibilidade: zoom de opções ========== */
+.opcoes-zoom { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.opcoes-zoom .opcao-cor { flex-direction: row; align-items: center; gap: 10px; padding: 10px 14px; }
+.opcoes-zoom .opcao-cor input[type="radio"] { width: 18px; height: 18px; accent-color: var(--acento); }

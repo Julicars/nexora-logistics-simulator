@@ -33,9 +33,14 @@ setInterval(() => {
     linhaTip(T('tip.dimensions'), `${nf(c.dx)} × ${nf(c.dy)} × ${nf(c.dz)} m`);
   tip.hidden = false;
   const pw = vp.parentElement.getBoundingClientRect();
+  const tipW = tip.offsetWidth || 220, tipH = tip.offsetHeight || 200;
+  const margin = 10;
   let x = ev.clientX - pw.left + 14, y = ev.clientY - pw.top + 14;
-  if (x + 250 > pw.width) x -= 270;
-  if (y + 200 > pw.height) y -= 210;
+  // garante que o tooltip não ultrapasse as bordas do palco
+  if (x + tipW + margin > pw.width)  x = ev.clientX - pw.left - tipW - 10;
+  if (y + tipH + margin > pw.height) y = ev.clientY - pw.top  - tipH - 10;
+  x = Math.max(margin, Math.min(x, pw.width  - tipW  - margin));
+  y = Math.max(margin, Math.min(y, pw.height - tipH  - margin));
   tip.style.left = x + 'px';
   tip.style.top = y + 'px';
 }, 60);
