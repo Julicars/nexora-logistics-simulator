@@ -127,6 +127,14 @@ docs/                        imagens usadas neste README
 - Opção de mostrar o número do produto nas listas e na etiqueta 3D, para não depender só da cor.
 - A escolha fica salva no navegador; o site respeita a preferência de *movimento reduzido* do sistema.
 
+## Privacidade
+
+O simulador roda inteiramente no navegador. Idioma, frota e cenários salvos ficam no `localStorage` do seu navegador e não são enviados a nenhum servidor. Para limpar esses dados, use as configurações do próprio navegador para apagar o armazenamento do site.
+
+## Histórico de versões
+
+As mudanças estão registradas em [CHANGELOG.md](CHANGELOG.md).
+
 ## Roadmap
 
 - Exportação em PDF nativo (sem depender da impressão do navegador)

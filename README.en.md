@@ -127,6 +127,14 @@ docs/                        images used in this README
 - Option to show the product number in lists and on the 3D label, so color is not the only cue.
 - The choice is saved in the browser; the website respects the system's *reduced motion* setting.
 
+## Privacy
+
+The simulator runs entirely in the browser. The language, saved fleet and saved scenarios are kept in your browser's `localStorage` and are not sent to any server. To clear that data, use your browser's settings to delete the site's stored data.
+
+## Changelog
+
+Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+
 ## Roadmap
 
 - Native PDF export (without relying on the browser print dialog)

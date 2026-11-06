@@ -45,7 +45,7 @@
       g.setTransform(d, 0, 0, d, 0, 0);
       const larg = (L + W) * C, alt = (L + W) * S + H;
       u = Math.min((w * 0.94) / larg, (h * 0.9) / alt);
-      ox = w / 2 + ((L - W) / 2) * C * -u + 0; ox = w / 2 - ((L - W) * C * u) / 2;
+      ox = w / 2 - ((L - W) * C * u) / 2;
       oy = h * 0.5 - ((L + W) * S * u) / 2 + (H * u) / 2;
     }
     const poli = (pts, fill, stroke) => {

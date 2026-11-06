@@ -247,7 +247,7 @@
       'resumo.wagonsOf': '{n} sections of ', 'resumo.upTo': 'up to {n} kg',
       'total.text': 'Total: {v}', 'total.pieces': ' · {n} pieces', 'newVehicle': 'New vehicle {n}',
       'newProduct': 'New product',
-      'nav.label': 'Main navigation', 'nav.home': 'Home', 'nav.cubage': 'Cubage', 'nav.about': 'About', 'nav.contact': 'Contact',
+      'nav.label': 'Main navigation', 'nav.home': 'Home', 'nav.cubage': 'Load planner', 'nav.about': 'About', 'nav.contact': 'Contact',
       'lock.unlock': 'Unlock the mouse to select and move pallets', 'lock.lock': 'Lock the mouse (hover info only)',
       'edit.hint': 'Click to select · drag the selected item to move it · drag the background to orbit · mouse wheel: zoom',
       'edit.rotate': 'Rotate 90°', 'edit.lay': 'Lay down', 'edit.rotate.title': 'Rotate 90° (swaps length and width) · key R', 'edit.lay.title': 'Lay the item on its side · key D', 'edit.tools': 'Edit tools',

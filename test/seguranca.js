@@ -126,8 +126,7 @@ const PROD = { codigo: 'A', nome: 'P', tipo: 'palete', c: 1.2, l: 1.1, h: 1.9, q
   const nf = await req({ path: '/api/admin' });
   ok(nf.status === 404 && !/at .*\.js/.test(nf.corpo), '/api/admin -> 404 sem detalhes');
   ok((await req({ path: '/%' })).status === 400, 'URL com % inválido -> 400');
-  ok(['/admin', '/login', '/wp-admin', '/phpmyadmin', '/.git/HEAD'].every(async () => true), 'rotas de administração inexistentes');
-  for (const p of ['/admin', '/login', '/wp-admin/', '/phpmyadmin/']) ok((await req({ path: p })).status === 404, p + ' -> 404');
+  for (const p of ['/admin', '/login', '/wp-admin/', '/phpmyadmin/', '/.git/HEAD']) ok((await req({ path: p })).status === 404, p + ' -> 404');
 
   console.log('9. Limite de taxa (força bruta / flood)');
   const { spawn } = require('child_process');
