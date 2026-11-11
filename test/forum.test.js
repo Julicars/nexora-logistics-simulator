@@ -1,0 +1,21 @@
+'use strict';
+const test = require('node:test'), assert = require('node:assert'), os = require('os'), fs = require('fs'), path = require('path');
+process.env.NEXORA_ADMIN_SENHA = 'teste-123';
+const { createServer } = require('../server/index.js');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nxf-'));
+let srv, base;
+test.before(() => new Promise(ok => { srv = createServer({ dataDir: dir }).listen(0, () => { base = 'http://127.0.0.1:' + srv.address().port; ok(); }); }));
+test.after(() => srv.close());
+const j = (u, o = {}) => fetch(base + u, { ...o, headers: { 'Content-Type': 'application/json', ...(o.headers || {}) } }).then(async r => ({ s: r.status, b: await r.json() }));
+test('lista categorias e tópico de boas-vindas', async () => { const r = await j('/api/forum'); assert.equal(r.s, 200); assert.equal(r.b.cats.length, 7); assert.ok(r.b.topics.length >= 1); });
+test('sem senha não cria tópico', async () => { const r = await j('/api/forum/topics', { method: 'POST', body: JSON.stringify({ cat: 'ciot', titulo: 'x', texto: 'y' }) }); assert.equal(r.s, 403); });
+test('senha errada é recusada', async () => { const r = await j('/api/forum/login', { method: 'POST', body: JSON.stringify({ senha: 'errada' }) }); assert.equal(r.s, 401); });
+test('admin cria tópico, qualquer um responde, admin apaga', async () => {
+  const L = await j('/api/forum/login', { method: 'POST', body: JSON.stringify({ senha: 'teste-123' }) }); assert.equal(L.s, 200);
+  const h = { 'X-Admin-Token': L.b.token };
+  const t = await j('/api/forum/topics', { method: 'POST', headers: h, body: JSON.stringify({ cat: 'frete', titulo: 'Nova tabela', texto: 'Portaria SUROC 22' }) }); assert.equal(t.s, 201);
+  const r = await j(`/api/forum/topics/${t.b.id}/replies`, { method: 'POST', body: JSON.stringify({ autor: 'João', texto: 'Obrigado' }) }); assert.equal(r.s, 201);
+  const vazio = await j(`/api/forum/topics/${t.b.id}/replies`, { method: 'POST', body: JSON.stringify({ autor: '', texto: 'oi' }) }); assert.equal(vazio.s, 422);
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'forum.json'), 'utf8')); assert.equal(saved.topics.find(x => x.id === t.b.id).respostas.length, 1);
+  const d = await j(`/api/forum/topics/${t.b.id}`, { method: 'DELETE', headers: h }); assert.equal(d.s, 200);
+});
