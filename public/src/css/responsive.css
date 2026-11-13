@@ -475,3 +475,21 @@ input.masked{font-variant-numeric:tabular-nums}input.masked.money{text-align:rig
 .tarabox{margin-top:8px;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.tarabox summary{cursor:pointer;font-weight:600}
 .taragrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:8px}.taragrid .f{font-size:12px}
 #mRec .tbl td,#mRec .tbl th{padding:5px 6px;text-align:left;vertical-align:top;font-size:13px}#mRec tr.bad td{color:#f8a3a3}
+/* ---- diagrama interativo de vínculos (v41) ---- */
+.etipo{border:0;padding:0;margin:0 0 8px;display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1}.etipo label{display:flex;gap:6px;align-items:center;padding:7px 12px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-weight:600;font-size:14px}.etipo label:has(input:checked){border-color:#f7a334;background:rgba(247,163,52,.12)}
+.gwrap{position:relative;background:#081028;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.gbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px;border-bottom:1px solid var(--line);background:rgba(10,18,38,.9)}.gbar .btn{min-width:38px}.gbusca{flex:1 1 180px;min-width:140px}.gbusca input{width:100%}.gcont{font-size:12px;margin-left:auto}
+.gtela{position:relative;height:min(68vh,620px);min-height:360px}.gsvg{width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}.gsvg.arrasta{cursor:grabbing}.gsvg:focus-visible{outline:3px solid #f7a334;outline-offset:-3px}
+.gdica{position:absolute;left:8px;bottom:6px;margin:0;font-size:11px;color:#9fb0d0;background:rgba(8,16,40,.75);padding:3px 8px;border-radius:6px;pointer-events:none}
+.gsvg .gt{font:600 12px Barlow,Arial,sans-serif;fill:#e6ecff}.gsvg .gr{font:10px Barlow,Arial,sans-serif;fill:#9fb0d0}
+.gno{cursor:pointer;transition:opacity .15s}.gno:focus{outline:none}.gno:focus rect,.gno:focus circle:first-of-type,.gno.sel rect,.gno.sel circle:first-of-type{stroke:#f7a334;stroke-width:4}.gno.achou rect,.gno.achou circle:first-of-type{stroke:#facc15;stroke-width:4}
+.gno.apaga,line.apaga{opacity:.15}.garestas line{transition:opacity .15s}
+.gpainel:empty{display:none}.gdet{padding:10px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}.gdet-b{display:flex;gap:6px;flex-wrap:wrap}.glig{margin:6px 0 0;padding-left:18px;max-height:160px;overflow:auto;font-size:13px}
+.gwrap.gfull{position:fixed;inset:0;z-index:9999;border-radius:0;display:flex;flex-direction:column}.gwrap.gfull .gtela{flex:1;height:auto}.gwrap.gfull .gpainel{max-height:40vh;overflow:auto}html.gtrava{overflow:hidden}
+.elinks{columns:2 260px;padding-left:18px;font-size:14px}.elinks li{margin:3px 0}.edet{margin:8px 0}.epes{border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
+@media (max-width:520px){.gtela{height:62vh}.gcont{width:100%;margin:0}.gdica{display:none}}
+.erede svg.gsvg{min-width:0!important;width:100%;height:100%}
+/* nota de risco e fontes extras (v42) */
+.erisco{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-left:6px solid;border-radius:10px;padding:10px 12px;margin:10px 0}.erisco.ok{border-left-color:#4ade80}.erisco.warn{border-left-color:#facc15}.erisco.bad{border-left-color:#f87171}
+.erisco-n{font-family:Barlow,system-ui,sans-serif;text-align:center;min-width:64px}.erisco-n b{font-size:34px;line-height:1;display:block}.erisco ul{margin:4px 0 0;padding-left:18px;font-size:14px}
+.etrdoc{border:1px dashed var(--line);border-radius:10px;padding:10px;margin:6px 0 10px}.elistas summary{cursor:pointer}.elistas{margin-top:12px}

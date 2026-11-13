@@ -42,7 +42,11 @@ Tudo funciona: fórum e registros compartilhados entre usuários, busca por nome
 
 > A prévia dentro do Claude bloqueia acesso a qualquer site externo: lá a consulta de empresas não funciona. Use uma das opções acima.
 
-## Consulta de empresas (CNPJ)
+## Consulta de empresas
+
+- **Pessoas (sócios):** escolha “👤 Pessoa”, digite o nome completo (CPF opcional para separar homônimos). Rota: `POST /api/empresas/pessoa {nome, doc?, uf?}`. O CPF é convertido para o formato mascarado (`***456789**`) antes de qualquer consulta externa.
+- **Diagrama interativo:** arraste, zoom com roda/pinça, duplo clique num nó para expandir, tela cheia e exportação em SVG.
+- **Extras da consulta completa:** GLEIF (LEI, sem chave) e, com `NEXORA_TRANSPARENCIA_CHAVE`, CEIS/CNEP/CEPIM/leniência e contratos federais. (CNPJ)
 
 Menu **Consultas → Consulta de empresas**. Digite o CNPJ ou parte do nome.
 

@@ -2,6 +2,23 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.19.0] — 2026-11-13 · v42
+### Adicionado
+- **Nota de risco (0–100)** na consulta completa, com os motivos (situação, idade, capital, sanções, embargo, lista suja, sanções internacionais, RNTRC).
+- **Setor da empresa** pelo CNAE (indústria, atacado, varejo, transportadora, logística, agro, construção, serviços).
+- **Transportadoras (ANTT, dados abertos)**: RNTRC (número, situação, categoria ETC/TAC/CTC, desde), frota cadastrada, habilitação TRIC e OTM.
+- **Seguros da transportadora**: RCTR-C, RC-DC, seguradora, validade e gerenciadora de risco anotados pelo usuário (não existem em base pública), com aviso de vencido.
+- **IBAMA**: embargos ambientais por CNPJ. **Lista suja do trabalho escravo**: carregar a planilha oficial do MTE e conferir empresa, empresas sócias e mesma raiz de CNPJ.
+- **Sanções internacionais**: listas oficiais OFAC (EUA) e ONU, baixadas 1x por dia no servidor; confere empresa e sócios (nome idêntico marcado como “confira”).
+- Diagrama: **tocar numa pessoa já busca as empresas dela** e traz para o diagrama; reajusta a vista após expandir.
+
+## [3.18.0] — 2026-11-13 · v41
+### Adicionado
+- **Diagrama de vínculos interativo** (`app/grafo.js`, sem bibliotecas): arrastar para mover, roda do mouse/pinça para zoom, arrastar nós, tela cheia, procurar no diagrama, destacar ligações, painel de detalhes, **expandir vínculos** de empresa ou pessoa (duplo clique), organizar de novo, teclado (setas, + / −, 0, Esc) e exportar SVG.
+- **Consulta de pessoas (sócios)**: nome completo (+ CPF opcional, convertido para o formato mascarado da Receita antes de sair do sistema) → empresas em que é sócia/administradora, cargos, datas, situação, homônimos separados e diagrama próprio. Só vínculos societários públicos — sem endereço, telefone ou outros dados pessoais.
+- Consulta completa: **GLEIF/LEI** (registro global, com controladora direta/final), CEPIM e acordos de leniência, contratos com o governo federal (Portal da Transparência, com chave) e links oficiais para certidões (Receita/PGFN, FGTS, CNDT/TST, RNTRC/ANTT, Sintegra).
+- Rota `POST /api/empresas/pessoa`; testes novos.
+
 ## [3.17.0] — 2026-11-12 · v40
 ### Adicionado
 - **Paletização** (botão "🧱 Paletizar caixas soltas"): calcula caixas por camada (bloco, bloco girado ou padrão em dois blocos), camadas pela altura total, limite de peso do palete e de empilhamento, opção de deitar a caixa e sobra na borda.

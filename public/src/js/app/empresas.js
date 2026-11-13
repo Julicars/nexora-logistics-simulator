@@ -24,6 +24,7 @@ const EMPRESAS = (function () {
   async function direto(path, opt) {
     q('#eMode').hidden = false; q('#eMode').textContent = 'Usando pela web: o navegador consulta direto as APIs públicas. Se alguma fonte bloquear o acesso pelo navegador, a tela avisa — aí use o CNPJ ou rode o NEXORA no computador (npm start).';
     if (path === '/busca') return buscaDireta(JSON.parse(opt.body));
+    if (path === '/pessoa') return pessoaDireta(JSON.parse(opt.body));
     const m = path.match(/^\/(cnpj|completa|rede)\/(\d{14})(?:\?uf=(\w+))?/);
     if (!m) { const e = new Error('Consulta não disponível.'); e.status = 400; throw e; }
     let d = null, falhas = [];
@@ -36,7 +37,9 @@ const EMPRESAS = (function () {
     let extra = { aviso: 'Fontes extras indisponíveis agora.' };
     try { const w = await getJ(`https://publica.cnpj.ws/cnpj/${m[2]}`); if (w) { const n = E.normalizar(w, 'CNPJ.ws'); d.inscricoes = n.inscricoes; if (d.simples.optante == null) d.simples = n.simples; extra = { fonte: 'CNPJ.ws' }; } } catch (e) { /* segue */ }
     try { const x = await getJ(`https://open.cnpja.com/office/${m[2]}`); if (x) { const n = E.normalizar(x, 'CNPJá'); d.simples = { ...d.simples, ...Object.fromEntries(Object.entries(n.simples).filter(([, v]) => v != null)) }; if (!d.inscricoes.length) d.inscricoes = n.inscricoes; extra = { fonte: extra.fonte ? extra.fonte + ' + CNPJá' : 'CNPJá' }; } } catch (e) { /* segue sem */ }
-    return { empresa: d, alertas: E.alertas(d), extra, sancoes: { semChave: true } };
+    let lei = null; try { const j = await getJ(`https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${m[2]}&page[size]=1`); lei = j ? (E.lei(j) || { nenhum: true }) : null; } catch (e) { /* segue */ }
+    const fontes = await extrasDiretos(d);
+    return { empresa: d, alertas: E.alertas(d), extra, sancoes: { semChave: true }, lei, links: E.linksOficiais(m[2]), fontes, risco: E.risco(d, fontes) };
   }
   /* uso pela web (sem servidor): busca por nome direto na Casa dos Dados */
   async function buscaDireta(b) {
@@ -48,6 +51,38 @@ const EMPRESAS = (function () {
     if (!r.ok) throw Object.assign(new Error('Busca por nome indisponível agora (HTTP ' + r.status + '). Use o CNPJ.'), { status: 502 });
     const j = await r.json(); const arr = (function f(o, d) { if (d > 3 || !o || typeof o !== 'object') return null; if (Array.isArray(o) && o.length && o[0] && typeof o[0] === 'object' && 'cnpj' in o[0]) return o; for (const v of Object.values(o)) { const x = f(v, d + 1); if (x) return x; } return null; })(j, 0) || [];
     return cacheSet(k, { total: j.total || arr.length, lista: arr.slice(0, 20).map(x => ({ cnpj: E.dig(x.cnpj), razao: x.razao_social, fantasia: x.nome_fantasia || null, situacao: (x.situacao_cadastral && (x.situacao_cadastral.situacao_atual || x.situacao_cadastral)) || null, municipio: x.endereco && x.endereco.municipio, uf: x.endereco && x.endereco.uf })).filter(x => x.cnpj.length === 14), fonte: 'Casa dos Dados (base aberta da Receita)' });
+  }
+  /* uso pela web (sem servidor): ANTT e IBAMA pelos portais de dados abertos; lista suja guardada no navegador */
+  async function ckan(host, pacote, doc, campos) {
+    const p = await getJ(`https://${host}/api/3/action/package_show?id=${pacote}`); const rs = p && p.result ? p.result.resources.filter(x => x.datastore_active).sort((a, b) => String(b.created).localeCompare(String(a.created))) : [];
+    if (!rs.length) return null; const alvo = E.dig(doc);
+    for (const t of [...campos.map(c => 'filters=' + encodeURIComponent(JSON.stringify({ [c]: alvo }))), 'q=' + alvo]) { const r = await getJ(`https://${host}/api/3/action/datastore_search?resource_id=${rs[0].id}&limit=50&${t}`); const l = r && r.result ? r.result.records.filter(x => Object.values(x).some(v => E.dig(v) === alvo)) : []; if (l.length) return l; }
+    return [];
+  }
+  async function extrasDiretos(d) {
+    const out = { setor: E.setor(d), antt: null, ibama: null, internacional: null, internacionalAviso: 'As listas de sanções internacionais (EUA e ONU) são arquivos grandes: só são conferidas com o NEXORA rodando no computador (npm start).' };
+    try { const l = await ckan('dados.antt.gov.br', 'rntrc', d.cnpj, ['cpfcnpjtransportador']); if (l) { const x = l[0]; out.antt = x ? { numero: x.numero_rntrc, situacao: x.situacao_rntrc, desde: x.data_primeiro_cadastro, categoria: x.categoria_transportador, municipio: x.municipio, uf: x.uf } : { naoEncontrado: true }; } } catch (e) { out.antt = { erro: 'A ANTT bloqueou o acesso direto pelo navegador. Use o link “Transportador no RNTRC” abaixo ou rode com npm start.' }; }
+    try { const l = await ckan('dadosabertos.ibama.gov.br', 'fiscalizacao-termo-de-embargo', d.cnpj, ['CPF_CNPJ_INFRATOR']); if (l) out.ibama = { lista: l.slice(0, 20).map(x => ({ numero: x.NUM_TAD, data: x.DAT_EMBARGO, municipio: x.MUNICIPIO, uf: x.UF, motivo: x.DES_INFRACAO })) }; } catch (e) { out.ibama = { erro: 'O IBAMA bloqueou o acesso direto pelo navegador. Use a consulta oficial de embargos.' }; }
+    const ls = LS.get('listaSuja', null); if (ls) { out.listaSuja = E.naLista(ls.lista, d); out.listaSujaData = ls.t; }
+    return out;
+  }
+  /* uso pela web (sem servidor): pessoa — com CPF pela minhareceita; só com nome pela Casa dos Dados */
+  async function pessoaDireta(b) {
+    const nome = String(b.nome || '').trim(), mask = b.doc ? E.mascaraCpf(b.doc) : null;
+    if (E.normNome(nome).split(' ').length < 2) throw Object.assign(new Error('Digite o nome completo da pessoa (nome e sobrenome).'), { status: 400 });
+    const k = 'empPes:' + E.normNome(nome) + ':' + (mask || '') + ':' + (b.uf || ''), c = cacheGet(k); if (c) return c;
+    let emps = [], avisos = [];
+    try {
+      if (mask) { const r = await fetch(`https://minhareceita.org/?cnpf=${encodeURIComponent(mask)}${b.uf ? '&uf=' + b.uf : ''}&limit=200`); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); emps = (j.data || []).map(x => E.normalizar(x, 'minhareceita.org')); }
+      else {
+        const r = await fetch('https://api.casadosdados.com.br/v5/public/cnpj/pesquisa', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ busca_textual: [{ texto: [nome], tipo_busca: 'exata', razao_social: false, nome_fantasia: false, nome_socio: true }], ...(b.uf ? { uf: [b.uf] } : {}), limite: 20, pagina: 1 }) });
+        if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json();
+        const arr = (function f(o, d) { if (d > 3 || !o || typeof o !== 'object') return null; if (Array.isArray(o) && o.length && o[0] && typeof o[0] === 'object' && 'cnpj' in o[0]) return o; for (const v of Object.values(o)) { const x = f(v, d + 1); if (x) return x; } return null; })(j, 0) || [];
+        for (const c of [...new Set(arr.map(x => E.dig(x.cnpj)))].slice(0, 12)) { try { const x = await getJ(`https://brasilapi.com.br/api/cnpj/v1/${c}`); if (x) emps.push(E.normalizar(x, 'BrasilAPI')); } catch (e) { /* segue */ } }
+        if (arr.length > 12) avisos.push('Abrimos as 12 primeiras empresas encontradas. Informe o CPF ou o estado para refinar.');
+      }
+    } catch (e) { throw Object.assign(new Error(previaClaude() ? 'Você está na prévia do Claude, que bloqueia sites externos: a busca de pessoas não funciona aqui. Abra o NEXORA publicado num site ou rode com npm start.' : 'A fonte bloqueou a busca de pessoas pelo navegador (' + e.message + '). Informe o CPF, ou rode o NEXORA no computador (npm start).'), { status: 503 }); }
+    return cacheSet(k, { nome, pessoas: E.agruparPessoa(nome, emps, mask), avisos, fonte: 'Quadro societário da base aberta da Receita Federal.' });
   }
   /* uso pela web (sem servidor): rede direto na minhareceita.org; se bloquear, mostra só os sócios */
   async function redeDireta(d, ufSel) {
@@ -91,7 +126,7 @@ const EMPRESAS = (function () {
   function endereco(a) { return esc([a.logradouro, a.numero, a.complemento].filter(Boolean).join(', ') + (a.bairro ? ' — ' + a.bairro : '')) + '<br>' + esc([a.municipio, a.uf].filter(Boolean).join(' - ')) + (a.cep ? ' · CEP ' + a.cep.replace(/(\d{5})(\d{3})/, '$1-$2') : ''); }
   function cabecalho(e, modo) {
     return `<div class="ehead"><div><h2>${esc(e.razao || '—')}</h2>${e.fantasia ? `<p class="mut">${esc(e.fantasia)}</p>` : ''}
-      <p class="ecnpj"><b>${E.fmtCnpj(e.cnpj)}</b> <button type="button" class="btn sm" data-copy="${E.fmtCnpj(e.cnpj)}" aria-label="Copiar CNPJ">Copiar</button> <span class="epill ${sitCls(e.situacao)}">${esc(e.situacao || 'situação desconhecida')}</span>${e.matriz ? ` <span class="epill mut">${esc(e.matriz)}</span>` : ''}</p></div>
+      <p class="ecnpj"><b>${E.fmtCnpj(e.cnpj)}</b> <button type="button" class="btn sm" data-copy="${E.fmtCnpj(e.cnpj)}" aria-label="Copiar CNPJ">Copiar</button> <span class="epill ${sitCls(e.situacao)}">${esc(e.situacao || 'situação desconhecida')}</span>${e.matriz ? ` <span class="epill mut">${esc(e.matriz)}</span>` : ''} <span class="epill mut">${E.setor(e).icone} ${esc(E.setor(e).nome)}</span></p></div>
       <div class="eacts">${modo === 'simples' ? `<button type="button" class="btn pri" data-cnpj="${e.cnpj}" data-modo="completa">🧾 Ver consulta completa</button>` : `<button type="button" class="btn sm" id="eJson">Baixar JSON</button><button type="button" class="btn sm" id="ePrint">Imprimir</button>`}</div></div>`;
   }
   function alertasHtml(a) { return a.length ? `<ul class="ealert">${a.map(([c, t]) => `<li class="${c}">${c === 'bad' ? '⛔' : c === 'warn' ? '⚠' : c === 'ok' ? '✔' : 'ℹ'} ${esc(t)}</li>`).join('')}</ul>` : ''; }
@@ -101,54 +136,83 @@ const EMPRESAS = (function () {
       ${kv('Telefone', e.telefones.map(E.fmtTel).map(esc).join('<br>'))}${kv('E-mail', esc(e.email ? e.email.toLowerCase() : ''))}
       ${kv('Simples Nacional', yes(e.simples.optante) + (e.simples.desde ? ' desde ' + dt(e.simples.desde) : ''))}${kv('MEI', yes(e.simples.mei))}</div>`;
   }
+
+  /* ---------- risco, transporte, ambiental, trabalho e sanções internacionais ---------- */
+  const CAT = { ETC: 'Empresa de transporte (ETC)', TAC: 'Autônomo (TAC)', CTC: 'Cooperativa de transporte (CTC)' };
+  function riscoHtml(r) {
+    if (!r.risco) return '';
+    const k = r.risco, cor = k.nivel === 'alto' ? 'bad' : k.nivel === 'medio' ? 'warn' : 'ok';
+    return `<div class="erisco ${cor}" role="group" aria-label="Nota de risco"><div class="erisco-n"><b>${k.nota}</b><small>/100</small></div><div><b>Risco ${k.nivel === 'alto' ? 'ALTO' : k.nivel === 'medio' ? 'MÉDIO' : 'BAIXO'}</b> <small class="mut">(quanto maior, mais atenção)</small>
+      ${k.motivos.length ? `<ul>${k.motivos.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : '<p class="mut" style="margin:2px 0 0">Nada de negativo nas fontes consultadas.</p>'}</div></div>`;
+  }
+  function docsTransp(cnpj) {
+    const d = LS.get('trDoc:' + cnpj, {}), venc = d.validade && new Date(d.validade + 'T23:59') < new Date();
+    return `<form class="etrdoc" data-trdoc="${cnpj}"><p class="mut" style="margin:0 0 6px;font-size:13px">O seguro obrigatório da carga (RCTR-C) e o de desvio de carga (RC-DC) <b>não ficam em base pública</b>: peça a apólice à transportadora e anote aqui. O NEXORA avisa quando vencer.</p>
+      <div class="taragrid"><label class="f">Seguradora<input name="seg" value="${esc(d.seg || '')}"></label><label class="f">Apólice RCTR-C<input name="rctrc" value="${esc(d.rctrc || '')}"></label><label class="f">Apólice RC-DC<input name="rcdc" value="${esc(d.rcdc || '')}"></label><label class="f">Válida até<input type="date" name="validade" value="${esc(d.validade || '')}"></label><label class="f">Gerenciadora de risco<input name="gr" value="${esc(d.gr || '')}"></label></div>
+      <label class="f">Observações<input name="obs" value="${esc(d.obs || '')}" placeholder="Ex.: rastreador, PGR, contato do seguro"></label>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px"><button class="btn sm pri" type="submit">Salvar documentos</button>${venc ? '<span class="bad">⛔ Seguro vencido</span>' : d.validade ? `<span class="ok">✔ Seguro válido até ${dt(d.validade)}</span>` : ''}</div></form>`;
+  }
+  function fontesHtml(r) {
+    const f = r.fontes; if (!f) return '';
+    const e = r.empresa, st = f.setor || E.setor(e), a = f.antt;
+    let h = '';
+    if (st.transp || (a && !a.naoEncontrado && !a.erro)) {
+      h += `<h3>🚚 Transporte (ANTT)</h3><div class="egrid">${!a ? kv('RNTRC', '<small class="mut">Não consultado.</small>') : a.erro ? kv('RNTRC', `<small class="mut">${esc(a.erro)}</small>`) : a.naoEncontrado ? kv('RNTRC', '<span class="bad">Não encontrado no registro da ANTT</span> <small class="mut">(sem RNTRC ativo não pode fazer transporte remunerado de cargas)</small>')
+        : kv('RNTRC', `<b>${esc(a.numero)}</b> · <span class="${/ATIV/i.test(a.situacao || '') ? 'ok' : 'bad'}">${esc(a.situacao || '—')}</span>`) + kv('Categoria', esc(CAT[a.categoria] || a.categoria || '—') + (a.equiparado && /S/i.test(a.equiparado) ? ' · equiparado a ETC' : '')) + kv('Registrado desde', dt(a.desde)) + kv('Frota cadastrada', a.frota != null ? `${a.frota} veículo(s)` + (a.veiculos && a.veiculos.length ? `<br><small class="mut">${esc(Object.entries(a.veiculos.reduce((o, v) => { const t = v.tipo || 'outro'; o[t] = (o[t] || 0) + 1; return o; }, {})).map(([t, n]) => `${n} ${String(t).toLowerCase()}`).join(' · '))}</small>` : '') : '—') + kv('Transporte internacional (TRIC)', a.tric == null ? '—' : yes(a.tric)) + kv('Operador multimodal (OTM)', a.otm == null ? '—' : yes(a.otm))}</div>
+        <h3>🛡 Seguros e documentos da transportadora</h3>${docsTransp(e.cnpj)}`;
+    }
+    const ib = f.ibama, ls = f.listaSuja, int = f.internacional;
+    h += `<h3>🌳 Ambiental, trabalho e sanções internacionais</h3><div class="egrid">
+      ${kv('Embargos ambientais (IBAMA)', !ib ? '<small class="mut">Não consultado.</small>' : ib.erro ? `<small class="mut">${esc(ib.erro)}</small>` : ib.lista.length ? `<span class="bad">${ib.lista.map(x => `Embargo ${esc(x.numero || '')} · ${esc([x.municipio, x.uf].filter(Boolean).join('/'))} · ${dt(x.data)}${x.motivo ? '<br><small>' + esc(String(x.motivo).slice(0, 140)) + '</small>' : ''}`).join('<br>')}</span>` : '<span class="ok">Nenhum embargo encontrado</span>')}
+      ${kv('Lista suja do trabalho escravo (MTE)', ls == null ? '<small class="mut">Lista não carregada — use “Listas oficiais” no fim da página.</small>' : ls.length ? `<span class="bad">${ls.map(x => `⛔ ${esc(x.nome)} — ${esc(x.por)}`).join('<br>')}</span>` : `<span class="ok">Não consta</span> <small class="mut">(lista de ${dt(new Date(f.listaSujaData).toISOString())})</small>`)}
+      ${kv('Sanções internacionais (EUA/OFAC e ONU)', int == null ? `<small class="mut">${esc(f.internacionalAviso || 'Não consultado.')}</small>` : int.length ? `<span class="bad">${int.map(x => `${esc(x.nome)} · ${esc(x.fonte)} — ${esc(x.por)}`).join('<br>')}</span>` : '<span class="ok">Nada encontrado</span>')}</div>`;
+    return h;
+  }
   function completo(r) {
     const e = r.empresa, s = r.sancoes || {};
     const qsa = e.qsa.length ? `<div class="tbl-wrap"><table class="tbl eqsa"><thead><tr><th>Nome</th><th>Tipo</th><th>Qualificação</th><th>Documento</th><th>Desde</th><th>Faixa etária</th></tr></thead><tbody>${e.qsa.map(x => `<tr><td><b>${esc(x.nome)}</b>${x.representante ? `<br><small class="mut">Representante: ${esc(x.representante)}</small>` : ''}</td><td>${x.tipo === 'PJ' ? 'Empresa' : x.tipo === 'EST' ? 'Estrangeiro' : 'Pessoa física'}</td><td>${esc(x.qualificacao || '—')}</td><td>${x.tipo === 'PJ' && E.dig(x.doc).length === 14 ? `<button type="button" class="lnk" data-cnpj="${E.dig(x.doc)}" data-modo="completa">${E.fmtCnpj(x.doc)}</button>` : esc(x.doc || '—')}</td><td>${dt(x.entrada)}</td><td>${esc(x.faixaEtaria || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<p class="mut">Quadro de sócios não informado na base pública.</p>';
     return `<div class="egrid">${kv('Capital social', e.capital != null ? brl(e.capital) : '—')}${kv('Regime tributário (últimos anos)', e.regime.length ? e.regime.slice(-4).map(x => `${esc(x.ano)}: ${esc(x.forma)}`).join('<br>') : '—')}
       ${kv('Inscrição estadual', e.inscricoes.length ? e.inscricoes.map(x => `${esc(x.uf)} ${esc(x.numero)} ${x.ativa === false ? '<i class="bad">(inativa)</i>' : ''}`).join('<br>') : (r.extra && r.extra.aviso ? `<small class="mut">${esc(r.extra.aviso)}</small>` : 'Nenhuma informada'))}
-      ${kv('Sanções (CEIS/CNEP)', s.semChave ? '<small class="mut">Não consultado: configure a chave gratuita do Portal da Transparência no servidor (NEXORA_TRANSPARENCIA_CHAVE).</small>' : s.erro ? `<small class="mut">${esc(s.erro)}</small>` : (s.ceis.length + s.cnep.length) ? `<span class="bad">${[...s.ceis, ...s.cnep].map(x => `${esc(x.tipo)} — ${esc(x.orgao || '')} (${dt(x.inicio)} a ${dt(x.fim)})`).join('<br>')}</span>` : '<span class="ok">Nenhuma sanção encontrada</span>')}</div>
+      ${kv('Sanções (CEIS, CNEP, CEPIM) e leniência', s.semChave ? '<small class="mut">Não consultado: configure a chave gratuita do Portal da Transparência no servidor (NEXORA_TRANSPARENCIA_CHAVE).</small>' : (() => { const t = [...(s.ceis || []), ...(s.cnep || []), ...(s.cepim || []), ...(s.leniencia || [])]; return (s.erro ? `<small class="mut">${esc(s.erro)}</small><br>` : '') + (t.length ? `<span class="bad">${t.map(x => `${esc(x.tipo)} — ${esc(x.orgao || '')} (${dt(x.inicio)} a ${dt(x.fim)})`).join('<br>')}</span>` : '<span class="ok">Nenhum registro encontrado</span>'); })())}
+      ${kv('Contratos com o governo federal', s.semChave ? '<small class="mut">Precisa da mesma chave do Portal da Transparência.</small>' : !s.contratos ? '—' : s.contratos.qtd ? `${s.contratos.qtd}${s.contratos.mais ? '+' : ''} contrato(s)` : 'Nenhum encontrado')}
+      ${kv('Registro global LEI (GLEIF)', !r.lei ? '<small class="mut">Não consultado.</small>' : r.lei.nenhum ? 'Não possui LEI <small class="mut">(comum: só empresas do mercado financeiro/comércio exterior têm)</small>' : `<a href="${esc(r.lei.url)}" target="_blank" rel="noopener">${esc(r.lei.lei)}</a> · ${esc(r.lei.status || '')}${r.lei.renovacao ? ' · renova em ' + dt(r.lei.renovacao) : ''}${r.lei.controladoraFinal ? `<br>Controladora final: <b>${esc(r.lei.controladoraFinal.nome)}</b>` : r.lei.controladora ? `<br>Controladora: <b>${esc(r.lei.controladora.nome)}</b>` : ''}`)}</div>
+      ${s.contratos && s.contratos.lista && s.contratos.lista.length ? `<details class="edet"><summary>Contratos federais (${s.contratos.lista.length}${s.contratos.mais ? '+' : ''})</summary><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Órgão</th><th>Objeto</th><th>Valor</th><th>Vigência</th></tr></thead><tbody>${s.contratos.lista.map(c => `<tr><td>${esc(c.orgao || '—')}</td><td>${esc((c.objeto || '').slice(0, 160))}</td><td>${c.valor != null ? brl(c.valor) : '—'}</td><td>${dt(c.inicio)} a ${dt(c.fim)}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
+      <h3>Conferir na fonte oficial</h3><ul class="elinks">${(r.links || E.linksOficiais(e.cnpj)).map(([t, u]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)} ↗</a></li>`).join('')}</ul>
+      ${fontesHtml(r)}
       <h3>Atividades secundárias (${e.cnaes.length})</h3>${e.cnaes.length ? `<ul class="ecnae">${e.cnaes.map(c => `<li><b>${esc(c.cod)}</b> ${esc(c.desc || '')}</li>`).join('')}</ul>` : '<p class="mut">Nenhuma.</p>'}
       <h3>Quadro de sócios e administradores (${e.qsa.length})</h3>${qsa}
-      <h3>Rede de vínculos</h3><div class="erede-ctl"><label class="f">Procurar empresas dos sócios em<select id="eRedeUf"><option value="">mesmo estado da empresa (${esc(e.endereco.uf || '—')})</option><option value="todas">todo o Brasil (mais lento)</option></select></label><button type="button" class="btn sm" id="eRedeGo">Atualizar diagrama</button><button type="button" class="btn sm" id="eSvg" disabled>Baixar diagrama (SVG)</button></div>
+      <h3>Rede de vínculos</h3><div class="erede-ctl"><label class="f">Procurar empresas dos sócios em<select id="eRedeUf"><option value="">mesmo estado da empresa (${esc(e.endereco.uf || '—')})</option><option value="todas">todo o Brasil (mais lento)</option></select></label><button type="button" class="btn sm" id="eRedeGo">Atualizar diagrama</button><button type="button" class="btn sm" id="eSvg" disabled>Baixar diagrama (SVG)</button></div><p class="mut" style="font-size:12px;margin:0 0 6px">Arraste para mover, use a roda do mouse (ou dois dedos) para aproximar, toque num nó para ver detalhes e dê duplo clique para expandir os vínculos dele.</p>
       <div id="eRede" class="erede" aria-live="polite"><p class="mut">Montando o diagrama…</p></div>
       <p class="mut" style="font-size:12px">Fonte do cadastro: ${esc(e.fonte)}${r.extra && r.extra.fonte ? ' + ' + esc(r.extra.fonte) : ''}.</p>`;
   }
 
-  /* ---------- diagrama (SVG radial, sem bibliotecas) ---------- */
-  function diagrama(g) {
-    const box = q('#eRede'); if (!g || !g.nodes.length) { box.innerHTML = '<p class="mut">Sem dados para o diagrama.</p>'; return; }
-    const W = 1000, H = 760, cx = W / 2, cy = H / 2, N = new Map(g.nodes.map(n => [n.id, { ...n }]));
-    const root = g.nodes.find(n => n.raiz) || g.nodes[0], R = N.get(root.id); R.x = cx; R.y = cy;
-    const soc = g.edges.filter(e => e.para === root.id).map(e => N.get(e.de)).filter(Boolean);
-    const r1 = Math.max(270, Math.min(340, 150 + soc.length * 18));
-    const a0 = soc.length <= 2 ? 0 : -Math.PI / 2;
-    soc.forEach((s, i) => { s.a = a0 + i * 2 * Math.PI / Math.max(1, soc.length); s.x = cx + r1 * Math.cos(s.a); s.y = cy + r1 * Math.sin(s.a); });
-    const fora = [...N.values()].filter(n => n.x == null);
-    const pais = n => g.edges.filter(e => e.para === n.id || e.de === n.id).map(e => N.get(e.para === n.id ? e.de : e.para)).filter(p => p && p.a != null);
-    const porSoc = new Map(); for (const n of fora) { const p = pais(n); const a = p.length ? Math.atan2(p.reduce((t, x) => t + Math.sin(x.a), 0), p.reduce((t, x) => t + Math.cos(x.a), 0)) : 0; n.a = a; const k = p.length === 1 ? p[0].id : 'multi' + a.toFixed(2); (porSoc.get(k) || porSoc.set(k, []).get(k)).push(n); }
-    const setor = 2 * Math.PI / Math.max(1, soc.length);
-    for (const grupo of porSoc.values()) grupo.forEach((n, i) => { const sp = Math.min(setor * 0.85, 0.22 * grupo.length), a = n.a + (grupo.length > 1 ? -sp / 2 + sp * i / (grupo.length - 1) : 0), r2 = r1 + 210 + (i % 2) * 80; n.x = cx + r2 * Math.cos(a); n.y = cy + r2 * Math.sin(a); });
-    const all = [...N.values()]; let minX = Math.min(...all.map(n => n.x)) - 120, maxX = Math.max(...all.map(n => n.x)) + 120, minY = Math.min(...all.map(n => n.y)) - 60, maxY = Math.max(...all.map(n => n.y)) + 60;
-    /* tamanho mínimo, para poucos nós não ficarem gigantes */
-    if (maxX - minX < 760) { const c = (minX + maxX) / 2; minX = c - 380; maxX = c + 380; } if (maxY - minY < 460) { const c = (minY + maxY) / 2; minY = c - 230; maxY = c + 230; }
-    const cut = (s, n) => { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
-    const cor = n => n.tipo === 'empresa' || (n.tipo === 'PJ' && n.cnpj) ? (/ATIVA/i.test(n.situacao || '') ? '#4ade80' : n.situacao ? '#f87171' : '#94a3b8') : '#7aa2ff';
-    let o = `<svg id="eSvgEl" xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${maxX - minX} ${maxY - minY}" role="group" aria-label="Diagrama de vínculos: ${esc(root.label)} e empresas ligadas pelos sócios"><style>text{font:12px Barlow,Arial,sans-serif;fill:#e6ecff}.r{font-size:10px;fill:#9fb0d0}</style>`;
-    for (const e of g.edges) { const a = N.get(e.de), b = N.get(e.para); if (!a || !b) continue; o += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#3b5287" stroke-width="1.4"><title>${esc(a.label)} → ${esc(b.label)}: ${esc(e.rotulo)}</title></line>`; }
-    for (const n of all) {
-      const emp = n.tipo === 'empresa' || n.tipo === 'PJ', w = n.raiz ? 210 : 170, h = n.raiz ? 46 : 38, click = n.cnpj && !n.raiz ? ` data-cnpj="${n.cnpj}" data-modo="completa" tabindex="0" role="button" style="cursor:pointer"` : '';
-      const tip = `${n.razao || n.label}${n.cnpj ? ' · ' + E.fmtCnpj(n.cnpj) : ''}${n.situacao ? ' · ' + n.situacao : ''}${n.uf ? ' · ' + (n.municipio ? n.municipio + '/' : '') + n.uf : ''}${n.qualificacao ? ' · ' + n.qualificacao : ''}${n.faixaEtaria ? ' · ' + n.faixaEtaria : ''}${click ? ' — clique para consultar' : ''}`;
-      if (emp) o += `<g${click}><title>${esc(tip)}</title><rect x="${n.x - w / 2}" y="${n.y - h / 2}" width="${w}" height="${h}" rx="${n.tipo === 'PJ' ? 3 : 9}" fill="${n.raiz ? '#2a1d06' : '#0f1d3d'}" stroke="${n.raiz ? '#f7a334' : cor(n)}" stroke-width="${n.raiz ? 3 : 2}"/><text x="${n.x}" y="${n.y - (n.cnpj ? 3 : -4)}" text-anchor="middle" font-weight="700">${esc(cut(n.label, n.raiz ? 28 : 22))}</text>${n.cnpj ? `<text class="r" x="${n.x}" y="${n.y + 12}" text-anchor="middle">${E.fmtCnpj(n.cnpj)}${n.uf ? ' · ' + esc(n.uf) : ''}</text>` : ''}</g>`;
-      else o += `<g><title>${esc(tip)}</title><circle cx="${n.x}" cy="${n.y}" r="17" fill="#13254d" stroke="#7aa2ff" stroke-width="2"/><circle cx="${n.x}" cy="${n.y - 5}" r="5" fill="#7aa2ff"/><path d="M${n.x - 9} ${n.y + 10} q9 -12 18 0" fill="#7aa2ff"/><text x="${n.x}" y="${n.y + 31}" text-anchor="middle" font-weight="600">${esc(cut(n.label, 26))}</text>${n.qualificacao ? `<text class="r" x="${n.x}" y="${n.y + 44}" text-anchor="middle">${esc(cut(n.qualificacao, 30))}</text>` : ''}</g>`;
+  /* ---------- diagrama interativo (app/grafo.js) ---------- */
+  let grafo = null;
+  const grafoPessoa = (r, p) => {
+    const pid = E.chaveSocio({ tipo: 'PF', doc: p.doc, nome: p.nome });
+    return { nodes: [{ id: pid, tipo: 'PF', label: p.nome, doc: p.doc, faixaEtaria: p.faixaEtaria, expandido: true }, ...p.empresas.map(x => ({ id: 'E' + x.cnpj, tipo: 'empresa', label: x.fantasia || x.razao, razao: x.razao, cnpj: x.cnpj, situacao: x.situacao, uf: x.uf, municipio: x.municipio }))],
+      edges: p.empresas.map(x => ({ de: pid, para: 'E' + x.cnpj, rotulo: x.qualificacao || 'Sócio' })) };
+  };
+  const opGrafo = () => ({
+    abrirEmpresa: cnpj => { q('#eQ').value = E.fmtCnpj(cnpj); tipoBusca('emp'); consultar(cnpj, 'completa'); },
+    abrirPessoa: n => { tipoBusca('pes'); q('#eQ').value = n.label; buscarPessoa(n.label, String(n.doc || '').replace(/[^0-9*]/g, '')); },
+    expandir: async n => {
+      if (n.cnpj && (n.tipo === 'empresa' || n.tipo === 'PJ')) return api(`/rede/${n.cnpj}${q('#eRedeUf') && q('#eRedeUf').value ? '?uf=' + q('#eRedeUf').value : ''}`);
+      const doc = String(n.doc || '').replace(/[^0-9*]/g, '');
+      const r = await api('/pessoa', { method: 'POST', body: JSON.stringify({ nome: n.label, doc, uf: q('#eRedeUf') && q('#eRedeUf').value === 'todas' ? '' : (n.uf || '') }) });
+      const p = r.pessoas[0]; if (!p) return { nodes: [], edges: [] }; const g = grafoPessoa(r, p); g.nodes[0].id = n.id; g.edges.forEach(e => { e.de = n.id; }); return g;
     }
-    o += '</svg>';
-    const ligadas = all.filter(n => n.tipo === 'empresa' && !n.raiz);
-    box.innerHTML = `<div class="eleg"><span><i style="border-color:#f7a334"></i>Empresa consultada</span><span><i style="border-color:#4ade80"></i>Empresa ativa</span><span><i style="border-color:#f87171"></i>Baixada / inapta</span><span><i class="pf"></i>Pessoa (sócio)</span><span class="mut">Toque numa empresa para consultá-la.</span></div><div class="esvg">${o}</div>`
+  });
+  function diagrama(g, alvo = '#eRede', titulo) {
+    const box = q(alvo); if (!g || !g.nodes.length) { box.innerHTML = '<p class="mut">Sem dados para o diagrama.</p>'; return; }
+    box.innerHTML = `<div class="eleg"><span><i style="border-color:#f7a334"></i>${titulo || 'Empresa consultada'}</span><span><i style="border-color:#4ade80"></i>Empresa ativa</span><span><i style="border-color:#f87171"></i>Baixada / inapta</span><span><i class="pf"></i>Pessoa (sócio)</span><span><i class="pf" style="background:#f7a334;border-color:#f7a334"></i>Já expandido</span></div><div class="egraf"></div>`
       + (g.avisos && g.avisos.length ? `<ul class="ealert">${[...new Set(g.avisos)].slice(0, 8).map(a => `<li class="info">ℹ ${esc(a)}</li>`).join('')}</ul>` : '')
-      + `<p class="mut" style="font-size:12.5px;margin:8px 0">${ligadas.length ? `<b>${ligadas.length}</b> empresa(s) ligada(s) pelos mesmos sócios${g.ufBusca && g.ufBusca !== 'todas' ? ' em ' + esc(g.ufBusca) : ''}.` : 'Nenhuma outra empresa encontrada para estes sócios' + (g.ufBusca && g.ufBusca !== 'todas' ? ' em ' + esc(g.ufBusca) + ' (tente “todo o Brasil”).' : '.')} ${esc(g.fonte || '')}</p>`
-      + (ligadas.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Empresa ligada</th><th>CNPJ</th><th>Situação</th><th>Cidade</th><th>Ligação</th></tr></thead><tbody>${ligadas.map(n => `<tr><td><b>${esc(n.razao || n.label)}</b></td><td><button type="button" class="lnk" data-cnpj="${n.cnpj}" data-modo="completa">${E.fmtCnpj(n.cnpj)}</button></td><td class="${sitCls(n.situacao)}">${esc(n.situacao || '—')}</td><td>${esc([n.municipio, n.uf].filter(Boolean).join(' / '))}</td><td>${g.edges.filter(e => e.para === n.id).map(e => esc((N.get(e.de) || {}).label || '')).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : '');
-    const sv = box.querySelector('.esvg'); sv.scrollLeft = (sv.scrollWidth - sv.clientWidth) / 2; sv.scrollTop = (sv.scrollHeight - sv.clientHeight) / 2;
-    const b = q('#eSvg'); b.disabled = false; b.onclick = () => { const blob = new Blob([q('#eSvgEl').outerHTML], { type: 'image/svg+xml' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vinculos-${root.cnpj || 'empresa'}.svg`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); };
+      + `<div class="eligadas"></div>`;
+    const lista = d => { const raiz = d.nodes.find(n => n.raiz) || d.nodes[0], lig = d.nodes.filter(n => n.tipo === 'empresa' && n !== raiz && n.cnpj);
+      box.querySelector('.eligadas').innerHTML = `<p class="mut" style="font-size:12.5px;margin:8px 0">${lig.length ? `<b>${lig.length}</b> empresa(s) no diagrama${g.ufBusca && g.ufBusca !== 'todas' ? ' (busca em ' + esc(g.ufBusca) + ')' : ''}.` : 'Nenhuma outra empresa encontrada' + (g.ufBusca && g.ufBusca !== 'todas' ? ' em ' + esc(g.ufBusca) + ' (tente “todo o Brasil”).' : '.')} ${esc(g.fonte || '')}</p>`
+        + (lig.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Empresa</th><th>CNPJ</th><th>Situação</th><th>Cidade</th><th>Ligação</th></tr></thead><tbody>${lig.map(n => `<tr><td><b>${esc(n.razao || n.label)}</b></td><td><button type="button" class="lnk" data-cnpj="${n.cnpj}" data-modo="completa">${E.fmtCnpj(n.cnpj)}</button></td><td class="${sitCls(n.situacao)}">${esc(n.situacao || '—')}</td><td>${esc([n.municipio, n.uf].filter(Boolean).join(' / '))}</td><td>${d.edges.filter(e => e.para === n.id || e.de === n.id).map(e => esc((d.nodes.find(x => x.id === (e.para === n.id ? e.de : e.para)) || {}).label || '')).join(', ')}</td></tr>`).join('')}</tbody></table></div>` : ''); };
+    grafo = GRAFO.montar(box.querySelector('.egraf'), g, { ...opGrafo(), mudou: lista }); lista(grafo.dados());
+    const b = q('#eSvg'); if (b) { b.disabled = false; b.onclick = () => { const blob = new Blob([grafo.svgTexto()], { type: 'image/svg+xml' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `vinculos-${(g.nodes[0] && g.nodes[0].cnpj) || 'diagrama'}.svg`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }; }
   }
   async function carregaRede(cnpj) {
     const box = q('#eRede'); if (!box) return; const uf = q('#eRedeUf').value;
@@ -162,7 +226,7 @@ const EMPRESAS = (function () {
     out.innerHTML = `<div class="card"><p class="mut">⏳ ${modo === 'completa' ? 'Consulta completa' : 'Consultando'} ${E.fmtCnpj(cnpj)}…</p></div>`;
     try {
       const r = await api(`/${modo === 'completa' ? 'completa' : 'cnpj'}/${cnpj}`); ultimo = r; addHist(r.empresa);
-      out.innerHTML = `<article class="card eres">${cabecalho(r.empresa, modo)}${alertasHtml(r.alertas)}${basico(r.empresa)}${modo === 'completa' ? completo(r) : ''}</article>`;
+      out.innerHTML = `<article class="card eres">${cabecalho(r.empresa, modo)}${modo === 'completa' ? riscoHtml(r) : ''}${alertasHtml(r.alertas)}${basico(r.empresa)}${modo === 'completa' ? completo(r) : ''}</article>`;
       if (modo === 'completa') { q('#eRedeGo').onclick = () => carregaRede(cnpj); q('#eRedeUf').onchange = () => carregaRede(cnpj); carregaRede(cnpj);
         q('#eJson').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(ultimo, null, 1)], { type: 'application/json' })); a.download = `empresa-${cnpj}.json`; a.click(); };
         q('#ePrint').onclick = () => window.print(); }
@@ -177,7 +241,37 @@ const EMPRESAS = (function () {
       list.innerHTML = `<div class="card"><h2 style="margin:0 0 8px;font-size:16px">${r.lista.length} resultado(s)${r.total > r.lista.length ? ` de ${Number(r.total).toLocaleString('pt-BR')} — refine com o estado ou mais palavras` : ''}</h2><div class="elist">${r.lista.map(x => `<div class="eitem"><div><b>${esc(x.razao || '')}</b>${x.fantasia ? ` <span class="mut">(${esc(x.fantasia)})</span>` : ''}<br><small>${E.fmtCnpj(x.cnpj)} · ${esc([x.municipio, x.uf].filter(Boolean).join(' - '))} · <i class="${sitCls(x.situacao)}">${esc(x.situacao || '')}</i></small></div><div class="eitem-b"><button type="button" class="btn sm" data-cnpj="${x.cnpj}" data-modo="simples">Simples</button><button type="button" class="btn sm pri" data-cnpj="${x.cnpj}" data-modo="completa">Completa</button></div></div>`).join('')}</div><p class="mut" style="font-size:12px;margin:8px 0 0">${esc(r.fonte || '')}</p></div>`;
     } catch (e) { list.innerHTML = `<div class="card"><p class="bad" role="alert">${esc(e.message)}</p></div>`; }
   }
+  /* ---------- pessoa ---------- */
+  function tipoBusca(t) {
+    const pes = t === 'pes'; const r = document.querySelector(`input[name=eTipo][value=${pes ? 'pes' : 'emp'}]`); if (r) r.checked = true;
+    q('#eQLbl').textContent = pes ? 'Nome completo da pessoa' : 'CNPJ ou nome da empresa'; q('#eQ').placeholder = pes ? 'Ex.: Maria da Silva Souza' : '00.000.000/0000-00 ou parte do nome';
+    q('.ecpf').hidden = !pes; q('#eSimples').hidden = pes; q('#eCompleta').hidden = pes; q('#ePessoa').hidden = !pes;
+    q('#eHint').textContent = pes ? 'Mostra em quais empresas a pessoa aparece como sócia ou administradora (dados públicos da Receita, CPF mascarado). Com o CPF, separa pessoas de mesmo nome.' : 'Simples: o básico do cadastro. Completa: tudo + sócios, CNAEs, Simples/MEI, inscrição estadual, sanções, LEI e o diagrama interativo de vínculos.';
+  }
+  async function buscarPessoa(nome, doc) {
+    const out = q('#eOut'), list = q('#eList'); list.innerHTML = ''; q('#eErr').textContent = '';
+    out.innerHTML = '<div class="card"><p class="mut">⏳ Procurando as empresas desta pessoa… (pode levar até 1 minuto)</p></div>';
+    try {
+      const r = await api('/pessoa', { method: 'POST', body: JSON.stringify({ nome, doc, uf: q('#eUf').value }) });
+      if (!r.pessoas.length) { out.innerHTML = `<div class="card"><p>Nenhum vínculo societário encontrado para “${esc(nome)}”${q('#eUf').value ? ' em ' + q('#eUf').value : ''}. Confira o nome completo (como no documento) ou tire o filtro de estado.</p>${(r.avisos || []).map(a => `<p class="mut">ℹ ${esc(a)}</p>`).join('')}</div>`; return; }
+      out.innerHTML = `<article class="card eres"><div class="ehead"><div><h2>👤 ${esc(r.nome.toUpperCase())}</h2><p class="mut">${r.pessoas.length > 1 ? `${r.pessoas.length} pessoas diferentes com este nome (separadas pelo CPF mascarado).` : 'Vínculos societários públicos.'}</p></div></div>
+        ${(r.avisos || []).length ? `<ul class="ealert">${r.avisos.map(a => `<li class="info">ℹ ${esc(a)}</li>`).join('')}</ul>` : ''}
+        ${r.pessoas.map((p, i) => `<section class="epes"><h3>${r.pessoas.length > 1 ? `Pessoa ${i + 1} · ` : ''}CPF ${esc(p.doc)}${p.faixaEtaria ? ' · ' + esc(p.faixaEtaria) : ''}</h3>
+          <div class="egrid">${kv('Empresas', p.empresas.length)}${kv('Ativas', p.ativas)}${kv('Administra / dirige', p.administra)}${kv('Primeira entrada', dt(p.empresas.map(x => x.entrada).filter(Boolean).sort()[0]))}</div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Empresa</th><th>CNPJ</th><th>Cargo</th><th>Desde</th><th>Situação</th><th>Cidade</th><th>Atividade</th></tr></thead><tbody>${p.empresas.map(x => `<tr><td><b>${esc(x.razao || '')}</b>${x.fantasia ? `<br><small class="mut">${esc(x.fantasia)}</small>` : ''}</td><td><button type="button" class="lnk" data-cnpj="${x.cnpj}" data-modo="completa">${E.fmtCnpj(x.cnpj)}</button></td><td>${esc(x.qualificacao || '—')}</td><td>${dt(x.entrada)}</td><td class="${sitCls(x.situacao)}">${esc(x.situacao || '—')}</td><td>${esc([x.municipio, x.uf].filter(Boolean).join(' / '))}</td><td><small>${esc(x.cnae || '—')}</small></td></tr>`).join('')}</tbody></table></div>
+          <div class="erede" id="ePesG${i}"></div></section>`).join('')}
+        <p class="mut" style="font-size:12px">${esc(r.fonte || '')} Só dados societários públicos: o NEXORA não busca endereço, telefone ou outros dados pessoais (LGPD).</p></article>`;
+      r.pessoas.forEach((p, i) => { const g = grafoPessoa(r, p); g.nodes[0].raiz = true; diagrama(g, '#ePesG' + i, 'Pessoa consultada'); });
+      out.querySelector('h2').setAttribute('tabindex', '-1'); out.querySelector('h2').focus({ preventScroll: true }); out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) { out.innerHTML = `<div class="card"><p class="bad" role="alert">${esc(e.message)}</p></div>`; }
+  }
   function enviar(modo) {
+    if ((document.querySelector('input[name=eTipo]:checked') || {}).value === 'pes') {
+      const v = q('#eQ').value.trim(), c = q('#eCpf').value.trim(); q('#eErr').textContent = '';
+      if (E.normNome(v).split(' ').length < 2) { q('#eErr').textContent = 'Digite o nome completo (nome e sobrenome).'; q('#eQ').focus(); return; }
+      if (c && !(E.cpfOk(c) || /^\*{3}\d{6}\*{2}$/.test(c.replace(/[^0-9*]/g, '')))) { q('#eErr').textContent = 'CPF inválido: confira os 11 números (ou deixe em branco).'; q('#eCpf').focus(); return; }
+      return buscarPessoa(v, c);
+    }
     const v = q('#eQ').value.trim(), d = E.dig(v); q('#eErr').textContent = ''; q('#eQ').removeAttribute('aria-invalid');
     if (d.length >= 11 && d.length === v.replace(/[\s./-]/g, '').length) {
       if (!E.cnpjOk(d)) { q('#eErr').textContent = d.length === 11 ? 'Isso parece um CPF. Esta consulta é de empresas (CNPJ com 14 dígitos).' : 'CNPJ inválido: confira os números.'; q('#eQ').setAttribute('aria-invalid', 'true'); q('#eQ').focus(); return; }
@@ -188,11 +282,18 @@ const EMPRESAS = (function () {
   }
   q('#eForm').addEventListener('submit', e => { e.preventDefault(); enviar('simples'); });
   q('#eCompleta').onclick = () => enviar('completa');
+  document.getElementById('v-empresas').addEventListener('submit', ev => { const f = ev.target.closest('[data-trdoc]'); if (!f) return; ev.preventDefault(); LS.set('trDoc:' + f.dataset.trdoc, Object.fromEntries(new FormData(f))); toast('Documentos da transportadora salvos neste aparelho.'); });
+  async function statusListas() { const el = q('#eListaSt'); if (!el) return; let t = null, n = 0; try { const r = await fetch('/api/empresas/listas'); if (r.ok && (r.headers.get('content-type') || '').includes('json')) { const j = await r.json(); if (j.listaSuja) { t = j.listaSuja.t; n = j.listaSuja.qtd; } } } catch (e) { /* sem servidor */ } const l = LS.get('listaSuja', null); if (!t && l) { t = l.t; n = l.lista.length; } el.innerHTML = t ? `<span class="ok">✔ Lista suja carregada: ${n} empregadores (${new Date(t).toLocaleDateString('pt-BR')})</span>` : '<span class="mut">Lista suja ainda não carregada.</span>'; }
+  q('#eListaArq').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; const texto = await f.text(); const lista = E.lerLista(texto);
+    if (lista.length < 5) { toast('Não achei CPF/CNPJ nesse arquivo. Abra a planilha oficial e salve como CSV.'); return; }
+    let ok = false; try { const r = await fetch('/api/empresas/listas/lista-suja', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ texto, arquivo: f.name }) }); ok = r.ok && (r.headers.get('content-type') || '').includes('json'); } catch (e) { /* sem servidor */ }
+    if (!ok) LS.set('listaSuja', { t: Date.now(), lista }); toast(`Lista suja carregada: ${lista.length} empregadores.`); ev.target.value = ''; statusListas(); });
+  document.querySelectorAll('input[name=eTipo]').forEach(r => r.addEventListener('change', () => tipoBusca(r.value)));
+  q('#eCpf').addEventListener('input', e => { const d = E.dig(e.target.value).slice(0, 11); if (!/\*/.test(e.target.value)) e.target.value = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})$/, '$1.$2.$3-$4'); });
   q('#eQ').addEventListener('input', e => { const d = E.dig(e.target.value); if (d.length === 14 && /^[\d\s./-]+$/.test(e.target.value)) e.target.value = E.fmtCnpj(d); });
   document.getElementById('v-empresas').addEventListener('click', e => {
-    const b = e.target.closest('[data-cnpj]'); if (b) { e.preventDefault(); q('#eQ').value = E.fmtCnpj(b.dataset.cnpj); consultar(b.dataset.cnpj, b.dataset.modo || 'simples'); return; }
+    const b = e.target.closest('[data-cnpj]'); if (b) { e.preventDefault(); tipoBusca('emp'); q('#eQ').value = E.fmtCnpj(b.dataset.cnpj); consultar(b.dataset.cnpj, b.dataset.modo || 'simples'); return; }
     const c = e.target.closest('[data-copy]'); if (c) { navigator.clipboard && navigator.clipboard.writeText(c.dataset.copy).then(() => toast('CNPJ copiado.')); }
   });
-  document.getElementById('v-empresas').addEventListener('keydown', e => { const b = e.target.closest('g[data-cnpj]'); if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); b.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
-  return { open: () => { renderHist(); setTimeout(() => q('#eQ').focus(), 50); }, consultar };
+    return { open: () => { renderHist(); statusListas(); setTimeout(() => q('#eQ').focus(), 50); }, consultar };
 })();

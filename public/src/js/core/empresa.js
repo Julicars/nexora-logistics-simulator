@@ -93,6 +93,123 @@
   }
   /* chave para ligar o mesmo sócio entre empresas: nome + CPF mascarado (***123456**) */
   const chaveSocio = s => (s.tipo === 'PJ' ? 'PJ' + dig(s.doc) : 'PF' + String(s.doc || '').replace(/[^0-9*]/g, '') + '|' + String(s.nome || '').toUpperCase().replace(/\s+/g, ' ').trim());
-  const API = { dig, cnpjOk, fmtCnpj, fmtTel, normalizar, alertas, chaveSocio };
+
+  /* ---------- pessoas (sócios) ---------- */
+  const normNome = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  /* CPF completo → formato mascarado da base pública da Receita (***456789**); já mascarado passa direto */
+  function mascaraCpf(v) {
+    const t = String(v || '').replace(/[^0-9*]/g, '');
+    if (/^\*{3}\d{6}\*{2}$/.test(t)) return t;
+    const d = dig(v); if (d.length !== 11) return null;
+    return '***' + d.slice(3, 9) + '**';
+  }
+  function cpfOk(c) {
+    c = dig(c); if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    const dv = n => { let s = 0; for (let i = 0; i < n; i++) s += +c[i] * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    return dv(9) === +c[9] && dv(10) === +c[10];
+  }
+  /* agrupa as participações de uma pessoa (mesmo nome + mesmo CPF mascarado) em várias empresas */
+  function agruparPessoa(nome, empresas, docFiltro) {
+    const alvo = normNome(nome), grupos = new Map();
+    for (const e of empresas) {
+      if (!e || !e.qsa) continue;
+      for (const s of e.qsa) {
+        if (s.tipo === 'PJ' || normNome(s.nome) !== alvo) continue;
+        const doc = String(s.doc || '').replace(/[^0-9*]/g, '') || '?';
+        if (docFiltro && doc !== docFiltro) continue;
+        const g = grupos.get(doc) || grupos.set(doc, { nome: s.nome, doc, faixaEtaria: s.faixaEtaria || null, empresas: [] }).get(doc);
+        if (!g.faixaEtaria && s.faixaEtaria) g.faixaEtaria = s.faixaEtaria;
+        if (!g.empresas.some(x => x.cnpj === e.cnpj)) g.empresas.push({ cnpj: e.cnpj, razao: e.razao, fantasia: e.fantasia, situacao: e.situacao, uf: e.endereco && e.endereco.uf, municipio: e.endereco && e.endereco.municipio, qualificacao: s.qualificacao, entrada: s.entrada, abertura: e.abertura, capital: e.capital, cnae: e.cnaePrincipal ? e.cnaePrincipal.desc : null });
+      }
+    }
+    return [...grupos.values()].map(g => ({ ...g, ativas: g.empresas.filter(x => /ATIVA/i.test(x.situacao || '')).length, administra: g.empresas.filter(x => /ADMIN|DIRETOR|PRESIDENTE|TITULAR/i.test(x.qualificacao || '')).length }))
+      .sort((a, b) => b.empresas.length - a.empresas.length);
+  }
+  /* GLEIF (registro global LEI): resposta JSON:API → resumo */
+  function lei(j) {
+    const r = j && Array.isArray(j.data) ? j.data[0] : j && j.data; if (!r || !r.attributes) return null;
+    const a = r.attributes, en = a.entity || {}, rg = a.registration || {};
+    return { lei: r.id || a.lei, nome: en.legalName && en.legalName.name, status: en.status, registro: rg.status, emissao: rg.initialRegistrationDate, renovacao: rg.nextRenewalDate, forma: en.legalForm && en.legalForm.id, url: 'https://search.gleif.org/#/record/' + (r.id || a.lei) };
+  }
+  /* links oficiais para conferir na hora (certidões e cadastros de transporte) */
+  function linksOficiais(cnpj) {
+    const c = dig(cnpj);
+    return [
+      ['Comprovante de inscrição (Receita Federal)', 'https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp?cnpj=' + c],
+      ['Certidão de débitos federais (Receita/PGFN)', 'https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj'],
+      ['Regularidade do FGTS (CRF — Caixa)', 'https://consulta-crf.caixa.gov.br/consultacrf/pages/consultaEmpregador.jsf'],
+      ['Débitos trabalhistas (CNDT — TST)', 'https://cndt-certidao.tst.jus.br/inicio.faces'],
+      ['Transportador no RNTRC (ANTT)', 'https://consultapublica.antt.gov.br/Site/ConsultaRNTRC.aspx'],
+      ['Inscrição estadual (Sintegra)', 'http://www.sintegra.gov.br/'],
+      ['Sanções e contratos (Portal da Transparência)', 'https://portaldatransparencia.gov.br/pessoa-juridica/' + c]
+    ];
+  }
+
+  /* ---------- setor pela atividade principal (CNAE) ---------- */
+  function setor(e) {
+    const c = dig(e && e.cnaePrincipal && e.cnaePrincipal.cod).slice(0, 2), n = +c, txt = (e && e.cnaePrincipal && e.cnaePrincipal.desc || '').toLowerCase();
+    const todos = [e && e.cnaePrincipal, ...((e && e.cnaes) || [])].filter(Boolean).map(x => dig(x.cod).slice(0, 2));
+    const transp = todos.some(x => ['49', '50', '51', '52', '53'].includes(x));
+    if ([49, 50, 51, 52, 53].includes(n)) return { id: 'transporte', nome: /armaz|dep[oó]sito|log[ií]st/.test(txt) ? 'Logística / armazenagem' : 'Transportadora', icone: '🚚', transp: true };
+    if (n >= 1 && n <= 3) return { id: 'agro', nome: 'Agropecuária', icone: '🌾', transp };
+    if (n >= 5 && n <= 9) return { id: 'extracao', nome: 'Mineração / extração', icone: '⛏', transp };
+    if (n >= 10 && n <= 33) return { id: 'industria', nome: 'Indústria / fábrica', icone: '🏭', transp };
+    if (n >= 41 && n <= 43) return { id: 'construcao', nome: 'Construção', icone: '🏗', transp };
+    if (n === 45 || n === 46) return { id: 'atacado', nome: 'Comércio atacadista / distribuidor', icone: '📦', transp };
+    if (n === 47) return { id: 'varejo', nome: 'Comércio varejista', icone: '🏪', transp };
+    if (n) return { id: 'servicos', nome: 'Serviços', icone: '🧰', transp };
+    return { id: '?', nome: 'Atividade não informada', icone: '❔', transp };
+  }
+  /* nome de empresa sem a forma jurídica, para comparar com listas */
+  const nomeBase = s => normNome(s).replace(/\b(LTDA|S ?A|S\/A|EIRELI|ME|EPP|MEI|CIA|COMPANHIA|LIMITADA|SOCIEDADE ANONIMA|EM RECUPERACAO JUDICIAL)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  /* procura documentos e nomes numa lista oficial já carregada [{doc, nome, ...}] */
+  function naLista(lista, e) {
+    if (!Array.isArray(lista) || !e) return [];
+    const docs = new Set([dig(e.cnpj), ...((e.qsa || []).map(q => dig(q.doc)).filter(d => d.length === 14))]);
+    const nomes = new Set([nomeBase(e.razao), nomeBase(e.fantasia)].filter(x => x && x.length > 4));
+    const pessoas = new Set((e.qsa || []).filter(q => q.tipo !== 'PJ').map(q => normNome(q.nome)));
+    const out = [];
+    for (const x of lista) {
+      const d = dig(x.doc);
+      if (d && d.length === 14 && docs.has(d)) out.push({ ...x, por: d === dig(e.cnpj) ? 'CNPJ da empresa' : 'CNPJ de empresa sócia' });
+      else if (d && d.length === 14 && d.slice(0, 8) === dig(e.cnpj).slice(0, 8)) out.push({ ...x, por: 'outro estabelecimento (mesma raiz de CNPJ)' });
+      else if (x.nome && nomes.has(nomeBase(x.nome))) out.push({ ...x, por: 'nome idêntico ao da empresa — confira' });
+      else if (x.nome && x.tipo !== 'PJ' && pessoas.has(normNome(x.nome))) out.push({ ...x, por: 'nome idêntico ao de um sócio — confira (pode ser homônimo)' });
+    }
+    return out;
+  }
+  /* lê uma planilha (CSV) de lista oficial: acha a coluna de CPF/CNPJ e a de nome */
+  function lerLista(texto) {
+    const linhas = String(texto || '').split(/\r?\n/).filter(l => l.trim()); if (!linhas.length) return [];
+    const sep = [';', ',', '\t'].sort((a, b) => linhas[0].split(b).length - linhas[0].split(a).length)[0];
+    const cel = l => { const out = []; let cur = '', q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === sep && !q) { out.push(cur.trim()); cur = ''; } else cur += ch; } out.push(cur.trim()); return out; };
+    const rows = linhas.map(cel), out = [];
+    for (const r of rows) {
+      const iDoc = r.findIndex(c => /^[\d.\/-]+$/.test(c) && [11, 14].includes(dig(c).length) || /^\*{3}[\d.]{6,8}[-*]{1,3}\**$/.test(c.replace(/\s/g, '')));
+      if (iDoc < 0) continue;
+      const nome = r.filter((c, i) => i !== iDoc && /[A-Za-zÀ-ú]{3,}/.test(c) && !/^\d/.test(c)).sort((a, b) => b.length - a.length)[0] || '';
+      const d = dig(r[iDoc]); out.push({ doc: d.length === 14 ? d : r[iDoc], nome: nome.slice(0, 120), tipo: d.length === 14 ? 'PJ' : 'PF', uf: (r.find(c => /^[A-Z]{2}$/.test(c)) || null) });
+    }
+    return out;
+  }
+  /* nota de risco 0–100 (quanto maior, mais atenção) com os motivos */
+  function risco(e, x = {}) {
+    const m = []; let p = 0; const add = (v, t) => { p += v; m.push([v, t]); };
+    if (!/ATIVA/i.test(e.situacao || '')) add(60, `Situação na Receita: ${e.situacao || 'desconhecida'}`);
+    const anos = e.abertura ? (Date.now() - new Date(e.abertura)) / 3.156e10 : null;
+    if (anos != null && anos < 1) add(20, 'Empresa com menos de 1 ano'); else if (anos != null && anos < 3) add(8, 'Empresa com menos de 3 anos');
+    if (e.capital != null && e.capital < 10000 && !(e.simples && e.simples.mei)) add(6, 'Capital social baixo (menos de R$ 10 mil)');
+    const s = x.sancoes || {}; const nS = ['ceis', 'cnep', 'cepim', 'leniencia'].reduce((t, k) => t + ((s[k] || []).length), 0);
+    if (nS) add(40, `${nS} registro(s) de sanção no Portal da Transparência`);
+    if (x.ibama && x.ibama.lista && x.ibama.lista.length) add(25, `${x.ibama.lista.length} embargo(s) ambiental(is) do IBAMA`);
+    if (x.listaSuja && x.listaSuja.length) add(60, 'Aparece na lista suja do trabalho escravo');
+    if (x.internacional && x.internacional.some(i => /CNPJ/.test(i.por))) add(80, 'Aparece em lista de sanções internacionais');
+    else if (x.internacional && x.internacional.length) add(15, 'Nome parecido em lista de sanções internacionais (confira)');
+    if (x.antt && x.setor && x.setor.transp && x.antt.situacao && !/ATIV/i.test(x.antt.situacao)) add(30, `RNTRC ${x.antt.situacao}`);
+    if (x.antt && x.setor && x.setor.id === 'transporte' && x.antt.naoEncontrado) add(20, 'Transportadora sem registro no RNTRC (ANTT)');
+    p = Math.min(100, p);
+    return { nota: p, nivel: p >= 50 ? 'alto' : p >= 20 ? 'medio' : 'baixo', motivos: m.sort((a, b) => b[0] - a[0]).map(v => v[1]) };
+  }
+  const API = { setor, nomeBase, naLista, lerLista, risco, dig, cnpjOk, cpfOk, fmtCnpj, fmtTel, normalizar, alertas, chaveSocio, normNome, mascaraCpf, agruparPessoa, lei, linksOficiais };
   if (typeof module === 'object' && module.exports) module.exports = API; else root.NX_EMP = API;
 })(typeof self !== 'undefined' ? self : this);

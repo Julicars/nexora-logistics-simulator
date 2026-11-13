@@ -14,7 +14,7 @@ const { createEmpresas } = require('./empresas');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json; charset=utf-8', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8', '.webp': 'image/webp' };
 const SEC = {
   'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Referrer-Policy': 'same-origin',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' https://router.project-osrm.org https://publica.cnpj.ws https://api.casadosdados.com.br https://minhareceita.org https://brasilapi.com.br https://api.opencnpj.org https://open.cnpja.com"
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; connect-src 'self' https://router.project-osrm.org https://publica.cnpj.ws https://api.casadosdados.com.br https://minhareceita.org https://brasilapi.com.br https://api.opencnpj.org https://open.cnpja.com https://api.gleif.org"
 };
 function createServer(opts = {}) {
   const dataDir = opts.dataDir || process.env.NEXORA_DADOS || path.join(__dirname, '..', 'data');

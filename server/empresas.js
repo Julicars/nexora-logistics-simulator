@@ -5,6 +5,7 @@
  *   GET  /api/empresas/completa/:cnpj      consulta completa (+ CNPJá e CNPJ.ws: Simples/MEI e inscrições estaduais; + sanções se houver chave)
  *   GET  /api/empresas/rede/:cnpj?uf=SP    rede de vínculos: empresas ligadas pelos mesmos sócios (1 nível)
  *   POST /api/empresas/busca {nome, uf}    busca por razão social / nome fantasia (Casa dos Dados, até 20 resultados)
+ *   POST /api/empresas/pessoa {nome, doc?, uf?}  empresas em que a pessoa é sócia/administradora (nome completo; CPF opcional, vira ***456789**)
  *
  * Cache em data/empresas-cache.json (cadastro 7 dias, buscas 1 dia) para não repetir chamadas.
  * Variáveis opcionais: NEXORA_TRANSPARENCIA_CHAVE (Portal da Transparência: CEIS/CNEP),
@@ -14,6 +15,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const E = require('../public/src/js/core/empresa.js');
+const { createFontes } = require('./fontes.js');
 
 const UA = { 'User-Agent': 'NEXORA/3 (+consulta de CNPJ; dados publicos)', Accept: 'application/json' };
 const DIA = 864e5;
@@ -38,7 +40,7 @@ function createEmpresas(dataDir, opts = {}) {
     try {
       const r = await fetchFn(url, { method, headers: { ...UA, ...headers, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined, signal: ac.signal });
       const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (e) { j = null; }
-      return { status: r.status, json: j };
+      return { status: r.status, json: j, text: txt };
     } catch (e) { return { status: 0, erro: e.name === 'AbortError' ? 'tempo esgotado' : e.message }; } finally { clearTimeout(t); }
   }
 
@@ -77,16 +79,67 @@ function createEmpresas(dataDir, opts = {}) {
     const now = Date.now(); while (wsT.length && now - wsT[0] > 60000) wsT.shift(); if (wsT.length >= 3) return null; wsT.push(now);
     const r = await get(`https://publica.cnpj.ws/cnpj/${cnpj}`); return r.status === 200 && r.json ? setC(k, E.normalizar(r.json, 'CNPJ.ws')) : null;
   }
+  const F = createFontes(dataDir, (...a) => get(...a), getC, setC);
+
+  /* Portal da Transparência (CGU): CEIS, CNEP, CEPIM, acordos de leniência e contratos federais — precisa da chave gratuita */
   async function sancoes(cnpj) {
     const chave = process.env.NEXORA_TRANSPARENCIA_CHAVE; if (!chave) return { semChave: true };
-    const k = 'sanc:' + cnpj, c = getC(k, DIA); if (c !== undefined) return c;
-    const out = { ceis: [], cnep: [] };
-    for (const t of ['ceis', 'cnep']) {
-      const r = await get(`https://api.portaldatransparencia.gov.br/api-de-dados/${t}?codigoSancionado=${cnpj}&pagina=1`, { headers: { 'chave-api-dados': chave } });
-      if (r.status === 200 && Array.isArray(r.json)) out[t] = r.json.map(x => ({ tipo: x.tipoSancao && x.tipoSancao.descricaoResumida || x.tipoSancao && x.tipoSancao.descricaoPortal || 'Sanção', orgao: x.orgaoSancionador && x.orgaoSancionador.nome, inicio: x.dataInicioSancao, fim: x.dataFimSancao }));
+    const k = 'sanc2:' + cnpj, c = getC(k, DIA); if (c !== undefined) return c;
+    const out = { ceis: [], cnep: [], cepim: [], leniencia: [], contratos: null }, H = { headers: { 'chave-api-dados': chave } };
+    const base = 'https://api.portaldatransparencia.gov.br/api-de-dados/';
+    const tipo = x => (x.tipoSancao && (x.tipoSancao.descricaoResumida || x.tipoSancao.descricaoPortal)) || x.motivo || 'Registro';
+    const org = x => (x.orgaoSancionador && x.orgaoSancionador.nome) || (x.orgaoSuperior && x.orgaoSuperior.nome) || x.orgaoResponsavel || null;
+    for (const [t, url] of [['ceis', `ceis?codigoSancionado=${cnpj}&pagina=1`], ['cnep', `cnep?codigoSancionado=${cnpj}&pagina=1`], ['cepim', `cepim?cnpjSancionado=${cnpj}&pagina=1`], ['leniencia', `acordos-leniencia?cnpjSancionado=${cnpj}&pagina=1`]]) {
+      const r = await get(base + url, H);
+      if (r.status === 200 && Array.isArray(r.json)) out[t] = r.json.map(x => ({ tipo: t === 'leniencia' ? 'Acordo de leniência' : tipo(x), orgao: org(x), inicio: x.dataInicioSancao || x.dataInicioAcordo || x.dataReferencia || null, fim: x.dataFimSancao || x.dataFimAcordo || null }));
       else out.erro = 'Portal da Transparência: ' + (r.erro || 'HTTP ' + r.status);
     }
+    const r = await get(base + `contratos/cpf-cnpj?cpfCnpj=${cnpj}&pagina=1`, H);
+    if (r.status === 200 && Array.isArray(r.json)) out.contratos = { qtd: r.json.length, mais: r.json.length >= 15, lista: r.json.slice(0, 15).map(x => ({ orgao: (x.unidadeGestora && x.unidadeGestora.orgaoVinculado && x.unidadeGestora.orgaoVinculado.nome) || (x.orgao && x.orgao.nome) || null, objeto: x.objeto || null, valor: x.valorInicialCompra != null ? x.valorInicialCompra : x.valorFinalCompra, inicio: x.dataInicioVigencia || null, fim: x.dataFimVigencia || null })) };
     return setC(k, out);
+  }
+
+  /* GLEIF — registro global LEI (sem chave): empresas com operação no mercado financeiro/exterior */
+  async function gleif(cnpj) {
+    const k = 'lei:' + cnpj, c = getC(k, 7 * DIA); if (c !== undefined) return c;
+    const r = await get(`https://api.gleif.org/api/v1/lei-records?filter[entity.registeredAs]=${cnpj}&page[size]=1`, { timeout: 10000 });
+    if (r.status !== 200 || !r.json) return null;
+    const l = E.lei(r.json); if (!l) return setC(k, { nenhum: true });
+    for (const [campo, rel] of [['controladora', 'direct-parent'], ['controladoraFinal', 'ultimate-parent']]) {
+      const p = await get(`https://api.gleif.org/api/v1/lei-records/${l.lei}/${rel}`, { timeout: 10000 });
+      if (p.status === 200 && p.json) { const x = E.lei(p.json); if (x) l[campo] = { nome: x.nome, lei: x.lei, url: x.url }; }
+    }
+    return setC(k, l);
+  }
+
+  /* Pessoa: empresas em que um nome aparece no quadro societário (dados públicos da Receita; CPF sempre mascarado) */
+  async function pessoa(nome, doc, uf) {
+    nome = String(nome || '').trim().replace(/\s+/g, ' ').slice(0, 90);
+    if (E.normNome(nome).split(' ').length < 2) { const e = new Error('Digite o nome completo da pessoa (nome e sobrenome).'); e.status = 400; throw e; }
+    uf = /^[A-Z]{2}$/.test(String(uf || '').toUpperCase()) ? String(uf).toUpperCase() : '';
+    const mask = doc ? E.mascaraCpf(doc) : null;
+    if (doc && !mask) { const e = new Error('CPF inválido: use os 11 números (ou o formato ***456789** da base pública).'); e.status = 400; throw e; }
+    const k = `pes:${E.normNome(nome)}:${mask || ''}:${uf}`, c = getC(k, DIA); if (c !== undefined) return c;
+    let empresas = [], avisos = [], fonte;
+    if (mask) {
+      const r = await get(`https://minhareceita.org/?cnpf=${encodeURIComponent(mask)}${uf ? '&uf=' + uf : ''}&limit=200`, { timeout: 25000 });
+      if (r.status !== 200 || !r.json) { const e = new Error('Busca por CPF indisponível agora (' + (r.erro || 'HTTP ' + r.status) + ').'); e.status = 502; throw e; }
+      empresas = (r.json.data || []).map(x => E.normalizar(x, 'minhareceita.org')); if (r.json.cursor) avisos.push('Há mais empresas além das 200 mostradas: filtre pelo estado.');
+      fonte = 'Quadro societário da base aberta da Receita Federal (minhareceita.org), por nome + CPF mascarado.';
+    } else {
+      const chave = process.env.NEXORA_CASADOSDADOS_CHAVE;
+      const body = { busca_textual: [{ texto: [nome], tipo_busca: 'exata', razao_social: false, nome_fantasia: false, nome_socio: true }], ...(uf ? { uf: [uf] } : {}), situacao_cadastral: ['ATIVA', 'BAIXADA', 'INAPTA', 'SUSPENSA', 'NULA'], limite: 20, pagina: 1 };
+      const url = chave ? 'https://api.casadosdados.com.br/v5/cnpj/pesquisa?tipo_resultado=simples' : 'https://api.casadosdados.com.br/v5/public/cnpj/pesquisa';
+      const r = await get(url, { method: 'POST', body, headers: chave ? { 'api-key': chave } : {}, timeout: 15000 });
+      if (r.status !== 200 || !r.json) { const e = new Error('Busca de pessoa por nome indisponível agora (' + (r.erro || 'HTTP ' + r.status) + '). Informe também o CPF para buscar pela base da Receita.'); e.status = 502; throw e; }
+      const arr = (function find(o, d) { if (d > 3 || !o || typeof o !== 'object') return null; if (Array.isArray(o) && o.length && o[0] && typeof o[0] === 'object' && 'cnpj' in o[0]) return o; for (const v of Object.values(o)) { const f = find(v, d + 1); if (f) return f; } return null; })(r.json, 0) || [];
+      const cnpjs = [...new Set(arr.map(x => E.dig(x.cnpj)).filter(x => x.length === 14))].slice(0, 20), ini = Date.now();
+      for (const c of cnpjs) { if (Date.now() - ini > 45000) { avisos.push('Tempo limite: nem todas as empresas foram abertas.'); break; } try { const d = await cadastro(c); if (d) empresas.push(d); } catch (e) { /* segue */ } }
+      if ((r.json.total || 0) > cnpjs.length) avisos.push(`A busca achou ${r.json.total} empresas com esse nome de sócio; abrimos as ${cnpjs.length} primeiras. Informe o CPF ou o estado para refinar.`);
+      fonte = 'Busca de sócio na Casa dos Dados + quadro societário da Receita Federal. Pessoas com o mesmo nome aparecem separadas pelo CPF mascarado.';
+    }
+    const pessoas = E.agruparPessoa(nome, empresas, mask);
+    return setC(k, { nome, pessoas, avisos, fonte });
   }
 
   /* empresas onde a mesma pessoa aparece no quadro societário (CPF mascarado + nome) */
@@ -142,26 +195,29 @@ function createEmpresas(dataDir, opts = {}) {
   }
 
   function send(res, SEC, code, obj) { res.writeHead(code, { ...SEC, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); }
-  function readBody(req) { return new Promise((ok, no) => { let b = ''; req.on('data', d => { b += d; if (b.length > 5000) { req.destroy(); no(new Error('grande')); } }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); }); }
+  function readBody(req, max = 5000) { return new Promise((ok, no) => { let b = ''; req.on('data', d => { b += d; if (b.length > max) { req.destroy(); no(new Error('grande')); } }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); }); }
 
   async function handle(req, res, p, SEC) {
     try {
       const u = new URL(req.url, 'http://x');
       if (p === '/api/empresas/busca' && req.method === 'POST') { const b = await readBody(req); return send(res, SEC, 200, await busca(b.nome, b.uf)); }
+      if (p === '/api/empresas/listas' && req.method === 'GET') { const l = F.listaSuja(); return send(res, SEC, 200, { listaSuja: l ? { t: l.t, arquivo: l.arquivo, qtd: l.lista.length } : null }); }
+      if (p === '/api/empresas/listas/lista-suja' && req.method === 'POST') { const b = await readBody(req, 8e6); const l = F.salvarListaSuja(b.texto, b.arquivo); return send(res, SEC, 200, { ok: true, qtd: l.lista.length, t: l.t }); }
+      if (p === '/api/empresas/pessoa' && req.method === 'POST') { const b = await readBody(req); return send(res, SEC, 200, await pessoa(b.nome, b.doc, b.uf)); }
       const m = p.match(/^\/api\/empresas\/(cnpj|completa|rede)\/([\d./-]+)$/);
       if (!m || req.method !== 'GET') return send(res, SEC, 404, { erro: 'Rota não encontrada.' });
       const cnpj = E.dig(m[2]); if (!E.cnpjOk(cnpj)) return send(res, SEC, 400, { erro: 'CNPJ inválido (confira os dígitos).' });
       if (m[1] === 'rede') { const g = await rede(cnpj, u.searchParams.get('uf')); return g ? send(res, SEC, 200, g) : send(res, SEC, 404, { erro: 'CNPJ não encontrado na base da Receita.' }); }
       const d = await cadastro(cnpj); if (!d) return send(res, SEC, 404, { erro: 'CNPJ não encontrado na base da Receita.' });
       if (m[1] === 'cnpj') return send(res, SEC, 200, { empresa: d, alertas: E.alertas(d) });
-      const [x, s, w] = await Promise.all([cnpja(cnpj), sancoes(cnpj), cnpjws(cnpj)]);
+      const [x, s, w, l, fx] = await Promise.all([cnpja(cnpj), sancoes(cnpj), cnpjws(cnpj), gleif(cnpj).catch(() => null), F.extras(d).catch(() => null)]);
       const full = { ...d };
       if (x && !x.aviso) { full.simples = { ...d.simples, ...Object.fromEntries(Object.entries(x.simples || {}).filter(([, v]) => v != null)) }; full.inscricoes = x.inscricoes; if (!full.email && x.email) full.email = x.email; full.telefones = [...new Set([...(d.telefones || []), ...(x.telefones || [])])]; }
       if (w) { const ie = new Map((full.inscricoes || []).map(i => [i.uf + i.numero, i])); for (const i of w.inscricoes || []) ie.set(i.uf + i.numero, i); full.inscricoes = [...ie.values()]; if (!full.simples || full.simples.optante == null) full.simples = { ...full.simples, ...w.simples }; }
       const fontes = [x && !x.aviso ? 'CNPJá' : null, w ? 'CNPJ.ws' : null].filter(Boolean);
-      return send(res, SEC, 200, { empresa: full, alertas: E.alertas(full), extra: fontes.length ? { fonte: fontes.join(' + ') } : { aviso: (x && x.aviso) || 'Fontes extras indisponíveis agora.' }, sancoes: s });
+      return send(res, SEC, 200, { empresa: full, alertas: E.alertas(full), extra: fontes.length ? { fonte: fontes.join(' + ') } : { aviso: (x && x.aviso) || 'Fontes extras indisponíveis agora.' }, sancoes: s, lei: l, links: E.linksOficiais(cnpj), fontes: fx, risco: E.risco(full, { ...(fx || {}), sancoes: s }) });
     } catch (e) { return send(res, SEC, e.status || 500, { erro: e.message || 'Erro na consulta.' }); }
   }
-  return { handle, cadastro, rede, busca };
+  return { handle, cadastro, rede, busca, pessoa, gleif };
 }
 module.exports = { createEmpresas };
