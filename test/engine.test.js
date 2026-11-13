@@ -74,7 +74,7 @@ test('mistura de produtos: sem sobreposição, dentro dos limites, eixos e PBT o
     for (const V of r.vehs) {
       assert.ok(noOverlap(V.items), 'sobreposição em ' + V.v.name);
       assert.ok(inBounds(V.v, V.items), 'fora dos limites em ' + V.v.name);
-      assert.ok(NX.stats(V.v, V.items).axOk, 'eixo em ' + V.v.name);
+      assert.ok(NX.stats(V.v, V.items).axTol, 'eixo em ' + V.v.name);
       assert.strictEqual(NX.verifyVehicle(V.v, V.items), null);
     }
     assert.strictEqual(r.vehs.reduce((s, V) => s + V.items.length, 0) + r.left.length, r.total);
@@ -133,4 +133,74 @@ test('carroceria aberta: altura útil = 4,40 m menos o assoalho; carga máx. pes
   assert.equal(NX.planLoad([v], 'v0', [alto], { extras: false }).vehs[0].items.length, 4, 'aberta leva até 3,15 m');
   assert.equal(byName('Truck 10.4m').max, 14000);
   assert.ok(NX.vehMaxCargo(byName('Truck 10.4m')) <= 14000);
+});
+
+
+
+
+
+test('padrão: começa na cabine, fileiras juntas, eixos dentro da tolerância legal', () => {
+  const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15);
+  const l = NX.normalize({ id: 'bb', cod: 'BB', nome: 'PEAD', tipo: 'bigbag', l: 1, w: 1.2, h: 2, q: 20, pcs: 1, kgp: 1250, kg: 1250, pos: 'pe', stack: 0 });
+  const its = NX.planLoad(NX.FLEET0, car.id, [l], { extras: false }).vehs[0].items;
+  assert.ok(Math.min(...its.map(i => i.x)) < 1e-6, 'começa encostado na cabine');
+  assert.ok(NX.stats(car, its).axTol, 'dentro do que a balança confere');
+});
+
+test('toda carga começa na cabine, em qualquer configuração de eixos, com o sistema ou o usuário arrumando', () => {
+  const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15);
+  const l = NX.normalize({ id: 'bb', cod: 'BB', nome: 'PEAD', tipo: 'bigbag', l: 1.2, w: 1.1, h: 2, q: 20, pcs: 1, kgp: 1250, kg: 1250, pos: 'pe', stack: 0 });
+  try {
+    for (const ax of ['cav-truc-ls', 'cav-toco-ls', 'cav-toco-vand']) for (const manual of [false, true]) {
+      NX.opcoes({ manual });
+      const v = { ...car, axcfg: ax }, fl = NX.FLEET0.map(x => x.id === car.id ? v : x);
+      const its = NX.planLoad(fl, v.id, [l], { extras: false }).vehs[0].items;
+      const xs = [...new Set(its.map(i => +i.x.toFixed(3)))].sort((a, b) => a - b);
+      assert.ok(xs[0] < 1e-6, `${ax} começa na cabine`);
+      for (let k = 1; k < xs.length; k++) assert.ok(xs[k] - xs[k - 1] - its[0].l < 1e-6, `${ax}: sem espaço entre fileiras`);
+      assert.equal(NX.verifyVehicle(v, its), null);
+    }
+  } finally { NX.opcoes({ manual: false }); }
+});
+
+test('carga sempre junta: 20 big bags de 1.250 kg na carreta (cavalo trucado) a partir da cabine, sem espaço entre fileiras', () => {
+  const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15);
+  const l = NX.normalize({ id: 'bb', cod: 'BB', nome: 'PEAD', tipo: 'bigbag', l: 1.2, w: 1.1, h: 2, q: 20, pcs: 1, kgp: 1250, kg: 1250, pos: 'pe', stack: 0 });
+  const r = NX.planLoad(NX.FLEET0, car.id, [l], { extras: false }), its = r.vehs[0].items;
+  const xs = [...new Set(its.map(i => +i.x.toFixed(3)))].sort((a, b) => a - b);
+  assert.ok(xs[0] < 1e-6, 'começa na cabine');
+  for (let k = 1; k < xs.length; k++) assert.ok(Math.abs(xs[k] - xs[k - 1] - its[0].l) < 1e-6, 'fileiras encostadas');
+  assert.equal(its.length, 20, 'cabem os 20');
+  assert.ok(NX.stats(car, its).axTol);
+});
+
+test('usuário arruma a carga: coloca tudo junto a partir da cabine sem mexer por eixo; só respeita a carga permitida', () => {
+  const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15), v = { ...car, axcfg: 'cav-toco-ls' }, fl = NX.FLEET0.map(x => x.id === car.id ? v : x);
+  const l = NX.normalize({ id: 'bb', cod: 'BB', nome: 'PEAD', tipo: 'bigbag', l: 1.2, w: 1.1, h: 2, q: 20, pcs: 1, kgp: 1250, kg: 1250, pos: 'pe', stack: 0 });
+  NX.opcoes({ manual: true });
+  try {
+    const r = NX.planLoad(fl, v.id, [l], { extras: false }), its = r.vehs[0].items;
+    assert.equal(r.left.length, 0, 'não tira volumes por causa de eixo');
+    assert.ok(Math.min(...its.map(i => i.x)) < 1e-6);
+    assert.ok(Math.max(...its.map(i => i.x + i.l)) <= 12.0 + 1e-6, 'fileiras juntas (sem espaçar)');
+    assert.equal(NX.verifyVehicle(v, its), null, 'pode salvar mesmo com eixo acima');
+    const big = NX.normalize({ ...l, id: 'b2', q: 40 }); const r2 = NX.planLoad(fl, v.id, [big], { extras: false });
+    assert.ok(r2.left.length > 0, 'acima da carga permitida (PBT) continua ficando de fora');
+  } finally { NX.opcoes({ manual: false }); }
+});
+
+test('veículo até 50 t: só o PBT limita (Res. 882 art. 50 §1º) — 20 big bags de 1.375 kg na LS trucada', () => {
+  NX.opcoes({ manual: false });
+  const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15);
+  const l = NX.normalize({ id: 'bb', cod: 'BB', nome: 'PEAD', tipo: 'bigbag', l: 1.2, w: 1.1, h: 2, q: 20, pcs: 1, kgp: 1375, kg: 1375, pos: 'pe', stack: 0 });
+  const r = NX.planLoad(NX.FLEET0, car.id, [l], { extras: false }), its = r.vehs[0].items;
+  assert.equal(its.length, 20, 'cabem os 20');
+  const st = NX.stats(car, its); assert.ok(st.pbt <= st.pbtLim, 'PBT dentro do limite');
+  assert.equal(NX.balanca(st).multa, 0, 'sem multa na balança');
+});
+
+test('eixo dianteiro de 7 t para veículo elétrico ou a gás (Res. CONTRAN 1015/2024)', () => {
+  const v = { id: 'e', name: 'E', cat: 'Carreta', L: 15.4, W: 2.5, H: 2.7, wag: 1, axcfg: 'cav-truc-ls' };
+  assert.equal(NX.axleModel(v).ax[0].lim, 6000);
+  assert.equal(NX.axleModel({ ...v, combAlt: true }).ax[0].lim, 7000);
 });

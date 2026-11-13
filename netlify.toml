@@ -1,0 +1,3 @@
+# Netlify: site estático a partir da pasta public/ (arraste a pasta ou conecte o repositório)
+[build]
+  publish = "public"

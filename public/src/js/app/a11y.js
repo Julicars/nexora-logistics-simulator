@@ -71,7 +71,7 @@
     const REQ = ['nome', 'l', 'w', 'h', 'q', 'kgp'];
     const mark = () => qa('input[data-k]', rows).forEach(i => {
       if (!REQ.includes(i.dataset.k) || i.disabled) return;
-      const empty = i.value.trim() === '' || (i.type === 'number' && !(+i.value > 0) && i.dataset.k !== 'kgp');
+      const empty = i.value.trim() === '' || ((i.type === 'number' || i.dataset.mask) && !(+i.value > 0) && i.dataset.k !== 'kgp');
       if (empty) { i.setAttribute('aria-invalid', 'true'); i.setAttribute('aria-describedby', 'moMsg'); } else { i.removeAttribute('aria-invalid'); i.removeAttribute('aria-describedby'); }
     });
     new MutationObserver(mark).observe(rows, { childList: true });

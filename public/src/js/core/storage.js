@@ -53,7 +53,7 @@ const DB = {
 
   /* ---- montagens ---- */
   async listPlans() { return LS.get('plans', []).map(({ vehs, ...r }) => ({ ...r, nVeh: vehs.length, nVol: vehs.reduce((s, V) => s + V.items.length, 0) })); },
-  async getPlan(id) { const p = LS.get('plans', []).find(x => x.id === id); if (!p) throw new ApiError('Montagem não encontrada.', 404); return p; },
+  async getPlan(id) { const p = LS.get('plans', []).find(x => x.id === id); if (!p) throw new ApiError('Plano de carga não encontrado.', 404); return p; },
   async savePlan(payload, localCheck) {
     const e = localCheck(); if (e.length) throw new ApiError(e.join(' '), 422, e);
     const list = LS.get('plans', []); const p = { ...payload, id: localId('m'), criado: new Date().toISOString() };

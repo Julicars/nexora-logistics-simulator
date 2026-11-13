@@ -1,6 +1,6 @@
 {
   "name": "nexora-logistics",
-  "version": "3.0.0",
+  "version": "3.17.0",
   "description": "NEXORA Logistics Intelligence — montagem de carga 3D (HTML, CSS, JavaScript e Node.js, sem dependências)",
   "main": "server/index.js",
   "scripts": { "start": "node server/index.js", "test": "node --test test/*.test.js" },

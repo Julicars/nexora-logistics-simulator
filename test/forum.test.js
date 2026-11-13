@@ -17,5 +17,11 @@ test('admin cria tópico, qualquer um responde, admin apaga', async () => {
   const r = await j(`/api/forum/topics/${t.b.id}/replies`, { method: 'POST', body: JSON.stringify({ autor: 'João', texto: 'Obrigado' }) }); assert.equal(r.s, 201);
   const vazio = await j(`/api/forum/topics/${t.b.id}/replies`, { method: 'POST', body: JSON.stringify({ autor: '', texto: 'oi' }) }); assert.equal(vazio.s, 422);
   const saved = JSON.parse(fs.readFileSync(path.join(dir, 'forum.json'), 'utf8')); assert.equal(saved.topics.find(x => x.id === t.b.id).respostas.length, 1);
+  assert.ok(r.b.chave, 'resposta devolve chave de edição');
+  const e1 = await j(`/api/forum/topics/${t.b.id}/replies/${r.b.id}`, { method: 'PUT', body: JSON.stringify({ texto: 'editado', chave: 'errada' }) }); assert.equal(e1.s, 403);
+  const e2 = await j(`/api/forum/topics/${t.b.id}/replies/${r.b.id}`, { method: 'PUT', body: JSON.stringify({ texto: 'editado', chave: r.b.chave }) }); assert.equal(e2.s, 200); assert.ok(e2.b.editado);
+  const g = await j('/api/forum'); assert.ok(!JSON.stringify(g.b).includes('"chave"'), 'chave nunca é exposta');
+  const nb = await j(`/api/forum/topics/${t.b.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ cat: 'frete', titulo: 'Nova tabela', texto: 'x', norma: { titulo: 'Portaria', url: 'javascript:alert(1)' } }) }); assert.equal(nb.s, 422);
+  const ok = await j(`/api/forum/topics/${t.b.id}`, { method: 'PUT', headers: h, body: JSON.stringify({ cat: 'frete', titulo: 'Nova tabela', texto: 'x', norma: { titulo: 'Portaria SUROC 22', url: 'https://anttlegis.antt.gov.br' } }) }); assert.equal(ok.s, 200); assert.equal(ok.b.norma.titulo, 'Portaria SUROC 22');
   const d = await j(`/api/forum/topics/${t.b.id}`, { method: 'DELETE', headers: h }); assert.equal(d.s, 200);
 });

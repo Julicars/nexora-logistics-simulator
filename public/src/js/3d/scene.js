@@ -227,7 +227,8 @@ function buildVehicle(v, offZ) {
     /* eixos traseiros */
     let axs; const rn = m.rear || 1;
     if (m.type === 'rigid') axs = Array.from({ length: rn }, (_, k) => X + m.s2 + (k - (rn - 1) / 2) * 1.3);
-    else if (m.type === 'semi') axs = m.split ? m.trailerX.map(x => X + x) : [-1, 0, 1].map(k => X + m.s2 + k * 1.3);
+    else if (m.type === 'semi') axs = m.trailerX.flatMap((x, i) => { const n = m.tgN[i]; return Array.from({ length: n }, (_, k) => X + x + (k - (n - 1) / 2) * 1.3); });
+    else if (m.type === 'bitrem') { const n = m.k === 'bitrem9' ? 3 : 2; axs = Array.from({ length: n }, (_, k) => X + m.s2 + (k - (n - 1) / 2) * 1.3); }
     else if (m.type === 'rj') axs = g === 0 ? [X + m.s2 - 0.65, X + m.s2 + 0.65] : [X + m.p1, X + m.p2];
     else axs = [-0.65, 0.65].map(k => X + m.s2 + k);
     const dual = cat !== 'Van'; for (const ax of axs) { for (const s of [-1, 1]) { gp.add(wheel(ax, s * (W / 2 - (cat === 'Van' ? 0.12 : 0.2)), r, dual)); } }
@@ -240,6 +241,7 @@ function buildVehicle(v, offZ) {
     if (cat === 'Iveco baú') { cabHood(gp, -0.12, Math.min(W, 2.0), 2.55, 0.68); fx = -1.45; const fr = boxM(2.2, 0.2, 0.8, DARK()); fr.position.set(-1.1, r + 0.2, 0); gp.add(fr); }
     else if (cat === 'Van') fx = -1.45;
     else { const k = cab(gp, -0.15, W, (cat === 'Truck' || m.type === 'rj') ? 'big' : 'mid'); const fr = boxM(k.L + 0.3, 0.24, 0.85, DARK()); fr.position.set(-0.15 - k.L / 2, r + 0.22, 0); gp.add(fr); fx = -0.15 - k.L * 0.55; }
+    if (m.k === 'bitruck') for (const s of [-1, 1]) gp.add(wheel(fx + 1.35, s * (W / 2 - 0.2), r));
     for (const s of [-1, 1]) { gp.add(wheel(fx, s * (W / 2 - (cat === 'Van' ? 0.12 : 0.2)), r)); if (cat !== 'Van') gp.add(fender(fx, r, s * (W / 2 - 0.2), 0.36)); else gp.add(fender(fx, r, s * (W / 2 + 0.02), 0.2)); }
   } else tractor(gp, W, m.tractor);
   scene.add(gp); return gp;
@@ -479,9 +481,10 @@ function tryMove(it, cand, silent) {
   const r = checkPlace(b.c, others, b, null);
   if (!r.ok) { lastMoveErr = r.msg; if (!silent) toast('Não é possível: ' + r.msg + '.', true); return false; }
   const kg = others.reduce((s, o) => s + o.kg, 0) + b.kg; if (kg > vehMaxCargo(V.v) + 1) { lastMoveErr = 'excesso de peso no veículo'; if (!silent) toast('Não é possível: ' + lastMoveErr + '.', true); return false; }
-  const al = axleLoads(V.v, [...others, b]); const bad = al.find(a => a.tot > a.lim + 1);
-  if (bad) { lastMoveErr = 'excede o limite do eixo ' + bad.n; if (!silent) toast('Não é possível: ' + lastMoveErr + '.', true); return false; }
-  Object.assign(it, { x: b.x, y: b.y, z: b.z, wg: b.wg, l: b.l, w: b.w, h: b.h, ax: b.ax, ok: b.ok }); rebuildLoads(V.items); placeMesh(it); highlight(); return true;
+  const al = axleLoads(V.v, [...others, b]); const bad = al.find(a => a.tot > NX.axLim(a) + 1);
+  if (bad && !NX.opcoes().manual) { lastMoveErr = 'excede o limite do eixo ' + bad.n; if (!silent) toast('Não é possível: ' + lastMoveErr + '.', true); return false; }
+  if (bad && !silent) { const was = axleLoads(V.v, V.items).some(a => a.tot > a.lim + 1); if (!was) toast('Atenção: ' + bad.n + ' passou do limite legal.', true); }
+  Object.assign(it, { x: b.x, y: b.y, z: b.z, wg: b.wg, l: b.l, w: b.w, h: b.h, ax: b.ax, ok: b.ok }); rebuildLoads(V.items); placeMesh(it); highlight(); if (typeof axHud === 'function') axHud(); return true;
 }
 function moveSel(dx, dy) {
   if (!sel) return toast('Selecione um volume (clique nele ou na lista).');

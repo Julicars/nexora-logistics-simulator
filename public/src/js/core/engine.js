@@ -97,54 +97,112 @@ const levelsOf = p => (p.stackable===false) ? 1 : (p.tipo==='bobina' ? (p.maxLev
  * Taras: estimativas (fichas de fabricantes quando disponíveis); ajuste à sua frota. */
 const CONT_TARE = { "Container 45' HC": 4800, "Container 40' HC": 3900, "Container 20' DC": 2200 };
 /* Configurações de eixos (modelo "Frota Certa" / CONTRAN 882/2021) */
+/* Configurações de eixos — Resolução CONTRAN 882/2021 (limites por eixo/conjunto e PBT/PBTC).
+   tr: cavalo (toco 6+10 | trucado 6+17); tg: grupos da carreta [nome, limite kg, nº de eixos]. */
 const AXCFG = {
- 'cav-truc-ls':   {nome:'Cavalo trucado + carreta LS (6 + 17 + 25,5 = 48,5 t)', cats:['Carreta','Container']},
- 'cav-toco-ls':   {nome:'Cavalo toco + carreta LS (6 + 10 + 25,5 = 41,5 t)', cats:['Carreta','Container']},
- 'cav-toco-vand': {nome:'Cavalo toco + carreta vanderléia (6 + 10 + 10 + 10 + 10 = 46 t)', cats:['Carreta','Container']},
- 'trucado':       {nome:'Trucado (6 + 17 = 23 t)', cats:['Truck']},
- 'toco':          {nome:'Toco (6 + 10 = 16 t)', cats:['Truck']},
- 'rodotrem9':     {nome:'Rodotrem 9 eixos (6 + 17 + 17 + 17 + 17 = 74 t)', cats:['Rodotrem']},
- 'romeu-julieta': {nome:'Romeu e Julieta trucado (6 + 17 + 10 + 10 = 43 t)', cats:['Rodotrem']},
- 'fab':           {nome:'Limite do fabricante', cats:['3/4','Van','Iveco baú']}
+ 'toco':          {nome:'Toco 2 eixos (6 + 10 = 16 t)', pbt:16000, disp:'facil', cats:['Truck']},
+ 'trucado':       {nome:'Trucado 3 eixos (6 + 17 = 23 t)', pbt:23000, disp:'facil', cats:['Truck']},
+ 'bitruck':       {nome:'Bitruck 4 eixos (6 + 6 + 17 = 29 t)', pbt:29000, disp:'facil', cats:['Truck']},
+ 'truck-tt':      {nome:'Caminhão 4 eixos tandem triplo (6 + 25,5 = 31,5 t)', pbt:31500, disp:'dificil', cats:['Truck']},
+ 'cav-toco-1':    {nome:'Cavalo toco + carreta 1 eixo (6 + 10 + 10 = 26 t)', disp:'dificil', cats:['Carreta','Container'], tr:'toco', tg:[['Carreta (1 eixo)',10000,1]], pbt:26000},
+ 'cav-toco-2':    {nome:'Cavalo toco + carreta 2 eixos (6 + 10 + 17 = 33 t)', disp:'medio', cats:['Carreta','Container'], tr:'toco', tg:[['Carreta (tandem duplo)',17000,2]], pbt:33000},
+ 'cav-toco-2d':   {nome:'Cavalo toco + carreta 2 eixos distanciados (6 + 10 + 20 = 36 t)', disp:'dificil', cats:['Carreta','Container'], tr:'toco', tg:[['Carreta — 1º eixo',10000,1],['Carreta — 2º eixo',10000,1]], pbt:36000},
+ 'cav-toco-ls':   {nome:'Cavalo toco + carreta LS (6 + 10 + 25,5 = 41,5 t)', disp:'facil', cats:['Carreta','Container'], tr:'toco', tg:[['Carreta LS (tandem triplo)',25500,3]], pbt:41500},
+ 'cav-toco-vand': {nome:'Cavalo toco + carreta vanderléia (6 + 10 + 30 = 46 t)', disp:'medio', cats:['Carreta','Container'], tr:'toco', tg:[['Vanderléia — 1º eixo',10000,1],['Vanderléia — 2º eixo',10000,1],['Vanderléia — 3º eixo',10000,1]], pbt:46000},
+ 'cav-truc-1':    {nome:'Cavalo trucado + carreta 1 eixo (6 + 17 + 10 = 33 t)', disp:'dificil', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta (1 eixo)',10000,1]], pbt:33000},
+ 'cav-truc-2':    {nome:'Cavalo trucado + carreta 2 eixos (6 + 17 + 17 = 40 t)', disp:'medio', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta (tandem duplo)',17000,2]], pbt:40000},
+ 'cav-truc-2d':   {nome:'Cavalo trucado + carreta 2 eixos distanciados (6 + 17 + 20 = 43 t)', disp:'dificil', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta — 1º eixo',10000,1],['Carreta — 2º eixo',10000,1]], pbt:43000},
+ 'cav-truc-ls-c': {nome:'LS 6 eixos menor de 16 m / basculante (PBT 45 t)', disp:'medio', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta LS (tandem triplo)',25500,3]], pbt:45000},
+ 'cav-truc-ls':   {nome:'Cavalo trucado + carreta LS acima de 16 m (6 + 17 + 25,5 = 48,5 t)', disp:'facil', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta LS (tandem triplo)',25500,3]], pbt:48500},
+ 'cav-truc-vs':   {nome:'LS vanderléia simples 6 eixos (6 + 17 + 10 + 17 = 50 t)', disp:'dificil', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta — eixo isolado',10000,1],['Carreta — tandem duplo',17000,2]], pbt:50000},
+ 'cav-truc-vand': {nome:'Cavalo trucado + vanderléia (6 + 17 + 30 = 53 t)', disp:'medio', cats:['Carreta','Container'], tr:'trucado', tg:[['Vanderléia — 1º eixo',10000,1],['Vanderléia — 2º eixo',10000,1],['Vanderléia — 3º eixo',10000,1]], pbt:53000},
+ 'cav-truc-4e':   {nome:'LS quarto eixo, 17,5 m ou mais (6 + 17 + 10 + 25,5 = 58,5 t)', disp:'medio', cats:['Carreta','Container'], tr:'trucado', tg:[['Carreta — eixo distanciado',10000,1],['Carreta LS (tandem triplo)',25500,3]], pbt:58500},
+ 'romeu-julieta': {nome:'Romeu e Julieta trucado (6 + 17 + 10 + 10 = 43 t)', pbt:43000, disp:'medio', cats:['Rodotrem']},
+ 'rj-3c3':        {nome:'Caminhão-reboque trucado (6 + 17 + 10 + 17 = 50 t)', pbt:50000, disp:'medio', cats:['Rodotrem']},
+ 'rj-2c2':        {nome:'Toco + reboque (6 + 10 + 10 + 10 = 36 t)', pbt:36000, disp:'dificil', cats:['Rodotrem']},
+ 'bitrem7':       {nome:'Bitrem 7 eixos (6 + 17 + 17 + 17 = 57 t)', pbt:57000, disp:'facil', cats:['Rodotrem']},
+ 'bitrem9':       {nome:'Bitrem 9 eixos (6 + 17 + 25,5 + 25,5 = 74 t · exige AET, 25 a 30 m)', pbt:74000, disp:'dificil', cats:['Rodotrem']},
+ 'rodotrem9':     {nome:'Rodotrem 9 eixos (6 + 17 + 17 + 17 + 17 = 74 t · exige AET, 25 a 30 m)', pbt:74000, disp:'medio', cats:['Rodotrem']},
+ 'fab':           {nome:'Limite do fabricante', disp:'facil', cats:['3/4','Van','Iveco baú']}
 };
 const axDefault = cat => ({Carreta:'cav-truc-ls',Container:'cav-truc-ls',Truck:'trucado',Rodotrem:'rodotrem9'}[cat]||'fab');
 const axcfgOf = v => (AXCFG[v.axcfg] && AXCFG[v.axcfg].cats.includes(v.cat)) ? v.axcfg : axDefault(v.cat);
-const axOptions = cat => Object.entries(AXCFG).filter(([,o])=>o.cats.includes(cat)).map(([k,o])=>[k,o.nome]);
-function axleModel(v){
+/* do menor para o maior peso (PBT) */
+/* facilidade de achar no mercado (estimativa: frota anunciada em fretes e emplacamentos ANFIR) */
+const DISP={facil:'Fácil de achar',medio:'Encontra com alguma procura',dificil:'Difícil de achar'};
+const axDisp = k => { const d=(AXCFG[k]&&AXCFG[k].disp)||'medio'; return {k:d,txt:DISP[d]}; };
+const axOptions = cat => Object.entries(AXCFG).filter(([,o])=>o.cats.includes(cat)).sort((a,b)=>(a[1].pbt||0)-(b[1].pbt||0)).map(([k,o])=>[k,o.nome]);
+/* multa por excesso de peso — CTB art. 231, V e Res. CONTRAN 882/2021 art. 57: multa-base (R$ 130,16) uma vez só;
+   acréscimo por 200 kg ou fração (arredonda para cima), na faixa do excesso total, calculado separado para eixos e para
+   PBT/PBTC e somado. Só conta o que passa da tolerância (arts. 52-53). */
+function acrescimo(kg){ if(kg<=0)return 0; const v=kg<=600?5.32:kg<=800?10.64:kg<=1000?21.28:kg<=3000?31.92:kg<=5000?42.56:53.20; return Math.ceil(kg/200)*v; }
+function multaExcesso(excEixos,excPbt=0){ const e=Math.max(0,excEixos),p=Math.max(0,excPbt); return e||p ? 130.16+acrescimo(e)+acrescimo(p) : 0; }
+/* fiscalização na balança (Res. 882 art. 50): PBT regulamentar até 50 t → só PBT/PBTC (tolerância 5%);
+   se passar dela, também os eixos, com penalidades somadas. Acima de 50 t → eixos (12,5%) e PBT (5%). */
+function balanca(st){ const pbtTol=Math.round(st.pbtLim*1.05), excP=Math.max(0,st.pbt-pbtTol), soPbt=st.pbtLim<=50000;
+ const checaEixo=!soPbt||excP>0, excE=checaEixo?st.al.reduce((t,a)=>t+Math.max(0,a.tot-a.tolLim),0):0;
+ return {soPbt,pbtTol,excP,excE,multa:multaExcesso(excE,excP),retido:excP>0||excE>0}; }
+/* peso vazio real por eixo (balança), quando o usuário informa no veículo: substitui a estimativa */
+function axleModel(v){ const m=axleModel0(v); if(v&&Array.isArray(v.taras)) m.ax.forEach((a,i)=>{ const t=+v.taras[i]; if(t>0){ a.tare=t; a.taraReal=true; } }); return m; }
+function axleModel0(v){
  const L=v.L, tol={eixo:0.125,pbt:0.05}, k=axcfgOf(v), src='CONTRAN 882/2021';
- const steer=t=>({n:'Dianteiro (simples, 2 pneus)',lim:6000,tare:t});
+ /* Res. CONTRAN 1015/2024: dianteiro de 7 t para veículo elétrico, híbrido ou a gás (GNV/biometano) */
+ const steer=t=>({n:'Dianteiro (simples, 2 pneus)'+(v.combAlt?' · 7 t (elétrico/gás)':''),lim:v.combAlt?7000:6000,tare:t+(v.combAlt?800:0)});
  if(v.cat==='Carreta'||v.cat==='Container'){
-  const toco=k!=='cav-truc-ls', cont=v.cat==='Container'?(CONT_TARE[v.name]||3900):0;
+  const C=AXCFG[k], toco=C.tr==='toco', cont=v.cat==='Container'?(CONT_TARE[v.name]||3900):0;
   const tr=toco?[steer(4300),{n:'Tração do cavalo (simples, 4 pneus)',lim:10000,tare:3000}]:[steer(4970),{n:'Tração do cavalo (tandem duplo)',lim:17000,tare:3850}];
-  const base={type:'semi',s1:0.8,tractor:toco?'toco':'trucado',cfg:AXCFG[k].nome,tol,src,k};
-  if(k==='cav-toco-vand'){ const tx=[L-1.0,L-3.6,L-6.2].map(x=>Math.max(x,1.5)); const tare=(6300+cont)/3;
-   return {...base,s2:tx.reduce((a,b)=>a+b,0)/3,split:3,trailerX:tx,ax:[...tr,...[1,2,3].map(i=>({n:'Carreta vanderléia — '+i+'º eixo (simples, 4 pneus)',lim:10000,tare}))],pbt:46000}; }
-  return {...base,s2:L-2.0,trailerX:[L-3.3,L-2.0,L-0.7],ax:[...tr,{n:(v.cat==='Container'?'Porta-container':'Carreta LS')+' (tandem triplo)',lim:25500,tare:(v.cat==='Container'?5200:7000)+cont}],pbt:toco?41500:48500};
+  const base={type:'semi',s1:0.8,tractor:toco?'toco':'trucado',cfg:C.nome,tol,src,k};
+  const nax=C.tg.reduce((s,g)=>s+g[2],0), ttot=(v.cat==='Container'?5200:4600+800*nax)+cont;
+  const grp=C.tg.map(([n,lim,na])=>({n:(v.cat==='Container'&&C.tg.length===1?'Porta-container (conjunto)':n),lim,tare:ttot*na/nax}));
+  /* posição de cada grupo, do fundo para a frente */
+  let x=L-0.7; const tx=[]; for(let i=C.tg.length-1;i>=0;i--){const na=C.tg[i][2],w=(na-1)*1.3;tx[i]=Math.max(x-w/2,1.5);x-=w+(C.tg[i][1]===10000&&C.tg.length>1?2.6:1.3)}
+  const sh=C.tg.map(g=>g[1]/C.tg.reduce((s,h)=>s+h[1],0));
+  return {...base,s2:tx.reduce((a,b,i)=>a+b*sh[i],0),split:C.tg.length,share:sh,tgN:C.tg.map(g=>g[2]),trailerX:tx,ax:[...tr,...grp],pbt:C.pbt};
  }
  if(v.cat==='Rodotrem'){
-  if(k==='romeu-julieta') return {type:'rj',s1:-1.3,s2:L*0.7,p1:1.0,p2:L-1.2,cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4300),{n:'Caminhão — traseiro (tandem duplo)',lim:17000,tare:4600},{n:'Reboque — eixo dianteiro (simples, 4 pneus)',lim:10000,tare:2300},{n:'Reboque — eixo traseiro (simples, 4 pneus)',lim:10000,tare:2300}],pbt:43000};
+  const rj=(ax,pbt)=>({type:'rj',s1:-1.3,s2:L*0.7,p1:1.0,p2:L-1.2,cfg:AXCFG[k].nome,tol,src,k,ax,pbt});
+  if(k==='romeu-julieta') return rj([steer(4300),{n:'Caminhão — traseiro (tandem duplo)',lim:17000,tare:4600},{n:'Reboque — eixo dianteiro (simples, 4 pneus)',lim:10000,tare:2300},{n:'Reboque — eixo traseiro (simples, 4 pneus)',lim:10000,tare:2300}],43000);
+  if(k==='rj-3c3') return rj([steer(4300),{n:'Caminhão — traseiro (tandem duplo)',lim:17000,tare:4600},{n:'Reboque — eixo dianteiro (simples, 4 pneus)',lim:10000,tare:2300},{n:'Reboque — traseiro (tandem duplo)',lim:17000,tare:3000}],50000);
+  if(k==='rj-2c2') return rj([steer(4000),{n:'Caminhão — traseiro (simples, 4 pneus)',lim:10000,tare:3200},{n:'Reboque — eixo dianteiro (simples, 4 pneus)',lim:10000,tare:2300},{n:'Reboque — eixo traseiro (simples, 4 pneus)',lim:10000,tare:2300}],36000);
+  if(k==='bitrem7') return {type:'bitrem',s1:0.8,s2:L-1.2,tractor:'trucado',cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4970),{n:'Tração do cavalo (tandem duplo)',lim:17000,tare:3850},{n:'1º semirreboque (tandem duplo)',lim:17000,tare:6000},{n:'2º semirreboque (tandem duplo)',lim:17000,tare:5500}],pbt:57000};
+  if(k==='bitrem9') return {type:'bitrem',s1:0.8,s2:L-1.6,tractor:'trucado',cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4970),{n:'Tração do cavalo (tandem duplo)',lim:17000,tare:3850},{n:'1º semirreboque (tandem triplo)',lim:25500,tare:7000},{n:'2º semirreboque (tandem triplo)',lim:25500,tare:6500}],pbt:74000};
   return {type:'rodo',s1:0.8,s2:L-1.2,tractor:'trucado',cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4970),{n:'Tração do cavalo (tandem duplo)',lim:17000,tare:3850},{n:'1º semirreboque (tandem duplo)',lim:17000,tare:5000},{n:'Dolly (tandem duplo)',lim:17000,tare:2600},{n:'2º semirreboque (tandem duplo)',lim:17000,tare:5000}],pbt:74000};
  }
  if(v.cat==='Truck'){
-  if(k==='toco') return {type:'rigid',s1:-1.3,s2:L*0.66,rear:1,cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4000),{n:'Traseiro (simples, 4 pneus)',lim:10000,tare:3200}],pbt:16000};
-  return {type:'rigid',s1:-1.3,s2:L*0.7,rear:2,cfg:AXCFG[k].nome,tol,src,k,ax:[steer(4300),{n:'Traseiro (tandem duplo)',lim:17000,tare:4400}],pbt:23000};
+  const R=(rear,ax,pbt,s1=-1.3)=>({type:'rigid',s1,s2:L*(rear===1?0.66:0.7),rear,cfg:AXCFG[k].nome,tol,src,k,ax,pbt});
+  if(k==='toco') return R(1,[steer(4000),{n:'Traseiro (simples, 4 pneus)',lim:10000,tare:3200}],16000);
+  if(k==='bitruck') return R(2,[{n:'Dianteiros (2 eixos direcionais)',lim:12000,tare:5600},{n:'Traseiro (tandem duplo)',lim:17000,tare:4600}],29000,-0.6);
+  if(k==='truck-tt') return R(3,[steer(4500),{n:'Traseiro (tandem triplo)',lim:25500,tare:5800}],31500);
+  return R(2,[steer(4300),{n:'Traseiro (tandem duplo)',lim:17000,tare:4400}],23000);
  }
  if(v.cat==='3/4') return {type:'rigid',s1:-1.1,s2:L*0.68,rear:1,k,cfg:'Caminhão leve 4x2 (3/4) — limite do fabricante',ax:[{n:'Dianteiro',lim:3200,tare:2000},{n:'Traseiro (rodagem dupla)',lim:5500,tare:1900}],pbt:8700,tol,src:'Ficha técnica Agrale 8700'};
  if(v.cat==='Iveco baú') return {type:'rigid',s1:-1.0,s2:L*0.7,rear:1,k,cfg:'Iveco Daily 35-160 chassi + baú (PBT legal 3,5 t)',ax:[{n:'Dianteiro',lim:1850,tare:1500},{n:'Traseiro (rodagem dupla)',lim:2550,tare:1100}],pbt:3500,pbtTec:4400,tol,src:'Ficha técnica Iveco Daily 35-160'};
  return {type:'rigid',s1:-0.9,s2:L*0.7,rear:1,k,cfg:'Furgão 3,5 t (classe Daily 30-160)',ax:[{n:'Dianteiro',lim:1850,tare:1450},{n:'Traseiro',lim:2050,tare:850}],pbt:3500,tol,src:'Ficha técnica Iveco Daily 30-160'};
 }
+/* parte do peso no pino-rei (quinta roda) que vai para o eixo dianteiro do cavalo. A quinta roda fica
+   pouco à frente do centro do tandem de tração; 8% foi calibrado com carregamentos reais de carreta LS
+   (big bags encostados na cabine). Varia conforme o cavalo: é uma estimativa. */
+const FRONT=0.08;
 function axleLoads(v,items){
  const m=axleModel(v),a=m.ax.map(()=>0);
  for(const it of items){
   const x=it.x+it.l/2,W=it.kg;
   let r=W*(x-m.s1)/(m.s2-m.s1);r=Math.max(-W,Math.min(2*W,r));const f=W-r;
   if(m.type==='rigid'){a[0]+=f;a[1]+=r}
-  else if(m.type==='semi'){a[0]+=f*0.12;a[1]+=f*0.88; if(m.split){for(let k=0;k<m.split;k++)a[2+k]+=r/m.split} else a[2]+=r}
+  else if(m.type==='semi'){a[0]+=f*FRONT;a[1]+=f*(1-FRONT); for(let k=0;k<m.split;k++)a[2+k]+=r*m.share[k]}
   else if(m.type==='rj'){ if(it.wg===0){a[0]+=f;a[1]+=r} else { let r2=W*(x-m.p1)/(m.p2-m.p1);r2=Math.max(-W,Math.min(2*W,r2));a[2]+=W-r2;a[3]+=r2; } }
-  else{ if(it.wg===0){a[0]+=f*0.12;a[1]+=f*0.88;a[2]+=r} else {a[3]+=f;a[4]+=r} }
+  else if(m.type==='bitrem'){ if(it.wg===0){a[0]+=f*FRONT;a[1]+=f*(1-FRONT);a[2]+=r} else {a[2]+=f;a[3]+=r} }
+  else{ if(it.wg===0){a[0]+=f*FRONT;a[1]+=f*(1-FRONT);a[2]+=r} else {a[3]+=f;a[4]+=r} }
  }
- return m.ax.map((x,i)=>({n:x.n,lim:x.lim,tare:x.tare,cargo:a[i],tot:a[i]+x.tare,tolLim:Math.round(x.lim*(1+m.tol.eixo))}));
+ return m.ax.map((x,i)=>({n:x.n,lim:x.lim,tare:x.tare,cargo:a[i],tot:a[i]+x.tare,tolLim:Math.round(x.lim*(1+m.tol.eixo)),soPbt:m.pbt<=50000}));
 }
+/* Opções do motor. cabine=true: carregamento "encostado na cabine e gradado até o fundo", como se faz
+   na prática, aceitando o peso por eixo até a tolerância legal de 12,5% (Lei 14.229/2021). */
+const OPC={cabine:true,manual:false}; /* manual: o usuário arruma a carga; o motor não mexe por causa dos eixos */
+function opcoes(o){if(o)Object.assign(OPC,o);return {...OPC}}
+/* limite usado pelo sistema ao arrumar. Veículo de até 50 t: a balança confere só o PBT (Res. CONTRAN 882 art. 50 §1º),
+   então o sistema não tira volumes por causa de eixo — só avisa no quadro "Peso por eixo". Acima de 50 t: eixo com 12,5%. */
+const axLim=a=>a.soPbt?Infinity:(OPC.cabine?a.tolLim:a.lim);
 function vehMaxCargo(v){const m=axleModel(v);const tare=m.ax.reduce((s,a)=>s+a.tare,0);let c=m.pbt-tare;if(v.max)c=Math.min(c,v.max);return c}
 const vol = v => v.L*v.W*effH(v)*v.wag;
 
@@ -292,17 +350,71 @@ function pack(v0,units){
    {x:projections(items,c,b.wg,n[2],'x'),y:b.y,z:b.z+b.h},{x:b.x,y:projections(items,c,b.wg,n[2],'y'),z:b.z+b.h}];
   for(const q of np){if(q.x<c.L-EPS&&q.y<c.W-EPS&&q.z<c.H-EPS&&!E.some(e=>Math.abs(e.x-q.x)<EPS&&Math.abs(e.y-q.y)<EPS&&Math.abs(e.z-q.z)<EPS)&&!inside(items,b.wg,q))E.push(q)}
  }
+ if(!OPC.manual)balanceAxles(v,items);
  /* ajuste final de eixos: retira volumes livres (sem nada em cima) da extremidade sobrecarregada */
- for(let guard=0;guard<2000;guard++){
-  const al=axleLoads(v,items);const bi=al.findIndex(a=>a.tot>a.lim+1);if(bi<0)break;
+ /* excesso nos eixos depois da arrumação: procura o MENOR número de volumes a tirar.
+    Testa duas ordens (da frente para o fundo e do fundo para a frente, sempre os de cima primeiro);
+    a cada tentativa a carga é arrumada de novo a partir da cabine. Fica com a que tira menos. */
+ const excess=()=>axleLoads(v,items).reduce((t,a)=>t+Math.max(0,a.tot-axLim(a)),0);
+ if(!OPC.manual&&excess()>1){
+  const all=[...items],snap=all.map(o=>[o,o.x]);
+  const restore=()=>{items.length=0;items.push(...all);snap.forEach(([o,x])=>o.x=x);rebuildLoads(items)};
+  const orders=[[...all].sort((a,b)=>a.x-b.x||b.z-a.z),[...all].sort((a,b)=>(b.x+b.l)-(a.x+a.l)||b.z-a.z)];
+  let best=null;
+  for(const ord of orders){
+   for(let k=1;k<all.length;k++){
+    if(best&&k>=best.k)break;
+    const rm=new Set(ord.slice(0,k));
+    /* não tira um volume que tenha outro em cima que fique */
+    if([...rm].some(o=>all.some(q=>!rm.has(q)&&q.sup.some(s2=>s2.o===o))))continue;
+    items.length=0;items.push(...all.filter(o=>!rm.has(o)));rebuildLoads(items);balanceAxles(v,items);
+    if(excess()<=1){best={k,rm,pos:items.map(o=>[o,o.x])};break}
+   }
+   restore();
+  }
+  if(best){items.length=0;items.push(...all.filter(o=>!best.rm.has(o)));best.pos.forEach(([o,x])=>o.x=x);rebuildLoads(items);left.push(...best.rm)}
+ }
+ /* segurança: se ainda sobrar excesso (casos raros), tira um a um da ponta sobrecarregada */
+ for(let guard=0;guard<2000&&!OPC.manual;guard++){
+  const al=axleLoads(v,items);const bi=al.findIndex(a=>a.tot>axLim(a)+1);if(bi<0)break;
   const front=(m.type==='rigid'&&bi===0)||(m.type!=='rigid'&&bi<=1)||(m.type==='rodo'&&bi===3);
   const free=items.filter(o=>!items.some(q=>q!==o&&q.sup.some(s=>s.o===o)));
   const pool=m.type==='rodo'?free.filter(o=>o.wg===(bi>=3?1:0)):free;
   const cand=(pool.length?pool:free).sort((a,b)=>front?a.x-b.x:(b.x+b.l)-(a.x+a.l))[0];if(!cand)break;
-  items.splice(items.indexOf(cand),1);left.push(cand);rebuildLoads(items);
+  items.splice(items.indexOf(cand),1);left.push(cand);rebuildLoads(items);balanceAxles(v,items);rebuildLoads(items);
  }
  items.forEach((it,i)=>it.seq=i);
  return {items,left:left.map(u=>({n:u.n,pid:u.pid,p:u.p,nome:u.nome,cod:u.cod,kg:u.kg,stack:u.stack,pcs:u.pcs}))};
+}
+/* EQUILÍBRIO DE EIXOS: antes de tirar volumes por excesso de peso num eixo, tenta reposicionar as
+   fileiras ao longo do comprimento (deslocar o bloco para trás e/ou abrir espaço entre fileiras).
+   Cada fileira (grupo de volumes que se sobrepõem no comprimento, incluindo os empilhados) se move
+   inteira, então apoio e empilhamento continuam válidos. Escolhe a posição com menos excesso. */
+/* ARRUMAÇÃO AO LONGO DO COMPRIMENTO (regra de carregamento real):
+   - toda carga começa encostada na cabine (x = 0) e as fileiras ficam JUNTAS, sem espaço entre elas;
+   - se algum eixo passar do limite, o motor tira volumes e arruma de novo (ver pack) — nunca abre vãos. */
+const GAPMAX=0, SPREAD=new Set(); /* regra: carga SEMPRE junta, sem espaço entre as fileiras */
+function balanceAxles(v,items){
+ const AL=()=>axleLoads(v,items);
+ const over=()=>AL().reduce((s,a)=>s+Math.max(0,a.tot-axLim(a)),0);
+ const worst=()=>Math.max(...AL().map(a=>a.tot/a.lim));
+ for(let g=0;g<v.wag;g++){
+  const its=items.filter(i=>i.wg===g);if(!its.length)continue;
+  const cl=[];for(const it of [...its].sort((a,b)=>a.x-b.x)){const c=cl[cl.length-1];if(c&&it.x<c.x1-EPS){c.x1=Math.max(c.x1,it.x+it.l);c.its.push(it)}else cl.push({x0:it.x,x1:it.x+it.l,its:[it]})}
+  for(const c of cl)for(const it of c.its)it._rel=it.x-c.x0;
+  const lens=cl.map(c=>c.x1-c.x0),free=Math.max(0,v.L-lens.reduce((a,b)=>a+b,0));
+  const n=cl.length,cap=n>1?Math.min(GAPMAX,free/(n-1)):0;
+  const spread=!OPC.cabine&&its.every(i=>SPREAD.has(i.p&&i.p.tipo));
+  const layout=gap=>{let x=0;return lens.map(l=>{const p=x;x+=l+gap;return p})};
+  const apply=pos=>cl.forEach((c,k)=>{for(const it of c.its)it.x=pos[k]+it._rel});
+  /* ordem de preferência dos espaçamentos: gradado (máximo) → menor; ou junto (zero) → maior */
+  const STEPS=20,gaps=[];for(let k=0;k<=STEPS;k++)gaps.push(cap*(spread?STEPS-k:k)/STEPS);
+  let pick=null,best=null;
+  for(const gp of gaps){const pos=layout(gp);apply(pos);const o=over();
+   if(o<=1){pick=pos;break}
+   if(!best||o<best.o-1e-6)best={pos,o};}
+  apply(pick||best.pos);its.forEach(i=>delete i._rel);
+ }
 }
 /* gera unidades (volumes) a partir de linhas normalizadas {..spec, q} */
 function buildUnits(lines){
@@ -339,7 +451,7 @@ function stats(v,items){
   wagons.push({g,n:its.length,kg:its.reduce((s,i)=>s+i.kg,0),cub:its.reduce((s,i)=>s+i.l*i.w*i.h,0),freeLen:v.L-end,usedLen:end})}
  let cg=null;if(kg>0){let x=0,y=0,z=0;for(const i of items){const off=i.wg*(v.L+0.9);x+=(off+i.x+i.l/2)*i.kg;y+=(i.y+i.w/2)*i.kg;z+=(i.z+i.h/2)*i.kg}cg={x:x/kg,y:y/kg,z:z/kg,lat:y/kg-v.W/2}}
  const byProd={};for(const i of items){const k=i.pid;(byProd[k]=byProd[k]||{p:i.p,n:0,kg:0,pcs:0,cub:0});byProd[k].n++;byProd[k].kg+=i.kg;byProd[k].pcs+=i.pcs;byProd[k].cub+=i.l*i.w*i.h}
- return {kg,cub,vol:vol(v),occ:cub/vol(v),free:vol(v)-cub,maxKg,kgOcc:kg/maxKg,al,pbt,pbtLim:m.pbt,axOk:al.every(a=>a.tot<=a.lim+1)&&pbt<=m.pbt+1,wagons,cg,byProd};
+ return {kg,cub,vol:vol(v),occ:cub/vol(v),free:vol(v)-cub,maxKg,kgOcc:kg/maxKg,al,pbt,pbtLim:m.pbt,axOk:al.every(a=>a.tot<=a.lim+1)&&pbt<=m.pbt+1,axTol:al.every(a=>a.soPbt||a.tot<=a.tolLim+1)&&pbt<=m.pbt+1,wagons,cg,byProd};
 }
 /* ---------- VERIFICAÇÃO INDEPENDENTE DE UM PLANO SALVO (usada no servidor) ---------- */
 function verifyVehicle(v,items){
@@ -349,11 +461,11 @@ function verifyVehicle(v,items){
  { const vc=new Set(); for(const i of its){const why=blockReason(v,i.p,vc);if(why)return 'Volume '+vn(i.n)+': '+why;for(const k of (i.p.cats||[]))vc.add(k)} }
  const err=rebuildLoads(its);if(err)return 'Volume '+vn(err.it.n)+': '+err.msg;
  const kg=its.reduce((s,i)=>s+i.kg,0);if(kg>vehMaxCargo(v)+1)return 'Peso acima da capacidade do veículo';
- const al=axleLoads(v,its);const bad=al.find(a=>a.tot>a.lim+1);if(bad)return 'Excede limite do eixo: '+bad.n;
+ const al=axleLoads(v,its);const bad=al.find(a=>a.tot>axLim(a)+1);if(bad&&!OPC.manual)return 'Excede limite do eixo: '+bad.n;
  return null;
 }
 
-const NX={EPS,MAXKG,ALT_MAX,deckH,effH,effV,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
- overlap3,areaOv,checkPlace,commit,rebuildLoads,pack,buildUnits,planLoad,stats,verifyVehicle,vn};
+const NX={axDisp,multaExcesso,balanca,EPS,MAXKG,ALT_MAX,deckH,effH,effV,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
+ overlap3,areaOv,checkPlace,commit,rebuildLoads,balanceAxles,opcoes,axLim,pack,buildUnits,planLoad,stats,verifyVehicle,vn};
 if(typeof module==='object'&&module.exports)module.exports=NX;else{root.NX=NX;for(const k in NX)if(!(k in root))root[k]=NX[k]}
 })(typeof window!=='undefined'?window:globalThis);

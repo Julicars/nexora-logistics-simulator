@@ -5,14 +5,14 @@
   <!-- HERO -->
   <div class="h-hero">
    <div class="h-copy">
-    <span class="h-eyebrow"><i></i> Simulador 3D de montagem de carga</span>
-    <h1 class="reveal">Planeje cada carga<br><span>antes do caminhão encostar na doca.</span></h1>
-    <p class="reveal">O NEXORA calcula o encaixe físico de paletes, caixas, bobinas e big bags, respeita empilhamento, produtos perigosos e o peso por eixo da Res. CONTRAN 882/2021, e mostra o carregamento em 3D, volume por volume.</p>
+    <span class="h-eyebrow"><i></i> Carga 3D · Peso por eixo · Frete ANTT</span>
+    <h1 class="reveal">Monte a carga certa<br><span>e não pague multa na balança.</span></h1>
+    <p class="reveal"><b>Em 2 minutos:</b> carga em 3D junta da cabine ao fundo, peso de cada eixo conferido pela Res. CONTRAN 882 e o piso ANTT da viagem — com a multa estimada se passar do limite.</p>
     <div class="h-cta reveal">
-     <button class="btn pri lg" data-go="rapida">⚡ Começar uma montagem</button>
-     <button class="btn lg" data-go="catalogo">Usar o catálogo</button>
+     <button class="btn pri lg" data-go="rapida">⚡ Montar minha carga agora</button>
+     <button class="btn lg" id="hDemo" type="button">▶ Ver exemplo pronto</button>
     </div>
-    <ul class="h-trust reveal"><li>✔ 12 veículos oficiais</li><li>✔ Peso por eixo e PBT</li><li>✔ Funciona no celular</li></ul>
+    <ul class="h-trust reveal"><li>✔ Sem cadastro</li><li>✔ 23 configurações de eixos</li><li>✔ Funciona no celular e sem internet</li></ul>
    </div>
    <div class="h-art" aria-hidden="true">
     <svg viewBox="0 0 560 330" class="h-svg">
@@ -60,29 +60,29 @@
   <!-- NÚMEROS -->
   <div class="h-kpis">
    <div class="reveal counter"><b data-count="12">0</b><span>veículos oficiais<br><small>carreta, rodotrem, truck, 3/4, VAN, Iveco, containers</small></span></div>
-   <div class="reveal counter"><b data-count="7">0</b><span>configurações de eixos<br><small>toco, trucado, LS, vanderléia, Romeu e Julieta…</small></span></div>
+   <div class="reveal counter"><b data-count="23">0</b><span>configurações de eixos<br><small>do toco ao rodotrem, com a facilidade de achar</small></span></div>
    <div class="reveal counter"><b data-count="9">0</b><span>regras de manuseio<br><small>frágil, explosivo, alimentício, não molhar…</small></span></div>
    <div class="reveal counter"><b data-count="5">0</b><span>tipos de volume<br><small>palete, caixa, bobina, big bag, outro</small></span></div>
   </div>
 
   <!-- COMO FUNCIONA -->
-  <h2 class="h-sec reveal">Como funciona</h2>
+  <h2 class="h-sec reveal">Carga pronta em 4 passos</h2>
   <ol class="h-steps">
-   <li class="reveal"><i>1</i><b>Informe a carga</b><span>Escolha produtos do catálogo ou digite medidas, peso e quantidade na Montagem Rápida.</span></li>
-   <li class="reveal"><i>2</i><b>Escolha o veículo</b><span>Carroceria baú, sider ou aberta e a configuração de eixos real da sua frota.</span></li>
-   <li class="reveal"><i>3</i><b>Veja e ajuste em 3D</b><span>O motor monta fileira a fileira; arraste, gire e confira peso por eixo e ocupação.</span></li>
-   <li class="reveal"><i>4</i><b>Leve para a doca</b><span>Plano de carregamento, ordem de descarga, relatório A4, CSV e cotação.</span></li>
+   <li class="reveal"><i>1</i><b>Carga: medidas e peso</b><span>Digite só os números (150 vira 1,50 m) ou use o catálogo de produtos.</span></li>
+   <li class="reveal"><i>2</i><b>Veículo: eixos e carroceria</b><span>Baú, sider ou aberta, do toco ao rodotrem — como na sua frota.</span></li>
+   <li class="reveal"><i>3</i><b>Balança: confira antes de sair</b><span>Carga junta da cabine ao fundo, peso de cada eixo e multa estimada se passar.</span></li>
+   <li class="reveal"><i>4</i><b>Frete: piso ANTT e documentos</b><span>Piso por eixo, CIOT, MDF-e por estado, custo por tonelada e ficha do motorista.</span></li>
   </ol>
 
   <!-- RECURSOS -->
-  <h2 class="h-sec reveal">Tudo o que a expedição precisa</h2>
+  <h2 class="h-sec reveal">Menos multa, menos viagem, frete no piso</h2>
   <div class="h-feats">
-   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><b>Cubagem física real</b><p>Grade exata + Extreme Points: sem sobreposição, com apoio mínimo e orientação permitida.</p></article>
-   <article class="reveal"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M2 13h20M6 13V7h9l4 6"/></svg><b>Peso por eixo e PBT</b><p>Limites da Res. CONTRAN 882/2021 com tara, carga útil e centro de gravidade.</p></article>
-   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg><b>Edição livre no 3D</b><p>Clique, arraste, gire e deite volumes; desfazer e refazer; a câmera continua livre.</p></article>
-   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><path d="M19 3v4M17 5h4"/></svg><b>Veículos extras com aviso</b><p>Se não couber, o sistema sugere o menor veículo que leva o restante — e pergunta antes.</p></article>
-   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><b>Produtos perigosos e frágeis</b><p>Explosivo longe de alimento, frágil sem nada em cima, perecível só em carroceria fechada.</p></article>
-   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h6"/></svg><b>Relatório e cotação</b><p>Impressão A4, planilha CSV para Excel e cotação com valores de frete informados por você.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg><b>Encaixe: cubagem física real</b><p>Grade exata + Extreme Points: sem sobreposição, com apoio mínimo e orientação permitida.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M2 13h20M6 13V7h9l4 6"/></svg><b>Balança: peso por eixo e PBT</b><p>Limites da Res. CONTRAN 882/2021 com tara, carga útil e centro de gravidade.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg><b>3D: arraste, gire e confira</b><p>Clique, arraste, gire e deite volumes; desfazer e refazer; a câmera continua livre.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><path d="M19 3v4M17 5h4"/></svg><b>Veículo extra: só se precisar</b><p>Se não couber, o sistema sugere o menor veículo que leva o restante — e pergunta antes.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg><b>Perigosos: rótulo e ficha</b><p>Explosivo longe de alimento, frágil sem nada em cima, perecível só em carroceria fechada.</p></article>
+   <article class="reveal"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h6"/></svg><b>Frete: piso, CIOT e cotação</b><p>Impressão A4, planilha CSV para Excel e cotação com valores de frete informados por você.</p></article>
   </div>
 
   <!-- FROTA -->
@@ -90,10 +90,19 @@
   <div class="h-fleet" id="homeFleet"></div>
   <div class="marq" aria-label="Veículos suportados"><div id="marq"></div></div>
 
+  <!-- RESULTADOS (calculados pelo próprio NEXORA, não depoimentos) -->
+  <h2 class="h-sec reveal">O que uma carga bem montada evita</h2>
+  <div class="h-proof">
+   <div class="reveal"><b>R$ 364,24</b><span>Balança: multa de 1,2 t acima no PBT e 800 kg nos eixos (CTB art. 231, V). O NEXORA avisa antes de sair.</span></div>
+   <div class="reveal"><b>1 viagem</b><span>Frete: 25 t de Campinas a Curitiba saem numa carreta 5 eixos (R$ 4.079 de piso) em vez de 2 de truck (R$ 6.313).</span></div>
+   <div class="reveal"><b>20 de 20</b><span>Big bags de 1.250 kg juntos da cabine ao fundo numa LS, dentro das 48,5 t.</span></div>
+  </div>
+  <div class="h-quote reveal" id="hDepo"><p><b>Use o NEXORA na sua operação?</b> Conte quanto tempo, viagem ou multa ele evitou — sua história pode aparecer aqui.</p><button class="btn" data-go="contato">Contar minha experiência</button></div>
+
   <!-- CTA -->
   <div class="h-final reveal">
-   <div><h2>Pronto para montar a próxima carga?</h2><p>Comece pela Montagem Rápida — sem cadastro, em menos de um minuto.</p></div>
-   <button class="btn pri lg" data-go="rapida">Abrir Montagem Rápida</button>
+   <div><h2>Sua próxima carga sai certa da doca</h2><p>Sem cadastro: digite a carga, escolha o veículo e veja o 3D, os eixos e o frete.</p></div>
+   <button class="btn pri lg" data-go="rapida">⚡ Montar minha carga agora</button>
   </div>
  </div></section>
 `;

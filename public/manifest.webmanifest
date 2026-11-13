@@ -1,0 +1,25 @@
+{
+ "name": "NEXORA Logistics Intelligence",
+ "short_name": "NEXORA",
+ "description": "Montagem de carga 3D, roteirização com frete ANTT, registros e consulta de empresas.",
+ "start_url": "./index.html#home",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0a1122",
+ "theme_color": "#0a1122",
+ "lang": "pt-BR",
+ "icons": [
+  {
+   "src": "src/img/logo-icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  },
+  {
+   "src": "src/img/logo.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}

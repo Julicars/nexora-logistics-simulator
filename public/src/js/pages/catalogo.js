@@ -7,7 +7,7 @@
    <input id="ctFilter" placeholder="🔍 Pesquisar por nome ou código" aria-label="Pesquisar no catálogo" style="flex:1;min-width:200px">
    <select id="ctType" aria-label="Filtrar por tipo"><option value="">Todos os tipos</option></select>
    <label class="f ctveh" style="flex-direction:row;align-items:center;gap:6px;min-width:0;max-width:100%">Veículo <select id="ctVeh" style="min-width:0;flex:1" aria-label="Veículo principal"></select></label>
-   <button class="btn pri" id="ctGo" disabled>Montar carga</button>
+   <button class="btn pri" id="ctGo" disabled>▶ Ver como a carga fica</button>
   </div>
   <p id="ctSum" class="mut" style="margin:8px 2px"></p>
   <div id="ctGrid" class="cat-grid"></div>

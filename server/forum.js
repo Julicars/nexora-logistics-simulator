@@ -16,7 +16,10 @@ const CATS = [
   { id: 'logistica', nome: 'Transporte e Logística', ic: '🚚', desc: 'Notícias, informações e novidades do mercado.' },
   { id: 'avisos', nome: 'Comunicados', ic: '📢', desc: 'Avisos importantes e comunicados gerais.' }
 ];
-const LIM = { nome: 40, titulo: 140, texto: 5000 };
+const LIM = { nome: 40, titulo: 140, texto: 5000, url: 500 };
+const hash = k => crypto.createHash('sha256').update(String(k)).digest('hex');
+/* norma de referência do tópico: título curto + link http(s) */
+function norma(b) { const t = String((b && b.titulo) || '').trim().slice(0, 120), u = String((b && b.url) || '').trim().slice(0, LIM.url); if (!t && !u) return null; if (u && !/^https?:\/\/[^\s<>"]+$/i.test(u)) return { erro: 'O link da norma precisa começar com http:// ou https://.' }; return { titulo: t || u, url: u }; }
 
 function createForum(dir) {
   const FILE = path.join(dir, 'forum.json');
@@ -35,7 +38,7 @@ function createForum(dir) {
   /* limite simples contra abuso: 20 escritas por minuto por IP; 5 tentativas de senha por minuto */
   const hits = new Map();
   const rate = (key, max) => { const now = Date.now(), a = (hits.get(key) || []).filter(t => now - t < 60000); a.push(now); hits.set(key, a); return a.length <= max; };
-  const pub = t => ({ ...t, respostas: t.respostas || [] });
+  const pub = t => ({ ...t, respostas: (t.respostas || []).map(({ chave, ...r }) => r) });
 
   function send(res, code, obj, SEC) { res.writeHead(code, { ...SEC, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); }
   function body(req) { return new Promise((ok, no) => { let b = ''; req.on('data', c => { b += c; if (b.length > 20000) { no(new Error('grande')); req.destroy(); } }); req.on('end', () => { try { ok(b ? JSON.parse(b) : {}); } catch (e) { no(e); } }); }); }
@@ -56,18 +59,32 @@ function createForum(dir) {
         if (!isAdmin(req)) return send(res, 403, { erro: 'Só o administrador cria tópicos.' }, SEC);
         const b = await body(req); const cat = CATS.find(c => c.id === b.cat), titulo = clean(b.titulo, LIM.titulo), texto = clean(b.texto, LIM.texto);
         if (!cat || !titulo || !texto) return send(res, 422, { erro: 'Informe categoria, título e texto.' }, SEC);
-        const t = { id: id(), cat: cat.id, titulo, texto, autor: clean(b.autor, LIM.nome) || 'Administração', admin: true, data: new Date().toISOString(), fixo: !!b.fixo, respostas: [] };
+        const nm = norma(b.norma); if (nm && nm.erro) return send(res, 422, { erro: nm.erro }, SEC);
+        const t = { id: id(), cat: cat.id, titulo, texto, norma: nm, autor: clean(b.autor, LIM.nome) || 'Administração', admin: true, data: new Date().toISOString(), fixo: !!b.fixo, respostas: [] };
         db.topics.unshift(t); save(); return send(res, 201, pub(t), SEC);
       }
       let mt = p.match(/^\/api\/forum\/topics\/([a-f0-9]{12})(\/replies(?:\/([a-f0-9]{12}))?)?$/);
       if (mt) {
         const t = db.topics.find(x => x.id === mt[1]); if (!t) return send(res, 404, { erro: 'Tópico não encontrado.' }, SEC);
+        if (!mt[2] && m === 'PUT') {
+          if (!isAdmin(req)) return send(res, 403, { erro: 'Só o administrador edita tópicos.' }, SEC);
+          const b = await body(req); const cat = CATS.find(c => c.id === b.cat), titulo = clean(b.titulo, LIM.titulo), texto = clean(b.texto, LIM.texto);
+          if (!cat || !titulo || !texto) return send(res, 422, { erro: 'Informe categoria, título e texto.' }, SEC);
+          const nm = norma(b.norma); if (nm && nm.erro) return send(res, 422, { erro: nm.erro }, SEC);
+          Object.assign(t, { cat: cat.id, titulo, texto, norma: nm, fixo: !!b.fixo, fechado: !!b.fechado, editado: new Date().toISOString() }); save(); return send(res, 200, pub(t), SEC);
+        }
+        if (mt[3] && m === 'PUT') {
+          const r = (t.respostas || []).find(x => x.id === mt[3]); if (!r) return send(res, 404, { erro: 'Resposta não encontrada.' }, SEC);
+          const b = await body(req); const texto = clean(b.texto, LIM.texto); if (!texto) return send(res, 422, { erro: 'Escreva a mensagem.' }, SEC);
+          if (!isAdmin(req) && !(r.chave && b.chave && hash(b.chave) === r.chave)) return send(res, 403, { erro: 'Você só pode editar as suas respostas (feitas neste navegador).' }, SEC);
+          r.texto = texto; r.editado = new Date().toISOString(); save(); const { chave, ...o } = r; return send(res, 200, o, SEC);
+        }
         if (!mt[2] && m === 'DELETE') { if (!isAdmin(req)) return send(res, 403, { erro: 'Só o administrador apaga tópicos.' }, SEC); db.topics = db.topics.filter(x => x !== t); save(); return send(res, 200, { ok: true }, SEC); }
         if (mt[2] && !mt[3] && m === 'POST') {
           const b = await body(req); const autor = clean(b.autor, LIM.nome), texto = clean(b.texto, LIM.texto);
           if (!autor || !texto) return send(res, 422, { erro: 'Informe seu nome e a mensagem.' }, SEC);
           if (t.fechado && !isAdmin(req)) return send(res, 403, { erro: 'Este tópico está fechado para respostas.' }, SEC);
-          const r = { id: id(), autor, texto, admin: isAdmin(req), data: new Date().toISOString() }; (t.respostas = t.respostas || []).push(r); save(); return send(res, 201, r, SEC);
+          const k = crypto.randomBytes(16).toString('hex'); const r = { id: id(), autor, texto, admin: isAdmin(req), data: new Date().toISOString(), chave: hash(k) }; (t.respostas = t.respostas || []).push(r); save(); const { chave, ...o } = r; return send(res, 201, { ...o, chave: k }, SEC);
         }
         if (mt[3] && m === 'DELETE') { if (!isAdmin(req)) return send(res, 403, { erro: 'Só o administrador apaga respostas.' }, SEC); t.respostas = (t.respostas || []).filter(r => r.id !== mt[3]); save(); return send(res, 200, { ok: true }, SEC); }
       }

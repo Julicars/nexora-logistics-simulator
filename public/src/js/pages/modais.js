@@ -15,7 +15,11 @@
    <th class="grp"><small>Peso</small>Peças/vol</th><th>kg/peça</th><th>kg/vol</th>
    <th class="grp"><small>Configuração</small>Posição</th><th>Níveis</th><th>Aguenta em cima (kg)</th><th>Manuseio</th>
    <th class="grp moStop" hidden>Entrega</th><th class="grp">Encaixe</th><th></th></tr></thead><tbody id="moRows"></tbody></table></div>
-  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" id="moAdd">+ Adicionar item</button><button class="btn" id="moReset">Limpar tudo</button></div>
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" id="moAdd">+ Adicionar item</button><button class="btn" id="moReset">Limpar tudo</button><button class="btn" id="moImp" aria-expanded="false" aria-controls="moImpBox">📥 Importar planilha</button></div>
+  <div id="moImpBox" class="impbox" hidden><p class="mut" style="font-size:13px;margin:0">Escolha um arquivo <b>.csv</b> ou copie as linhas no Excel/Google Planilhas e cole abaixo (com o cabeçalho). Colunas reconhecidas: Descrição, Código, Tipo, Comprimento, Largura, Altura, Quantidade, Peso (kg por volume) ou Peso por peça, Peças, Entrega. Arquivo .xlsx: salve como CSV antes.</p>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm" for="moImpFile" tabindex="0" id="moImpFileLbl">Escolher arquivo CSV</label><input type="file" id="moImpFile" accept=".csv,.tsv,.txt,text/csv" class="sr"><button class="btn sm" id="moImpModel">Baixar modelo</button></div>
+   <label class="f"><span>Ou cole aqui</span><textarea id="moImpTxt" rows="4" placeholder="Descrição&#9;Tipo&#9;Comprimento&#9;Largura&#9;Altura&#9;Quantidade&#9;Peso"></textarea></label>
+   <div style="display:flex;gap:8px"><button class="btn pri sm" id="moImpGo">Adicionar à carga</button></div><p id="moImpMsg" role="status" style="font-size:13px;margin:0"></p></div>
   <p id="moTot" style="font-size:13px;margin:12px 0 4px"></p>
   <p id="moMsg" class="warn" style="font-size:13px;margin:4px 0" role="alert"></p>
  </div>

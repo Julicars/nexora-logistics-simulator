@@ -8,7 +8,7 @@
  */
 const RT = (function () {
   'use strict';
-  const q = s => document.querySelector(s);
+  const q = s => document.querySelector(s), qa = s => [...document.querySelectorAll(s)];
   const ROAD = 1.25; /* fator estrada/linha reta usado só na estimativa offline */
   const R = () => S.route;
   const ANTT = window.NX_ANTT;
@@ -111,7 +111,7 @@ const RT = (function () {
       ${line ? `<polyline points="${line}" fill="none" stroke="#f7a334" stroke-width="${u * .35}" stroke-linejoin="round" stroke-linecap="round" ${ri.src === 'est' ? `stroke-dasharray="${u} ${u * .6}"` : ''}/>` : ''}
       ${p.map((a, i) => `<g><circle cx="${a.lon}" cy="${-a.lat}" r="${u * .95}" fill="${i ? '#2f8cf2' : '#f7a334'}" stroke="#fff" stroke-width="${u * .15}"/><text x="${a.lon}" y="${-a.lat + u * .38}" font-size="${u * 1.05}" text-anchor="middle" fill="${i ? '#fff' : '#1b1200'}" font-weight="800" font-family="sans-serif">${i || 'R'}</text></g>`).join('')}
     </svg>`;
-    q('#rMapNote').textContent = p.length ? (ri && ri.src === 'osrm' ? 'Traçado real da rota (OSRM / OpenStreetMap).' : 'Sem acesso ao OpenStreetMap neste ambiente: mapa simplificado e traçado aproximado (linha tracejada).') : 'Informe a cidade de origem e as entregas para ver a rota.';
+    q('#rMapNote').textContent = p.length ? (ri && ri.src === 'osrm' ? 'Traçado real da rota (OSRM / OpenStreetMap).' : 'Sem acesso ao OpenStreetMap neste ambiente: mapa simplificado e traçado aproximado (linha tracejada).') : 'Digite a cidade de origem e pelo menos uma entrega para ver a rota no mapa.';
   }
 
   /* ---------- painel ---------- */
@@ -148,9 +148,12 @@ const RT = (function () {
   function renderStopsKm() { if (!document.activeElement || !q('#rStops').contains(document.activeElement)) renderStops(); }
 
   function axlesOf(v) { try { return NX.axleModel(v).ax.reduce((s, a) => s + (/triplo/i.test(a.n) ? 3 : /tandem duplo/i.test(a.n) ? 2 : 1), 0); } catch (e) { return 2; } }
+  function retKm() { const r = R(); if (r.retKm > 0) return +r.retKm; const p = pts(); return p.length > 1 ? est(p[p.length - 1], p[0]) : 0; }
   function renderAntt() {
     if (!ANTT) return;
     const r = R(), v = curVeh(), m = NX.axleModel(v), small = m.pbt <= 3500, ex = axlesOf(v);
+    const tb = r.tab || 'A'; q('#rRet').checked = !!r.ret; q('#rRetBox').hidden = !r.ret; if (document.activeElement !== q('#rRetKm')) { q('#rRetKm').value = r.retKm > 0 ? r.retKm : ''; q('#rRetKm').placeholder = fmt(retKm(), 0) + ' (estimado)'; }
+    q('#rTab').innerHTML = Object.entries(ANTT.TABELAS).map(([k, t]) => `<option value="${k}" ${k === tb ? 'selected' : ''}>${esc(t.nome)}</option>`).join(''); q('#rTabDesc').textContent = ANTT.TABELAS[tb].desc;
     q('#rTipo').innerHTML = Object.entries(ANTT.T).map(([k, t]) => `<option value="${k}" ${k === r.tipo ? 'selected' : ''}>${t.nome}</option>`).join('');
     /* eixos vêm do veículo escolhido no Pedido (configuração de eixos da frota) — não se escolhe aqui */
     const n = ANTT.EIXOS.includes(ex) ? ex : (ANTT.coef(r.tipo, ex) || {}).eixos;
@@ -158,18 +161,36 @@ const RT = (function () {
       ? `<div class="axfix small"><div><b>${esc(v.name)}</b><small>Veículo de carga de pequeno porte (PBT até 3,5 t). Não usa a tabela por eixos.</small></div></div>`
       : `<div class="axfix">${axSvg(AXL[n] ? n : 2)}<div><b>${ex} eixos${n !== ex ? ' (tabela de ' + n + ')' : ''}</b><small>${esc(v.name)} · ${esc(m.cfg.replace(/\s*\(.*\)\s*$/, ''))}</small></div><button type="button" class="btn sm" id="rAxChange">Trocar no Pedido</button></div>`;
     const el = q('#rAntt'); pisoTot = 0;
-    if (!routeInfo) { el.innerHTML = '<span class="mut">Informe origem e entregas para calcular o piso.</span>'; renderExtras(); return; }
+    if (!routeInfo) { el.innerHTML = '<span class="mut">Digite a origem e as entregas na aba Rota para ver o piso ANTT.</span>'; renderExtras(); return; }
     const nVeh = plan && mode === 'route' ? plan.vehs.length : 1;
     const vs = (plan && mode === 'route' && plan.vehs[0].v.id === v.id ? plan.vehs.map(V => V.v) : [v]); const smallV = vs.filter(vv => NX.axleModel(vv).pbt <= 3500);
-    const rows = vs.filter(vv => !smallV.includes(vv)).map(vv => ({ vv, p: ANTT.piso(routeInfo.km, r.tipo, axlesOf(vv)) })).filter(x => x.p);
+    const rows = vs.filter(vv => !smallV.includes(vv)).map(vv => ({ vv, p: ANTT.piso(routeInfo.km, r.tipo, axlesOf(vv), tb), rv: r.ret ? ANTT.retorno(retKm(), r.tipo, axlesOf(vv), tb) : null })).filter(x => x.p);
     if (!rows.length) { el.innerHTML = `<p style="margin:0"><b>Piso ANTT não se aplica a este cálculo.</b></p><p class="mut" style="font-size:12px;margin:6px 0 0">${smallV.map(x => esc(x.name)).join(', ')}: veículo de carga de pequeno porte (Lei 15.485/2026, PBT até 3,5 t). A tabela da ANTT em vigor só tem coeficientes por eixos de caminhão (2 a 9 eixos). Informe o frete combinado na Cotação; os valores adicionais abaixo continuam somando.</p>`; renderExtras(); return; }
-    const tot = rows.reduce((s, x) => s + x.p.valor, 0); pisoTot = tot;
-    el.innerHTML = rows.map((x, xi) => (smallV.length && !xi ? `<p class="mut" style="font-size:12px;margin:0 0 6px">${smallV.map(x => esc(x.name)).join(', ')}: pequeno porte, fora da tabela por eixos.</p>` : '') + `<div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(x.vv.name)} · ${x.p.eixos} eixos<br><small class="mut">${fmt(routeInfo.km, 0)} km × ${brl(x.p.ccd).replace('R$', 'R$ ')}/km + ${brl(x.p.cc)} (carga e descarga)</small></span><b>${brl(x.p.valor)}</b></div>`).join('<hr style="border-color:var(--line)">')
+    const tot = rows.reduce((s, x) => s + x.p.valor + (x.rv ? x.rv.valor : 0), 0); pisoTot = tot;
+    el.innerHTML = rows.map((x, xi) => (smallV.length && !xi ? `<p class="mut" style="font-size:12px;margin:0 0 6px">${smallV.map(x => esc(x.name)).join(', ')}: pequeno porte, fora da tabela por eixos.</p>` : '') + `<div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(x.vv.name)} · ${x.p.eixos} eixos<br><small class="mut">${fmt(routeInfo.km, 0)} km × ${brl(x.p.ccd).replace('R$', 'R$ ')}/km + ${brl(x.p.cc)} (carga e descarga)</small></span><b>${brl(x.p.valor)}</b></div>${x.rv ? `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>Retorno vazio<br><small class="mut">${fmt(x.rv.km, 0)} km × ${brl(x.rv.ccd)}/km × 92%</small></span><b>${brl(x.rv.valor)}</b></div>` : ''}`).join('<hr style="border-color:var(--line)">')
       + (nVeh > 1 ? `<div style="display:flex;justify-content:space-between;margin-top:6px"><span>Total (${nVeh} veículos)</span><b>${brl(tot)}</b></div>` : '')
-      + `<p class="mut" style="margin:6px 0 0;font-size:12px">${esc(ANTT.fonte)}. ${routeInfo.src === 'est' ? 'Com distância estimada, o piso também é estimado.' : ''} Valor mínimo sem retorno vazio e sem pedágio.</p>`;
-    renderExtras();
+      + mdfeInfo() + `<p class="mut" style="margin:6px 0 0;font-size:12px">${esc(ANTT.TABELAS[tb].nome)} · ${esc(ANTT.fonte)}${ANTT.personalizado() ? ' · <b class="warn">valores personalizados em Configurações</b>' : ''}. ${routeInfo.src === 'est' ? 'Com distância estimada, o piso também é estimado.' : ''} ${r.ret ? '' : 'Sem retorno vazio. '}Sem pedágio.</p>`;
+    el.insertAdjacentHTML('beforeend', compCusto(r.tipo, tb));
+    renderExtras(); if (typeof renderPf === 'function') renderPf();
   }
 
+  /* MDF-e: um para cada estado (UF) onde houver descarregamento (regra de 2026) */
+  function mdfeInfo() {
+    const ufs = [...new Set(R().stops.map(x => x.uf).filter(Boolean))]; if (!ufs.length) return '';
+    return `<p class="mdfe" style="margin:8px 0 0;font-size:12.5px">📄 <b>${ufs.length} MDF-e</b> — descarga em ${ufs.length === 1 ? 'um estado' : ufs.length + ' estados'} (${ufs.join(', ')}). Emita um MDF-e para cada estado de descarga, com o CIOT vinculado.</p>`;
+  }
+  /* comparação do custo por tonelada: mesma rota e carga em cada configuração comum */
+  const COMP = [['Truck', 'trucado', 3, 10.4], ['Truck', 'bitruck', 4, 10.4], ['Carreta', 'cav-toco-ls', 5, 15.4], ['Carreta', 'cav-truc-ls', 6, 15.4], ['Carreta', 'cav-truc-vand', 6, 15.4], ['Carreta', 'cav-truc-4e', 7, 15.4], ['Rodotrem', 'bitrem7', 7, 12.5], ['Rodotrem', 'bitrem9', 9, 12.5]];
+  function cargaKg() { if (!plan) return 0; return plan.vehs.reduce((t, V) => t + V.items.reduce((a, i) => a + i.kg, 0), 0) + (plan.left || []).reduce((a, i) => a + (i.kg || 0), 0); }
+  function compCusto(tipo, tb) {
+    if (!routeInfo) return ''; const kg = cargaKg();
+    const rows = COMP.map(([cat, k, ex, L]) => { const vv = { id: 'cmp', name: k, cat, L, W: 2.5, H: 2.7, wag: cat === 'Rodotrem' ? 2 : 1, axcfg: k }; const util = NX.vehMaxCargo(vv), p = ANTT.piso(routeInfo.km, tipo, ex, tb); if (!p) return null;
+      const via = kg > 0 ? Math.ceil(kg / util) : 1, tot = via * p.valor; return { k, nome: NX.AXCFG[k].nome.replace(/\s*\(.*\)\s*$/, ''), ex, util, piso: p.valor, rt: p.valor / (util / 1000), via, tot, d: NX.axDisp(k) }; }).filter(Boolean);
+    if (!rows.length) return ''; const best = rows.reduce((a, b) => (kg > 0 ? b.tot < a.tot : b.rt < a.rt) ? b : a);
+    return `<details class="cmpc" open><summary>Custo por tonelada em cada configuração (piso ANTT, ${fmt(routeInfo.km, 0)} km${kg > 0 ? ', ' + fmt(kg / 1000, 1) + ' t de carga' : ''})</summary><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Configuração</th><th class="hm">Eixos</th><th class="hm">Carga útil</th><th class="hm">Piso/viagem</th><th>R$ por t</th>${kg > 0 ? '<th class="hm">Viagens</th><th>Total</th>' : ''}</tr></thead><tbody>`
+      + rows.map(x => `<tr class="${x === best ? 'best' : ''}"><td>${esc(x.nome)}${x === best ? ' <b class="ok">← mais barato</b>' : ''}<br><span class="disp ${x.d.k}">${x.d.txt}</span><small class="om mut">${x.ex} eixos · útil ${fmt(x.util / 1000, 1)} t · piso ${brl(x.piso)}${kg > 0 ? ' · ' + x.via + ' viagem(ns)' : ''}</small></td><td class="hm">${x.ex}</td><td class="hm">${fmt(x.util / 1000, 1)} t</td><td class="hm">${brl(x.piso)}</td><td>${brl(x.rt)}</td>${kg > 0 ? `<td class="hm">${x.via}</td><td><b>${brl(x.tot)}</b></td>` : ''}</tr>`).join('')
+      + `</tbody></table></div><p class="mut" style="font-size:12px;margin:6px 0 0">Carga útil estimada pelo peso vazio médio de cada configuração. O piso conta todos os eixos, mesmo suspensos (Res. ANTT 6.076/2026). Bitrem 9 eixos exige AET e 25 a 30 m.</p></details>`;
+  }
   /* ---------- desenho dos eixos ---------- */
   const AXNAME = { 2: 'Toco / 3/4', 3: 'Truck', 4: 'Bitruck ou carreta 2 eixos', 5: 'Carreta 3 eixos (cavalo toco)', 6: 'Carreta 3 eixos (cavalo trucado)', 7: 'Bitrem', 9: 'Rodotrem' };
   /* posições das rodas (x de 0 a 100) por configuração; t = onde termina o caminhão e começa a carreta */
@@ -205,7 +226,7 @@ const RT = (function () {
     el.innerHTML = `<div class="trow"><span>Frete mínimo (piso ANTT)</span><b>${pisoTot ? brl(pisoTot) : '—'}</b></div>`
       + ex.map(x => `<div class="trow"><span>+ ${esc(x.desc || 'Adicional')} <small class="mut">${stopLbl(x.stop)}</small></span><b>${brl(x.valor)}</b></div>`).join('')
       + `<div class="trow tsum"><span>Total mínimo da viagem</span><b>${brl(tot)}</b></div>`
-      + (fr > 0 ? `<p style="margin:6px 0 0" class="${fr + 0.005 >= tot ? 'ok' : 'bad'}">${fr + 0.005 >= tot ? '✔' : '⚠'} Cotação: ${brl(fr)} — ${fr + 0.005 >= tot ? 'cobre o total mínimo.' : 'abaixo em ' + brl(tot - fr) + '.'}</p>` : '')
+      + (fr > 0 ? `<p style="margin:6px 0 0" class="${fr + 0.005 >= tot ? 'ok' : 'bad'}">${fr + 0.005 >= tot ? '✔' : '⚠'} Cotação: ${brl(fr)} — ${fr + 0.005 >= tot ? 'cobre o total mínimo.' : 'abaixo em ' + brl(tot - fr) + '. Abaixo do piso o CIOT não é gerado e a viagem não pode sair.'}</p>` : '')
       + (pisoTot ? `<button type="button" class="btn sm" id="rToQuote" style="margin-top:8px;width:100%">Levar para a Cotação</button>` : '');
   }
 
@@ -236,7 +257,7 @@ const RT = (function () {
     if (document.activeElement !== q('#rOrig')) q('#rOrig').value = r.orig ? label(r.orig) : (r.origTxt || '');
     q('#rOrigMsg').textContent = r.origTxt && !r.orig ? 'Cidade não encontrada. Escolha uma da lista (ex.: Campinas - SP).' : '';
     q('#rOrig').toggleAttribute('aria-invalid', !!(r.origTxt && !r.orig));
-    fetchRoute(); renderStops(); drawSum(); probeTiles(); drawMap(); renderAntt(); renderUnload(); stepTabs();
+    fetchRoute(); renderStops(); drawSum(); probeTiles(); drawMap(); renderAntt(); renderUnload(); stepTabs(); setPerfil(R().perfil || '');
     const qt = r.quote || (r.quote = {});
     if (!qt.origem && r.orig) qt.origem = (r.sender ? r.sender + ' — ' : '') + label(r.orig);
     const lastS = r.stops[r.stops.length - 1]; if (!qt.destino && lastS && lastS.city) qt.destino = r.stops.filter(s => s.city).map(s => label(s)).join(' → ');
@@ -303,11 +324,111 @@ const RT = (function () {
   });
   q('#rAdd').onclick = () => { R().stops.push({ id: uid(), nome: '', city: '', uf: '', lat: null, lon: null }); changed(); const ins = q('#rStops').querySelectorAll('[data-rk=nome]'); ins[ins.length - 1].focus(); };
   q('#rOpt').onclick = () => {
-    if (!R().orig) return toast('Informe a cidade de origem primeiro.', true);
+    if (!R().orig) return toast('Faltou a cidade de origem: digite o nome e escolha na lista.', true);
     if (R().stops.filter(s => s.lat != null).length < 2) return toast('São necessárias pelo menos 2 entregas com cidade.', true);
     const ch = optimize(); R().quote.destino = ''; changed();
     toast(ch ? 'Ordem sugerida pela menor distância. Ajuste com ↑ ↓ se precisar.' : 'A ordem atual já é a de menor distância.');
   };
+  /* folha do motorista: uma página por entrega, na ordem de descarga */
+  q('#oStop').onchange = () => { renderList(); const vb = q('#volsBox'); if (vb) vb.open = true; };
+  q('#rDriver').onclick = () => {
+    if (!plan) return toast('Monte a carga antes (passo 2).', true);
+    const r = R(), ri = routeInfo;
+    const pages = r.stops.map((s, i) => {
+      const rows = plan.vehs.flatMap((V, vi) => V.items.filter(it => it.p.stop === s.id).sort((a, b) => (b.x + b.l) - (a.x + a.l) || b.z - a.z).map(it => {
+        const d = describeItem(it, V); const pos = (d.match(/fileira[^.]*/) || [''])[0];
+        return `<tr><td>${String(it.n).padStart(2, '0')}</td><td>${esc(it.nome)}<br><small>${esc(it.cod)}</small></td><td>${fmt(it.l, 2)}×${fmt(it.w, 2)}×${fmt(it.h, 2)}</td><td>${fmt(it.kg, 0)} kg</td><td>${plan.vehs.length > 1 ? esc(V.v.name) + ' · ' : ''}${esc(pos)}</td><td style="width:40px"></td></tr>`; }));
+      const kg = plan.vehs.reduce((a, V) => a + V.items.filter(it => it.p.stop === s.id).reduce((b, it) => b + it.kg, 0), 0);
+      return `<section style="${i ? 'break-before:page;' : ''}font-family:system-ui,sans-serif;color:#000">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;color:#fff;padding:8px 12px;border-radius:6px"><b style="font-size:18px">Entrega ${i + 1} de ${r.stops.length}</b><span>${new Date().toLocaleDateString('pt-BR')}</span></div>
+        <table style="width:100%;margin:10px 0;border-collapse:collapse;font-size:13px"><tr><th style="text-align:left;width:120px">Destinatário</th><td>${esc(s.nome || '—')}</td></tr><tr><th style="text-align:left">Cidade</th><td>${esc(label(s))}</td></tr><tr><th style="text-align:left">Remetente</th><td>${esc((r.sender ? r.sender + ' · ' : '') + (r.orig ? label(r.orig) : ''))}</td></tr><tr><th style="text-align:left">Trecho</th><td>${ri && ri.legs[i] != null ? fmt(ri.legs[i], 0) + ' km ' + (i ? 'desde a entrega ' + i : 'desde a origem') + (ri.src === 'est' ? ' (estimado)' : '') : '—'}</td></tr><tr><th style="text-align:left">Volumes</th><td><b>${rows.length}</b> · ${fmt(kg, 0)} kg</td></tr></table>
+        <p style="font-size:12px;margin:0 0 6px">Ordem sugerida de retirada: dos volumes mais perto das portas para os mais perto da cabine. Marque ✓ ao descarregar.</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12px" border="1" cellpadding="4"><tr><th>Vol.</th><th>Produto</th><th>C×L×A (m)</th><th>Peso</th><th>Posição no veículo</th><th>✓</th></tr>${rows.join('') || '<tr><td colspan="6">Sem volumes para esta entrega.</td></tr>'}</table>
+        <div style="display:flex;gap:30px;margin-top:40px;font-size:12px"><div style="flex:1;border-top:1px solid #000;padding-top:4px">Assinatura do recebedor</div><div style="flex:1;border-top:1px solid #000;padding-top:4px">Data e hora</div></div></section>`;
+    });
+    showPrint(pages.join(''));
+  };
+  /* ---------- perfil: transportador ou empregador ---------- */
+  const today = () => new Date().toISOString().slice(0, 10);
+  const SE = ['SP', 'RJ', 'MG', 'PR', 'SC', 'RS'];
+  /* ICMS interestadual (Res. Senado 22/1989): 7% de Sul/Sudeste (exceto ES) para N, NE, CO e ES; 12% nos demais casos. Dentro do estado: alíquota da UF (informe). */
+  function icmsSug() { const r = R(), o = r.orig && r.orig.uf, last = r.stops.filter(s => s.uf).slice(-1)[0], d = last && last.uf; if (!o || !d) return null; if (o === d) return { aliq: null, txt: `Transporte dentro de ${o}: informe a alíquota interna do estado.` }; const a = SE.includes(o) && !SE.includes(d) ? 7 : 12; return { aliq: a, txt: `Sugestão: ${a}% (interestadual ${o} → ${d}, Res. Senado 22/1989). Confira: benefícios fiscais, regime e mais de um destino podem mudar.` }; }
+  const loadInfo = () => { const its = plan && mode === 'route' ? plan.vehs.flatMap(V => V.items) : []; return { vol: its.length, kg: Math.round(its.reduce((a, b) => a + b.kg, 0)) }; };
+  function setPerfil(p) {
+    R().perfil = p; saveWork();
+    document.querySelectorAll('[data-perfil]').forEach(b => { const on = b.dataset.perfil === p; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    q('#t-frete').classList.toggle('is-trp', p === 'trp'); q('#t-frete').classList.toggle('is-emp', p === 'emp');
+    q('#pfDesc').textContent = p === 'trp' ? 'Transportador: você faz o transporte. Veja o piso ANTT, monte o valor do CT-e (pedágio, ad valorem, GRIS, ICMS, CBS/IBS) e salve no Registro do transportador.' : p === 'emp' ? 'Empregador: você contrata a transportadora. Compare o frete fechado com o piso ANTT, veja quanto o frete representa do valor da NF-e e salve no Registro do empregador.' : 'Escolha o seu papel para ver os campos certos.';
+    renderPf();
+  }
+  function renderPf() {
+    const p = R().perfil, li = loadInfo(), r = R();
+    const auto = `Preenchido pela montagem: ${li.vol ? li.vol + ' volume(s) · ' + fmt(li.kg, 0) + ' kg' : 'monte a carga no passo 2'} · ${routeInfo ? fmt(routeInfo.km, 0) + ' km' : '—'} · piso ANTT ${pisoTot ? brl(pisoTot) : '—'}`;
+    if (p === 'trp') {
+      q('#tpAuto').textContent = auto; if (!q('#tpCli').value && r.sender) q('#tpCli').value = r.sender; if (!q('#tpDt').value) q('#tpDt').value = today();
+      const tot = pisoTot + extras().reduce((a, x) => a + (+x.valor || 0), 0); if (!q('#tpFr').dataset.edited && document.activeElement !== q('#tpFr')) q('#tpFr').value = tot ? tot.toFixed(2) : '';
+      const sg = icmsSug(); q('#tpIcmsHint').textContent = sg ? sg.txt : 'Informe origem e destinos para sugerir a alíquota.'; if (!q('#tpIcms').dataset.edited && sg && sg.aliq != null) q('#tpIcms').value = sg.aliq;
+      { const tx = ibsCbsAno(q('#tpDt').value); if (!q('#tpCbs').dataset.edited) q('#tpCbs').value = tx.cbs; if (!q('#tpIbs').dataset.edited) q('#tpIbs').value = tx.ibs; }
+      const c = trpCalc(trpRec(true));
+      q('#tpSum').innerHTML = `<div class="trow"><span>Frete cobrado</span><b>${brl(+q('#tpFr').value || 0)}</b></div>${c.adv ? `<div class="trow"><span>+ Ad valorem</span><b>${brl(c.adv)}</b></div>` : ''}${c.gris ? `<div class="trow"><span>+ GRIS</span><b>${brl(c.gris)}</b></div>` : ''}
+        <div class="trow tsum"><span>Total da prestação (CT-e)</span><b>${brl(c.prest)}</b></div><div class="trow"><span>ICMS ${fmt(+q('#tpIcms').value || 0, 2)}% (incluso)</span><b>${brl(c.icms)}</b></div><div class="trow"><span>CBS ${fmt(+q('#tpCbs').value || 0, 2)}% · IBS ${fmt(+q('#tpIbs').value || 0, 2)}%</span><b>${brl(c.cbs)} · ${brl(c.ibs)}</b></div>
+        <div class="trow"><span>Frete / valor da NF-e</span><b>${isFinite(c.pct) ? fmt(c.pct, 2) + '%' : '—'}</b></div>${pisoTot ? `<p class="${c.sit === 'abaixo do piso' ? 'bad' : 'ok'}" style="margin:6px 0 0">${c.sit === 'abaixo do piso' ? '⚠ Frete cobrado abaixo do piso mínimo da ANTT: o CIOT não é gerado e a viagem não pode sair (Res. ANTT 6.078/2026).' : '✔ Frete cobrado atende o piso da ANTT.'}</p>` : ''}${+q('#tpPed').value ? `<div class="trow"><span>Vale-pedágio (pago à parte pelo contratante, fora do frete)</span><b>${brl(+q('#tpPed').value)}</b></div>` : ''}`;
+    }
+    if (p === 'emp') {
+      q('#rgAuto').textContent = auto; if (!q('#rgDt').value) q('#rgDt').value = today();
+      const rec = empRec(); const t = FRETES.totals(rec);
+      q('#rgSum').innerHTML = `<div class="trow"><span>Frete mínimo (piso ANTT)</span><b>${pisoTot ? brl(pisoTot) : '—'}</b></div><div class="trow"><span>Frete fechado</span><b>${rec.valor != null ? brl(rec.valor) : '—'}</b></div>${t.dep ? `<div class="trow"><span>+ Adicionais cobrados depois</span><b>${brl(t.dep)}</b></div>` : ''}
+        <div class="trow"><span>Valor da NF-e</span><b>${rec.valorNfe ? brl(rec.valorNfe) : '—'}</b></div><div class="trow"><span>Peso total · volumes</span><b>${li.vol ? fmt(li.kg, 0) + ' kg · ' + li.vol : '—'}</b></div>
+        <div class="trow tsum"><span>Frete / valor da NF-e</span><b>${isFinite(t.pct) ? fmt(t.pct, 2) + '%' : '—'}</b></div>${pisoTot && rec.valor != null ? `<p class="${t.sit === 'abaixo do piso' ? 'bad' : 'ok'}" style="margin:6px 0 0">${t.sit === 'abaixo do piso' ? '⚠ Frete fechado abaixo do piso mínimo da ANTT.' : '✔ Frete fechado atende o piso da ANTT.'}</p>` : ''}`;
+    }
+  }
+  const nv = id => q(id).value === '' ? null : +q(id).value;
+  const base = () => { const r = R(), li = loadInfo(), v = plan && mode === 'route' ? plan.vehs[0].v : curVeh();
+    return { origem: r.orig ? label(r.orig) : '', destinos: r.stops.map(s => (s.nome ? s.nome + ' — ' : '') + label(s)).join(' → '), entregas: r.stops.length, km: routeInfo ? Math.round(routeInfo.km) : null, kmFonte: routeInfo ? routeInfo.src : '',
+      veiculo: plan && mode === 'route' ? plan.vehs.map(V => V.v.name).join(' + ') : v.name, eixos: NX.axleModel(v).pbt <= 3500 ? null : axlesOf(v), tabela: r.tab || 'A', tipoCarga: (ANTT.NOMES || {})[r.tipo] || r.tipo,
+      volumes: li.vol || null, pesoKg: li.vol ? li.kg : null, piso: pisoTot ? +pisoTot.toFixed(2) : null, origemDado: 'roteirizacao' }; };
+  function trpRec(light) { const r = { ...(light ? {} : base()), data: q('#tpDt').value, cliente: q('#tpCli').value.trim(), valorNfe: nv('#tpNf'), frete: nv('#tpFr'), pedagio: nv('#tpPed'), advPct: nv('#tpAdv'), grisPct: nv('#tpGris'), icmsAliq: nv('#tpIcms'), cbsAliq: nv('#tpCbs') ?? 0, ibsAliq: nv('#tpIbs') ?? 0, nfe: q('#tpNfe').value.trim(), cte: q('#tpCte').value.trim(), ciot: q('#tpCiot').value.trim(), obs: q('#tpObs').value.trim() }; if (light) r.piso = pisoTot; return r; }
+  function empRec() { return { ...base(), data: q('#rgDt').value, transportadora: q('#rgTr').value.trim(), remetente: R().sender || '', valor: nv('#rgVl'), valorNfe: nv('#rgNfVal'), adicionais: rgAds.map(a => ({ desc: String(a.desc || '').trim(), valor: +a.valor, quando: a.quando })), nfe: q('#rgNfe').value.trim(), cte: q('#rgCte').value.trim(), ciot: q('#rgCiot').value.trim(), valePedagio: nv('#rgVp'), obs: q('#rgObs').value.trim() }; }
+  document.querySelectorAll('[data-perfil]').forEach(b => b.onclick = () => setPerfil(b.dataset.perfil));
+  ['#tpForm', '#rgForm'].forEach(id => q(id).addEventListener('input', e => { if (['tpFr', 'tpIcms', 'tpCbs', 'tpIbs'].includes(e.target.id)) e.target.dataset.edited = '1'; renderPf(); }));
+  /* adicionais do empregador */
+  let rgAds = [];
+  function renderAds() {
+    q('#rgAds').innerHTML = rgAds.map((a, i) => `<div class="rgad" data-ai="${i}"><input data-ak="desc" value="${esc(a.desc)}" placeholder="Descrição" aria-label="Descrição do adicional ${i + 1}" maxlength="80"><input data-ak="valor" type="number" min="0" step="0.01" value="${a.valor ?? ''}" placeholder="R$" aria-label="Valor do adicional ${i + 1}"><select data-ak="quando" aria-label="Quando é cobrado"><option value="incluso" ${a.quando === 'incluso' ? 'selected' : ''}>Incluso no frete</option><option value="depois" ${a.quando !== 'incluso' ? 'selected' : ''}>Cobrado depois</option></select><button type="button" class="btn sm" data-adel="${i}" aria-label="Remover adicional ${i + 1}">×</button></div>`).join('');
+  }
+  q('#rgAdAdd').onclick = () => { rgAds.push({ desc: '', valor: null, quando: 'depois' }); renderAds(); q('#rgAds').lastElementChild.querySelector('input').focus(); };
+  q('#rgAds').addEventListener('input', e => { const k = e.target.dataset.ak; if (!k) return; const a = rgAds[+e.target.closest('[data-ai]').dataset.ai]; a[k] = k === 'valor' ? (e.target.value === '' ? null : Math.max(0, +e.target.value)) : e.target.value; renderPf(); });
+  q('#rgAds').addEventListener('change', e => { if (e.target.dataset.ak === 'quando') { rgAds[+e.target.closest('[data-ai]').dataset.ai].quando = e.target.value; renderPf(); } });
+  q('#rgAds').addEventListener('click', e => { const b = e.target.closest('[data-adel]'); if (b) { rgAds.splice(+b.dataset.adel, 1); renderAds(); renderPf(); } });
+  q('#rgLabels').onclick = () => ETQ.print();
+  /* foto do caminhão carregado: imagem do 3D reduzida (JPEG ~480 px) */
+  function snapshot() {
+    try { if (typeof stopAnim === 'function') stopAnim(true); renderer.render(scene, camera); const src = renderer.domElement, w = 480, h = Math.round(src.height * w / src.width);
+      const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(src, 0, 0, w, h); return c.toDataURL('image/jpeg', 0.72); } catch (e) { return ''; }
+  }
+  const qa2 = s => [...document.querySelectorAll(s)];
+  function guard(form, err, checks) { q(err).textContent = ''; qa2(form + ' [aria-invalid]').forEach(x => x.removeAttribute('aria-invalid')); for (const [el, msg] of checks) if (msg) { q(err).textContent = msg; q(el).setAttribute('aria-invalid', 'true'); q(el).focus(); return false; } return true; }
+  q('#rgForm').addEventListener('submit', async e => {
+    e.preventDefault(); const rec = empRec();
+    const ia = rgAds.findIndex(a => !String(a.desc || '').trim() || a.valor === null || !(+a.valor >= 0));
+    if (!guard('#rgForm', '#rgErr', [['#rgVl', !(rec.valor >= 0) || rec.valor === null ? 'Faltou o valor do frete fechado (em R$).' : ''], ['#rgNfVal', rec.valorNfe !== null && !(rec.valorNfe > 0) ? 'Valor da NF-e precisa ser maior que zero.' : ''], ['#rgNfe', DOCS.checkDoc(rec.nfe, '55', 'NF-e')], ['#rgCte', DOCS.checkDoc(rec.cte, '57', 'CT-e')], [ia >= 0 ? `#rgAds [data-ai="${ia}"] input` : '#rgVl', ia >= 0 ? `Adicional ${ia + 1}: informe a descrição e o valor.` : '']])) return;
+    if (q('#rgFoto').checked && plan) rec.foto = snapshot();
+    try { await FRETES.load(); await FRETES.create(rec); const t = FRETES.totals(rec);
+      toast('Salvo no Registro do empregador.' + (t.sit === 'abaixo do piso' ? ' Atenção: frete abaixo do piso mínimo da ANTT — o CIOT não é gerado.' : ''), t.sit === 'abaixo do piso');
+      ['#rgTr', '#rgVl', '#rgNfVal', '#rgNfe', '#rgCte', '#rgCiot', '#rgVp', '#rgObs'].forEach(i => q(i).value = ''); rgAds = []; renderAds(); renderPf();
+    } catch (er) { q('#rgErr').textContent = 'Não foi salvo: ' + er.message; }
+  });
+  q('#tpForm').addEventListener('submit', async e => {
+    e.preventDefault(); const rec = trpRec();
+    if (!guard('#tpForm', '#tpErr', [['#tpFr', rec.frete === null || !(rec.frete >= 0) ? 'Faltou o frete cobrado (em R$).' : ''], ['#tpNf', rec.valorNfe !== null && !(rec.valorNfe > 0) ? 'Valor da NF-e precisa ser maior que zero.' : ''], ['#tpIcms', rec.icmsAliq !== null && !(rec.icmsAliq >= 0 && rec.icmsAliq <= 40) ? 'ICMS entre 0 e 40%.' : ''], ['#tpNfe', DOCS.checkDoc(rec.nfe, '55', 'NF-e')], ['#tpCte', DOCS.checkDoc(rec.cte, '57', 'CT-e')]])) return;
+    try { await TRANSP.load(); await TRANSP.create(rec); const c = trpCalc(rec);
+      toast('Salvo no Registro do transportador.' + (c.sit === 'abaixo do piso' ? ' Atenção: frete abaixo do piso mínimo da ANTT — o CIOT não é gerado.' : ''), c.sit === 'abaixo do piso');
+      ['#tpNf', '#tpPed', '#tpNfe', '#tpCte', '#tpCiot', '#tpObs'].forEach(i => q(i).value = ''); delete q('#tpFr').dataset.edited; renderPf();
+    } catch (er) { q('#tpErr').textContent = 'Não foi salvo: ' + er.message; }
+  });
+  q('#rTab').onchange = e => { R().tab = e.target.value; saveWork(); renderAntt(); };
+  q('#rRet').onchange = e => { R().ret = e.target.checked; q('#rRetBox').hidden = !R().ret; saveWork(); renderAntt(); };
+  q('#rRetKm').addEventListener('input', e => { R().retKm = e.target.value === '' ? null : Math.max(0, +e.target.value); saveWork(); renderAntt(); });
   q('#rTipo').onchange = e => { R().tipo = e.target.value; saveWork(); renderAntt(); };
   /* ---------- passo a passo: 1 Rota → 2 Carga → 3 Frete → 4 Concluir ---------- */
   const STEPS = [['rota', 'Rota'], ['pedido', 'Carga'], ['frete', 'Frete'], ['fim', 'Concluir']];
@@ -354,13 +475,13 @@ const RT = (function () {
       if (!R().stops.length) return 'Adicione pelo menos uma entrega (destino) na aba Rota.';
       for (const s of R().stops) if (s.lat == null && (s.txt || s.city)) { const c = find(s.txt || label(s)); if (c) Object.assign(s, { city: c.nome, uf: c.uf, lat: c.lat, lon: c.lon }); }
       if (!R().orig && R().origTxt) { const c = find(R().origTxt); if (c) R().orig = { nome: c.nome, uf: c.uf, lat: c.lat, lon: c.lon }; }
-      if (!R().orig) return 'Informe a cidade de origem (remetente) na aba Rota.';
-      const bad = R().stops.findIndex(s => s.lat == null); if (bad >= 0) return `Entrega ${bad + 1}: informe uma cidade válida na aba Rota.`;
+      if (!R().orig) return 'Faltou a cidade de origem (remetente): preencha na aba Rota.';
+      const bad = R().stops.findIndex(s => s.lat == null); if (bad >= 0) return `Faltou a cidade da entrega ${bad + 1}: na aba Rota, digite o nome e escolha na lista.`;
       const ns = lines.find(l => rank(l.stop) == null); if (ns) return `A carga "${ns.nome}" está sem entrega definida. Abra Editar carga e escolha o destino.`;
       return null;
     },
     /* carregamento pelo inverso da entrega: última entrega primeiro (vai para a frente do baú) */
     orderLines: lines => [...lines].sort((a, b) => rank(b.stop) - rank(a.stop)),
-    snapshot: () => JSON.parse(JSON.stringify({ sender: R().sender, orig: R().orig, stops: R().stops, tipo: R().tipo, eixos: R().eixos, extras: R().extras || [] }))
+    snapshot: () => JSON.parse(JSON.stringify({ sender: R().sender, orig: R().orig, stops: R().stops, tipo: R().tipo, eixos: R().eixos, extras: R().extras || [], tab: R().tab, ret: R().ret, retKm: R().retKm }))
   };
 })();

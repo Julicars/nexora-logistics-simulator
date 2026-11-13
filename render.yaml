@@ -1,0 +1,15 @@
+# Render.com: sistema COMPLETO com o servidor Node (fórum, registros compartilhados, busca por nome e rede de sócios).
+# New → Blueprint → escolha o repositório. No plano grátis o disco é apagado quando o serviço reinicia:
+# para guardar data/*.json, adicione um disco (Disks) montado em /data e mantenha NEXORA_DADOS=/data.
+services:
+  - type: web
+    name: nexora
+    runtime: node
+    plan: free
+    buildCommand: "echo sem dependencias"
+    startCommand: "node server/index.js"
+    envVars:
+      - key: NEXORA_DADOS
+        value: /data
+      - key: NEXORA_ADMIN_SENHA
+        generateValue: true

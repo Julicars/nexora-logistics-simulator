@@ -339,3 +339,139 @@ body.quick-on .tabs [data-tab=cot]{display:none}
 @media (max-width:420px){.ctveh{flex-wrap:wrap;width:100%}.ctveh select{width:100%}}
 .trow.tsum b{white-space:nowrap}
 h2[tabindex="-1"]:focus,h3[tabindex="-1"]:focus{outline:none}
+.retv{margin-top:8px;background:#0b1430;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.retv #rRetBox{display:grid;gap:4px;margin-top:6px}.retv #rRetBox[hidden]{display:none}
+.attbl input{width:100%;min-width:0}.attbl td,.attbl th{padding:4px 6px}
+.ofil{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}.ofil input{flex:1;min-width:140px}.ofil select{flex:1;min-width:120px}
+/* fórum: novidades, norma e edição */
+.fnew{display:inline-block;font-size:11px;font-weight:800;background:#16a37a;color:#fff;border-radius:99px;padding:1px 7px;margin-top:3px;white-space:nowrap}
+.navbadge{margin-left:auto;font-size:11px;font-weight:800;background:#16a37a;color:#fff;border-radius:99px;padding:1px 7px;min-width:20px;text-align:center}
+.navbadge[hidden]{display:none}
+.fbanner{background:#16a37a1f;border:1px solid #16a37a66;border-radius:8px;padding:8px 12px;font-size:14px}
+.fnorma{display:flex;gap:10px;align-items:center;background:#f7a33414;border:1px solid #f7a33466;border-radius:8px;padding:8px 12px;margin:0 0 10px;font-size:15px}
+.fnorma span{display:flex;flex-direction:column}.fnorma small{font-size:12px;color:var(--mut)}.fnorma a{color:var(--acc);font-weight:700;overflow-wrap:anywhere}
+.fbtns{margin-left:auto;display:flex;gap:6px}
+.fpost header .fbtns .btn{margin-left:0}
+.fnormaed{border:1px solid var(--line);border-radius:8px;padding:8px 10px}.fnormaed legend{font-size:13px;color:var(--mut);padding:0 4px}
+.fedit{display:grid;gap:6px}.fedit textarea{width:100%}
+.impbox{display:grid;gap:8px;margin-top:10px;background:#0b1430;border:1px solid var(--line);border-radius:10px;padding:10px}.impbox[hidden]{display:none}.impbox textarea{width:100%;font-family:ui-monospace,monospace;font-size:13px}
+/* registro de fretes */
+.rgtools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
+.rgwrap{padding:0;overflow:hidden}
+.rgtbl{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px}
+.rgtbl th,.rgtbl td{padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.rgtbl th{position:sticky;top:0;background:#0b1430;z-index:1;font-size:12px}
+.rgtbl .rn{text-align:right}
+.rgtbl td.ed{cursor:cell}.rgtbl td.ed:hover{background:#f7a3340f}
+.rgtbl td.ed:focus{outline:2px solid var(--acc);outline-offset:-2px}
+.rgtbl td.calc{color:var(--mut)}.rgtbl td.calc.ok{color:#32c48d}.rgtbl td.calc.bad{color:var(--bad)}
+.rgtbl td input{width:100%;min-width:90px;padding:3px 5px}
+.rgtbl tfoot td{background:#0b1430;border-top:2px solid var(--line)}
+.rgtbl tbody tr:nth-child(even){background:#ffffff05}
+.rgform{display:grid;gap:8px;background:#0b1430;border:1px solid var(--line);border-radius:10px;padding:10px}.rgad{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) auto;gap:4px;margin:4px 0}.rgad input,.rgad select{min-width:0;width:100%}
+.secv{background:#0b1430;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:6px 0}
+.secsum{margin:4px 0;font-size:13px}
+.seclist{margin:4px 0 0;padding-left:0;list-style:none;display:grid;gap:5px;font-size:13px;line-height:1.4}
+/* produtos perigosos */
+details.perig{border:1px solid #e3262d66;border-radius:8px;padding:8px 10px;margin-top:10px;background:#e3262d0d}
+details.perig summary{cursor:pointer;font-weight:700}
+.grid.g3{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.perigv{background:#0b1430;border:1px solid #e3262d66;border-radius:8px;padding:8px 10px;margin:6px 0}
+.perigt{font-size:12px;width:100%}.perigt th,.perigt td{padding:3px 5px;text-align:left}
+.sinal{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}.sinal>div{display:flex;flex-direction:column;gap:4px}
+.rots{display:flex;gap:6px;flex-wrap:wrap}.rot{width:64px;height:64px}.pnl{width:96px;height:64px}
+.perigck{background:#0b1430;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px}.perigck ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+.rgfoto{background:none;border:0;padding:0;cursor:zoom-in}.rgfoto img{height:34px;width:auto;border-radius:4px;display:block}
+/* perfil na roteirização: transportador × empregador */
+.perfil{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:#0b1430;border:1px solid var(--line);border-radius:10px;padding:8px}
+.perfil span{flex-basis:100%;font-weight:700;font-size:14px}
+.perfil button{flex:1 1 0;min-width:0;padding:10px;border-radius:8px;border:1px solid var(--line);background:#0f1a36;color:var(--txt);font-weight:700;cursor:pointer;font-size:14px}
+.perfil button.on{background:var(--acc);color:#1b1200;border-color:var(--acc)}
+.perfil button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+#t-frete .pf-trp,#t-frete .pf-emp{display:none}
+#t-frete.is-trp .pf-trp,#t-frete.is-emp .pf-emp{display:block}
+#t-frete .pf-trp>.rgform,#t-frete .pf-emp>.rgform{margin-top:6px}
+/* barras de rolagem visíveis nas planilhas e tabelas largas */
+.rgwrap .tbl-wrap{overflow:auto;max-height:70vh;scrollbar-width:auto;scrollbar-color:#f7a334 #0b1430}
+.rgwrap .tbl-wrap::-webkit-scrollbar{height:14px;width:14px}
+.rgwrap .tbl-wrap::-webkit-scrollbar-track{background:#0b1430;border-top:1px solid var(--line)}
+.rgwrap .tbl-wrap::-webkit-scrollbar-thumb{background:#f7a334;border-radius:8px;border:3px solid #0b1430}
+.rgwrap .tbl-wrap::-webkit-scrollbar-thumb:hover{background:#ffb84d}
+.rgwrap .tbl-wrap::-webkit-scrollbar-corner{background:#0b1430}
+.rgtbl tfoot td{position:sticky;bottom:0}
+.rghint{font-size:12px;margin:0 0 6px;color:var(--mut)}
+.cabchk{margin-top:8px;font-size:13px;align-items:flex-start}.cabchk input{margin-top:2px}
+.rghint{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.rgnav{display:flex;gap:4px}.rgnav .btn{min-width:40px}
+.cabchk{display:flex!important;flex-wrap:wrap;gap:4px 8px;line-height:1.3}.cabchk small{flex-basis:100%;padding-left:24px}
+.cabchk{display:grid!important;grid-template-columns:auto 1fr;gap:2px 8px!important;align-items:start}.cabchk small{grid-column:2;padding-left:0!important}.cabchk input{grid-row:1/3}
+.cabchk input{width:18px;height:18px}
+.axref td{vertical-align:middle;padding:6px 10px;border-bottom:1px dashed var(--line)}.axref td:nth-child(2){min-width:220px}.axref .axsvg{display:block}
+/* quem arruma a carga + quadro de eixos */
+.arrseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.arrseg button{padding:9px 6px;border-radius:8px;border:1px solid var(--line);background:#0b1430;color:var(--txt);font-weight:700;font-size:13px;cursor:pointer}
+.arrseg button.on{background:var(--acc);color:#1b1200;border-color:var(--acc)}
+.arrseg button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.arrtxt{font-size:12px;margin:4px 0 0}
+.axhud{position:absolute;left:12px;top:96px;z-index:4;background:#0b1430e6;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:250px;font-size:12px;pointer-events:none;backdrop-filter:blur(4px)}
+.axhud[hidden]{display:none}.axhud>b{display:block;margin-bottom:4px}
+.axh{display:grid;grid-template-columns:1fr;position:relative;margin:3px 0}
+.axh span{font-size:11px;color:var(--mut)}.axh em{font-style:normal;font-weight:700;position:absolute;right:0;top:0;font-size:11px}
+.axh i{display:block;height:5px;border-radius:3px;background:#32c48d;margin-top:2px}.axh.warn i{background:#f5c518}.axh.bad i{background:var(--bad)}.axh.bad em{color:var(--bad)}
+.axhud p{margin:4px 0 0}
+@media (max-width:900px){.axhud{top:auto;bottom:120px;left:8px;width:200px}}
+@media (max-height:480px) and (orientation:landscape){.axhud{display:none}}
+.axh.warn em{color:#f5c518}.axhud p.warn{color:#f5c518}.axhud p.bad{color:var(--bad)}.axhud .axcg{opacity:.8;font-size:.92em}.axh small{opacity:.85}
+.obsbal{margin-top:10px;font-size:13px;border:1px solid var(--line,#2a3550);border-radius:8px;padding:8px 10px}.obsbal summary{cursor:pointer;font-weight:600}.obsbal ul{margin:8px 0 0;padding-left:18px;display:grid;gap:6px}.obsbal li{line-height:1.4}
+/* v33 — toque e leitura no celular/tablet */
+@media (pointer:coarse){
+ .btn.sm{font-size:13px}
+ .lnk{min-height:40px;padding:8px 4px;display:inline-flex;align-items:center}
+ input[type=checkbox],input[type=radio]{width:22px;height:22px}
+ select,input,textarea{font-size:16px} /* evita o zoom automático do iPhone ao tocar no campo */
+}
+@media (max-width:480px){ .obsbal{font-size:14px} .axhud{font-size:12px;max-width:calc(100vw - 24px)} }
+.disp{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle;white-space:nowrap}
+.disp.facil{background:#1f7a4d33;color:#4ade80}.disp.medio{background:#a1620733;color:#fbbf24}.disp.dificil{background:#b91c1c33;color:#f87171}
+.displeg{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;margin:6px 0 10px}
+#maxGrid .displeg{grid-column:1/-1}.axopt .disp{margin:4px 0 0}.axtx .disp{margin:2px 0;align-self:flex-start}
+@media (max-width:480px){.axgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+.cmpc{margin-top:10px;font-size:13px}.cmpc summary{cursor:pointer;font-weight:600}.cmpc table{width:100%;font-size:12.5px}.cmpc td,.cmpc th{padding:5px 6px;text-align:left;vertical-align:top}.cmpc tr.best td{background:#1f7a4d22}.cmpc .disp{margin:2px 0 0}
+.altfuel{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:6px}
+.cmpc .om{display:none}@container cmp (max-width:560px){.cmpc .hm{display:none}.cmpc .om{display:block;margin-top:3px}}
+@container cmp (max-width:560px){.cmpc table{table-layout:fixed}.cmpc th:first-child,.cmpc td:first-child{width:50%}.cmpc td,.cmpc th{padding:4px 3px;font-size:12px;word-break:break-word}}
+
+.cmpc{container:cmp/inline-size}
+/* v35 — Consulta de empresas */
+.eform{display:grid;grid-template-columns:1fr 130px;gap:10px;align-items:end}
+.eform .ebtns{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.eform .ebtns .btn{flex:1 1 200px;min-height:46px;font-size:15px}
+.eform small,.eform .bad{grid-column:1/-1}
+@media (max-width:520px){.eform{grid-template-columns:1fr}}
+.eres h2{margin:0;font-size:20px;line-height:1.25}.eres h3{margin:18px 0 8px;font-size:15px}
+.ehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}.ehead p{margin:4px 0 0}
+.ecnpj{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.eacts{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.epill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;border:1px solid currentColor}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 16px;margin-top:10px}
+.ekv{display:flex;flex-direction:column;gap:2px;padding:8px 10px;background:#0b1430;border:1px solid var(--line);border-radius:8px;min-width:0}
+.ekv span{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.03em}.ekv b{font-weight:600;overflow-wrap:anywhere}
+.ealert{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}.ealert li{padding:7px 10px;border-radius:8px;font-size:13px;background:#0b1430;border-left:3px solid var(--line)}
+.ealert li.bad{border-color:#f87171}.ealert li.warn{border-color:#fbbf24}.ealert li.ok{border-color:#4ade80}.ealert li.info{border-color:#7aa2ff}
+.ecnae{margin:0;padding-left:18px;columns:2 320px;font-size:13px}.ecnae li{break-inside:avoid;margin-bottom:4px}
+.eqsa td{vertical-align:top}
+.erede-ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:8px}.erede-ctl .f{flex:1 1 240px}
+.erede .esvg{background:#081028;border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:78vh}.erede svg{width:100%;height:auto;min-width:640px;display:block}@media (max-width:520px){.erede svg{min-width:720px}}
+.erede g[data-cnpj]:hover rect,.erede g[data-cnpj]:focus rect{stroke-width:4}
+.eleg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin:0 0 6px}.eleg i{display:inline-block;width:14px;height:10px;border:2px solid;border-radius:3px;margin-right:4px;vertical-align:-1px}.eleg i.pf{border-color:#7aa2ff;border-radius:50%;width:10px}
+.elist{display:grid;gap:6px}.eitem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 10px;background:#0b1430;border:1px solid var(--line);border-radius:8px;flex-wrap:wrap}.eitem-b{display:flex;gap:6px}
+.ehist{display:flex;flex-wrap:wrap;gap:6px}.echip{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;background:#0b1430;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--txt);cursor:pointer;max-width:320px;font-size:12.5px}.echip span{color:var(--mut);font-size:11.5px}
+@media print{#aside,.topbar,.eform,#eHistBox,.eacts,.erede-ctl{display:none!important}.eres{border:0}}
+input.masked{font-variant-numeric:tabular-nums}input.masked.money{text-align:right}
+/* v38 — Home: resultados e convite a depoimento */
+.h-proof{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:6px 0 18px}
+.h-proof>div{background:#0b1430;border:1px solid var(--line);border-radius:14px;padding:16px 18px}.h-proof b{display:block;font:800 30px/1.1 'Barlow Condensed',Barlow,sans-serif;color:var(--acc,#f7a334);margin-bottom:6px}.h-proof span{color:var(--mut);font-size:14px;line-height:1.45}
+.h-quote{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px dashed var(--line);border-radius:14px;padding:14px 18px;margin-bottom:22px}.h-quote p{margin:0;flex:1 1 320px}
+@media (max-width:520px){.axhud:not(.open) p{display:none}.axhud b:first-child{cursor:pointer}.axhud:not(.open) b:first-child::after{content:' ▾ detalhes';font-weight:500;font-size:11px;color:var(--mut)}}
+/* v39 — recursos de plano de carga */
+.recrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.recrow .btn{flex:1 1 150px}
+.tarabox{margin-top:8px;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.tarabox summary{cursor:pointer;font-weight:600}
+.taragrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-bottom:8px}.taragrid .f{font-size:12px}
+#mRec .tbl td,#mRec .tbl th{padding:5px 6px;text-align:left;vertical-align:top;font-size:13px}#mRec tr.bad td{color:#f8a3a3}

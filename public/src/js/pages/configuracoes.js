@@ -22,6 +22,21 @@
     <button class="btn" id="bResetPrefs">Restaurar padrões</button>
    </div>
   </div>
+  <div class="grid g2" style="margin-top:16px">
+   <div class="card" id="cBackup"><h2>Backup dos dados</h2>
+    <p class="mut" style="font-size:13px">Produtos, frota, planos de carga salvos, sessões de carga, preferências e tabela ANTT personalizada ficam só neste navegador. Baixe um arquivo de backup para guardar ou levar para outro computador.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" id="bBkOut">⬇ Baixar backup (.json)</button><label class="btn" for="bkFile" tabindex="0" id="bBkInLbl">⬆ Restaurar backup</label><input type="file" id="bkFile" accept=".json,application/json" class="sr"></div>
+    <p id="bkMsg" class="mut" role="status" style="font-size:13px"></p>
+   </div>
+   <div class="card" id="cAntt"><h2>Tabela de frete mínimo (ANTT)</h2>
+    <p class="mut" style="font-size:13px">Quando a ANTT publicar uma portaria nova, atualize os coeficientes aqui, sem mexer no código. CCD = custo por km; CC = carga e descarga.</p>
+    <div class="grid g2" style="gap:8px"><label class="f">Tabela<select id="atTab"></select></label><label class="f">Tipo de carga<select id="atTipo"></select></label></div>
+    <div class="tbl-wrap" style="margin-top:8px"><table class="attbl"><thead><tr><th>Eixos</th><th>CCD (R$/km)</th><th>CC (R$)</th></tr></thead><tbody id="atRows"></tbody></table></div>
+    <label class="f" style="margin-top:8px">Referência (ex.: Portaria SUROC nº 30/2027)<input id="atNota" maxlength="120"></label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn pri" id="atSave">Salvar valores da tabela ANTT</button><button class="btn" id="atReset">Voltar aos valores oficiais</button></div>
+    <p id="atMsg" class="mut" role="status" style="font-size:13px"></p>
+   </div>
+  </div>
  </div></section>
 `;
   document.getElementById('main').insertAdjacentHTML('beforeend', html);

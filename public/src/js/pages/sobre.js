@@ -11,7 +11,7 @@
      <div class="reveal"><b>Motor de carga</b><br><span class="mut">Grade exata + Extreme Points (Crainic, Perboli &amp; Tadei, 2008) com regras de empilhamento e eixo.</span></div>
      <div class="reveal"><b>Simulador 3D</b><br><span class="mut">Carregamento e descarregamento animados, edição manual e etiquetas.</span></div>
      <div class="reveal"><b>Cargas industriais</b><br><span class="mut">Bobinas, big bags e formatos personalizados, cada um com sua regra.</span></div>
-     <div class="reveal"><b>Plataforma web</b><br><span class="mut">Servidor Node.js, login e montagens salvas no servidor.</span></div>
+     <div class="reveal"><b>Plataforma web</b><br><span class="mut">Funciona no navegador, instala como app e roda sem internet. Com o servidor Node.js, fórum e registros compartilhados.</span></div>
     </div></div>
    <div class="card"><h2>Princípios</h2>
     <p><b>Segurança primeiro.</b> <span class="mut">Nenhum plano ultrapassa limites de eixo, de peso ou de empilhamento.</span></p>

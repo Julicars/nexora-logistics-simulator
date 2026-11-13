@@ -12,6 +12,7 @@ const stackTxt = p => p.stackable === false ? 'Não empilha' : [p.maxLevels ? p.
 
 /* ---------------- estado ---------------- */
 let prods = [], fleet = [];
+NX.opcoes({ cabine: true, manual: LS.get('manual', false) });
 const QUICK0 = [{ id: 'q1', cod: 'PED-001', nome: 'PALLETS', tipo: 'palete', l: 1.2, w: 1.1, h: 1.9, q: 20, pcs: 42, kgp: 9, kg: 378, pos: 'pe', stack: 0, maxLevels: null, cor: '#f39a2b' }];
 /* Dois estados independentes: o que acontece num modo não altera o outro */
 const S = LS.get('work', null) || { cat: { veh: 'v0', lines: [], quote: {} }, quick: { veh: 'v0', lines: [], quote: {} } };
@@ -21,7 +22,7 @@ S.quick = { veh: (S.quick && S.quick.veh) || 'v0', lines: [], quote: {} };
 S.route = Object.assign({ veh: 'v0', lines: [], quote: {}, sender: '', orig: null, stops: [], tipo: 'geral', eixos: null, extras: [] }, S.route || {});
 const QM = () => mode === 'route' ? 'route' : 'quick';
 let mode = 'quick', plan = null, active = 0;
-const saveWork = () => LS.set('work', { cat: { veh: S.cat.veh, lines: S.cat.lines, quote: S.cat.quote }, quick: { veh: S.quick.veh, lines: S.quick.lines, quote: S.quick.quote }, route: { veh: S.route.veh, lines: S.route.lines, quote: S.route.quote, sender: S.route.sender, orig: S.route.orig, stops: S.route.stops, tipo: S.route.tipo, eixos: S.route.eixos, extras: S.route.extras } });
+const saveWork = () => LS.set('work', { cat: { veh: S.cat.veh, lines: S.cat.lines, quote: S.cat.quote }, quick: { veh: S.quick.veh, lines: S.quick.lines, quote: S.quick.quote }, route: { veh: S.route.veh, lines: S.route.lines, quote: S.route.quote, sender: S.route.sender, orig: S.route.orig, stops: S.route.stops, tipo: S.route.tipo, eixos: S.route.eixos, extras: S.route.extras, tab: S.route.tab, ret: S.route.ret, retKm: S.route.retKm } });
 const PAL = { deut: ['#0072B2', '#E69F00', '#56B4E9', '#F0E442', '#CC79A7', '#D55E00', '#009E73', '#999999'], trit: ['#D81B60', '#1E88E5', '#004D40', '#FFC107', '#8E24AA', '#E64A19', '#43A047', '#757575'], hc: ['#FFFFFF', '#FFD400', '#00E5FF', '#FF3BFF', '#00FF6A', '#FF7A00', '#9AA0FF', '#FF3B3B'] };
 let cbMode = LS.get('cb', 'normal');
 function curLines() {
@@ -41,9 +42,11 @@ function setMode(m) {
 
 /* ---------------- cálculo ---------------- */
 function calculate() {
+  /* novo cálculo: descarta pergunta de veículo extra pendente do cálculo anterior */
+  calcSeq++; xSug = null; if ($('#mExtra').classList.contains('on')) $('#mExtra').classList.remove('on');
   const lines = curLines();
   if (mode === 'cat' && lines.length < S.cat.lines.length) toast('Algum produto do pedido foi excluído do cadastro e ficou de fora.', true);
-  if (!lines.length) { toast('Inclua pelo menos uma linha de pedido.', true); if (mode !== 'cat') openOrder(); else go('catalogo'); return; }
+  if (!lines.length) { toast('Faltou a carga: adicione pelo menos um produto (ou cole a lista do pedido).', true); if (mode !== 'cat') openOrder(); else go('catalogo'); return; }
   let ordered = lines;
   if (mode === 'route') { const chk = RT.check(lines); if (chk) { toast(chk, true); if (/entrega|carga/i.test(chk) && !/remetente|destino/i.test(chk)) openOrder(); else RT.showTab(); return; } ordered = RT.orderLines(lines); }
   const v0 = curVeh(); stopAnim(true);
@@ -53,15 +56,16 @@ function calculate() {
   if (r.left.length) askExtra(); else finishCalc();
 }
 function finishCalc() {
+  if (NX.opcoes().manual) { const bad = plan.vehs.flatMap(V => NX.stats(V.v, V.items).al.filter(a => a.tot > a.lim + 1).map(a => V.v.name + ': ' + a.n)); if (bad.length) setTimeout(() => toast('Atenção: acima do limite legal — ' + bad.join('; ') + '. Arrume a carga.', true), 600); }
   const loaded = plan.vehs.reduce((s, V) => s + V.items.length, 0);
   toast(plan.left.length ? `${plan.left.length} volume(s) ficaram fora do carregamento.` : plan.vehs.length > 1 ? `${loaded} volumes distribuídos em ${plan.vehs.length} veículos.` : `Todos os ${loaded} volumes couberam no ${plan.vehs[0].v.name}.`, plan.left.length > 0);
   if (!document.body.classList.contains('rm')) startAnim('in');
 }
 /* pergunta antes de cada veículo extra */
-let xSug = null;
+let xSug = null, calcSeq = 0;
 function askExtra() {
   if (plan.vehs.length >= 5) { toast('Limite de 4 veículos extras atingido.', true); return finishCalc(); }
-  xSug = NX.suggestExtra(fleet, plan.left);
+  xSug = NX.suggestExtra(fleet, plan.left); if (xSug) xSug.plan = plan;
   if (!xSug) { toast('Nenhum veículo rodoviário da frota leva os volumes restantes.', true); return finishCalc(); }
   const kg = plan.left.reduce((s, u) => s + u.kg, 0), last = plan.vehs[plan.vehs.length - 1].v;
   const why = new Set(); for (const V of plan.vehs) { const vc = new Set(V.items.flatMap(i => i.p.cats || [])); for (const u of plan.left) { const r = NX.blockReason(V.v, u.p, vc); if (r) why.add(r); } }
@@ -70,12 +74,12 @@ function askExtra() {
   mxFit(); $('#mExtra').classList.add('on'); setTimeout(() => $('#mxYes').focus(), 30);
 }
 function mxFit() {
-  const id = $('#mxVeh').value; xSug = NX.suggestExtra(fleet, plan.left, id);
+  const id = $('#mxVeh').value; xSug = NX.suggestExtra(fleet, plan.left, id); if (xSug) xSug.plan = plan;
   $('#mxFit').innerHTML = xSug ? (xSug.all ? `<span class="ok">✔ Leva todos os ${plan.left.length} volumes restantes.</span>` : `<span class="warn">Leva ${xSug.r.items.length} de ${plan.left.length} volumes — vou perguntar de novo para o restante.</span>`) : '<span class="bad">Este veículo não leva nenhum dos volumes restantes.</span>';
   $('#mxYes').disabled = !xSug;
 }
 $('#mxVeh').onchange = mxFit;
-$('#mxYes').onclick = () => { if (!xSug) return; $('#mExtra').classList.remove('on'); plan.vehs.push({ v: xSug.v, items: xSug.r.items }); plan.left = xSug.r.left; buildScene(); renderAll(); renderQuote(); toast(`${xSug.v.name} adicionado como veículo extra.`); if (plan.left.length) setTimeout(askExtra, 250); else finishCalc(); };
+$('#mxYes').onclick = () => { if (!xSug || xSug.plan !== plan || !plan.left.length) { $('#mExtra').classList.remove('on'); xSug = null; return; } $('#mExtra').classList.remove('on'); plan.vehs.push({ v: xSug.v, items: xSug.r.items }); plan.left = xSug.r.left; buildScene(); renderAll(); renderQuote(); toast(`${xSug.v.name} adicionado como veículo extra.`); if (plan.left.length) { const seq = calcSeq, pl = plan; setTimeout(() => { if (seq === calcSeq && pl === plan) askExtra(); }, 250); } else finishCalc(); };
 $('#mxNo').onclick = () => { $('#mExtra').classList.remove('on'); finishCalc(); };
 $('#mExtra').addEventListener('keydown', e => { if (e.key === 'Escape') $('#mxNo').click(); });
 
@@ -93,6 +97,22 @@ const AXD = {
   'cav-toco-vand': { cab: [8, 30], boxes: [[44, 186]], g: [[[24], '6t'], [[54], '10t'], [[132], '10t'], [[178], '10t'], [[212], '10t']] },
   'romeu-julieta': { cab: [8, 30], boxes: [[40, 86], [134, 96]], g: [[[24], '6t'], [[98, 114], '17t'], [[152], '10t'], [[214], '10t']] },
   'rodotrem9': { cab: [8, 30], boxes: [[46, 88], [140, 90]], g: [[[22], '6t'], [[42, 56], '17t'], [[110, 124], '17t'], [[142, 156], '17t'], [[206, 220], '17t']] },
+  'bitruck': { cab: [8, 30], boxes: [[40, 170]], g: [[[22, 38], '6+6t'], [[160, 178], '17t']] },
+  'truck-tt': { cab: [8, 30], boxes: [[40, 170]], g: [[[26], '6t'], [[156, 172, 188], '25,5t']] },
+  'cav-toco-1': { cab: [8, 30], boxes: [[44, 186]], g: [[[24], '6t'], [[54], '10t'], [[210], '10t']] },
+  'cav-toco-2': { cab: [8, 30], boxes: [[44, 186]], g: [[[24], '6t'], [[54], '10t'], [[194, 210], '17t']] },
+  'cav-toco-2d': { cab: [8, 30], boxes: [[44, 186]], g: [[[24], '6t'], [[54], '10t'], [[176], '10t'], [[212], '10t']] },
+  'cav-truc-1': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[210], '10t']] },
+  'cav-truc-2': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[194, 210], '17t']] },
+  'cav-truc-2d': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[176], '10t'], [[212], '10t']] },
+  'cav-truc-ls-c': { cab: [8, 30], boxes: [[50, 160]], g: [[[22], '6t'], [[44, 60], '17t'], [[166, 180, 194], '25,5t']] },
+  'cav-truc-vs': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[158], '10t'], [[198, 214], '17t']] },
+  'cav-truc-vand': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[136], '10t'], [[180], '10t'], [[214], '10t']] },
+  'cav-truc-4e': { cab: [8, 30], boxes: [[50, 180]], g: [[[22], '6t'], [[44, 60], '17t'], [[156], '10t'], [[186, 200, 214], '25,5t']] },
+  'rj-3c3': { cab: [8, 30], boxes: [[40, 86], [134, 96]], g: [[[24], '6t'], [[98, 114], '17t'], [[152], '10t'], [[206, 222], '17t']] },
+  'rj-2c2': { cab: [8, 30], boxes: [[40, 86], [134, 96]], g: [[[24], '6t'], [[110], '10t'], [[152], '10t'], [[214], '10t']] },
+  'bitrem7': { cab: [8, 30], boxes: [[50, 96], [130, 104]], g: [[[22], '6t'], [[44, 60], '17t'], [[118, 134], '17t'], [[204, 220], '17t']] },
+  'bitrem9': { cab: [8, 30], boxes: [[50, 96], [130, 104]], g: [[[22], '6t'], [[44, 60], '17t'], [[106, 120, 134], '25,5t'], [[192, 206, 220], '25,5t']] },
   'fab': { cab: [8, 30], boxes: [[40, 120]], g: [[[26], ''], [[134], '']] }
 };
 function axSvg(v, k, h = 64) {
@@ -109,19 +129,54 @@ function axSvg(v, k, h = 64) {
     o += `<line x1="${mid}" y1="${gy + 2}" x2="${mid}" y2="${gy + 9}" class="br"/><text x="${mid}" y="${gy + 18}" class="lb">${L}</text>`; });
   return o + '</svg>';
 }
+const OBS_BAL = `<details class="obsbal"><summary>Observações da balança (Res. CONTRAN 882/2021)</summary><ul><li><b>Até 50 t</b> (toco, truck, LS e carretas até 50 t): na balança só o <b>peso total (PBT)</b> é conferido, com tolerância de 5% (art. 50 §1º). Se passar dela, os eixos também são conferidos e as multas se somam.</li><li><b>Acima de 50 t</b> (vanderléia trucada, LS quarto eixo, bitrem, rodotrem): conferem o PBT (5%) e cada eixo (12,5%).</li><li>Mesmo sem ser pesado na balança, o transportador deve respeitar o limite de cada eixo (art. 51). Eixo sobrecarregado gasta pneu, força a suspensão e piora a frenagem.</li><li>A tolerância é só da fiscalização: não pode ser usada para planejar a carga (art. 50 §3º) e <b>não vale</b> para o peso declarado na NF-e, CT-e ou MDF-e.</li><li>O peso de cada eixo mostrado aqui é uma <b>estimativa</b>: o real depende da posição da quinta roda e do peso vazio de cada veículo. Confira na plaqueta do fabricante, que pode ter limite menor que o legal.</li><li>Multa por excesso (CTB art. 231, V): R$ 130,16 uma vez + acréscimo por 200 kg ou fração, sobre o que passa da tolerância. Há retenção do veículo e remanejamento ou transbordo.</li></ul></details>`;
+const dispB = k => { const d = NX.axDisp(k); return `<span class="disp ${d.k}" title="${d.txt}">${d.k === 'facil' ? '● Fácil de achar' : d.k === 'medio' ? '● Com alguma procura' : '● Difícil de achar'}</span>`; };
+const DISP_LEG = `<div class="displeg" aria-label="Legenda"><span class="disp facil">● Fácil de achar</span><span class="disp medio">● Com alguma procura</span><span class="disp dificil">● Difícil de achar</span><span class="mut">estimativa pela frota que mais aparece em fretes e emplacamentos</span></div>`;
+/* quadro de peso por eixo no 3D (sempre visível com carga calculada) */
+function axHud() {
+  let el = $('#axHud'); if (!el) { el = document.createElement('div'); el.id = 'axHud'; el.className = 'axhud'; el.setAttribute('aria-live', 'polite'); $('#stage').appendChild(el); el.addEventListener('click', e => { if (e.target.closest('b:first-child')) el.classList.toggle('open'); }); }
+  if (!plan || !plan.vehs[active]) { el.hidden = true; return; }
+  const V = plan.vehs[active], st = NX.stats(V.v, V.items); el.hidden = false;
+  /* status como na balança: OK até o limite legal; Alerta dentro da tolerância (12,5% eixo, 5% PBT); Excesso acima dela */
+  const stt = (v, lim, tol) => v <= lim + 1 ? ['ok', 'OK'] : v <= tol + 1 ? ['warn', 'Alerta'] : ['bad', 'Excesso'];
+  const B = NX.balanca(st), pbtTol = B.pbtTol, nAl = st.al.filter(a => a.tot > a.lim + 1).length, multa = B.multa;
+  const cgx = st.cg && isFinite(st.cg.x) ? st.cg.x : null;
+  el.innerHTML = `<b>Peso por eixo${NX.opcoes().manual ? ' · você arruma' : ''}</b>` + st.al.map(a => { const r = a.tot / a.lim; let [c, t] = stt(a.tot, a.lim, a.tolLim); if (c === 'bad' && !B.retido) [c, t] = ['warn', 'Acima do limite'];
+    return `<div class="axh ${c}"><span>${esc(a.n.replace(/\s*\(.*\)/, ''))} · <small>${t}</small></span><i style="width:${Math.min(100, r * 100)}%"></i><em>${fmt(a.tot / 1000, 2)} / ${fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0)} t</em></div>`; }).join('')
+    + (() => { const [c, t] = stt(st.pbt, st.pbtLim, pbtTol); return `<div class="axh ${c}"><span>PBT · <small>${t}</small></span><i style="width:${Math.min(100, st.pbt / st.pbtLim * 100)}%"></i><em>${fmt(st.pbt / 1000, 1)} / ${fmt(st.pbtLim / 1000, 1)} t</em></div>`; })()
+    + (cgx != null ? `<p class="axcg">Centro de gravidade da carga: ${fmt(cgx, 2)} m da cabine</p>` : '')
+    + (nAl && !B.retido ? `<p class="warn">${nAl} eixo(s) acima do limite legal. ${B.soPbt ? 'Na balança, veículo de até 50 t é fiscalizado só pelo PBT (Res. 882, art. 50 §1º), mas a carga deve ser planejada dentro do limite de cada eixo.' : 'Dentro da tolerância de 12,5% a balança não multa, mas a tolerância não pode ser usada no planejamento.'}</p>` : '')
+    + (B.retido ? `<p class="bad">⚠ Passa da tolerância da balança${B.excP ? ` (PBT: +${fmt(B.excP, 0)} kg)` : ''}${B.excE ? ` (eixos: +${fmt(B.excE, 0)} kg)` : ''}. Multa estimada: R$ ${fmt(multa, 2)}, com retenção do veículo e ${B.excP ? 'transbordo' : 'remanejamento ou transbordo'}.${NX.opcoes().manual ? ' Arrume os volumes.' : ''}</p>` : '');
+}
+function renderAxRef() {
+  const el = $('#axRef'); if (!el) return;
+  const LEN = { Truck: 10.4, Carreta: 15.4, Rodotrem: 12.5 };
+  const PB = k => NX.AXCFG[k].pbt || 0;
+  const ROWS = NX.axOptions('Truck').concat(NX.axOptions('Carreta'), NX.axOptions('Rodotrem')).sort((a, b) => PB(a[0]) - PB(b[0])).map(([k, n]) => { const cat = NX.axOptions('Truck').some(o => o[0] === k) ? 'Truck' : NX.axOptions('Carreta').some(o => o[0] === k) ? 'Carreta' : 'Rodotrem'; return [k, n.replace(/\s*\(.*\)$/, ''), cat, LEN[cat]]; });
+  el.innerHTML = '<caption style="caption-side:top;text-align:left">' + DISP_LEG + '</caption><thead><tr><th>Configuração</th><th>Desenho</th><th>Limites</th></tr></thead><tbody>' + ROWS.map(([k, nome, cat, L]) => { const v = { id: 'ref', name: nome, cat, L, W: 2.5, H: 2.7, wag: cat === 'Rodotrem' ? 2 : 1, axcfg: k }; const m = NX.axleModel(v);
+    return `<tr><td><b>${nome}</b><br>${dispB(k)}</td><td>${axSvg(v, k, 58)}</td><td>${m.ax.map(a => fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0) + 't').join(' + ')}${Math.abs(m.ax.reduce((t, a) => t + a.lim, 0) - m.pbt) > 1 ? ' · PBT máximo' : ' ='} <b>${fmt(m.pbt / 1000, 1)} toneladas</b></td></tr>`; }).join('') + '</tbody>';
+}
 function renderAxCard() { setTimeout(() => { if (mode === 'route' && RT.renderAntt) RT.renderAntt(); }, 0);
   const v = curVeh(), k = NX.axcfgOf(v), m = NX.axleModel(v), opts = NX.axOptions(v.cat);
-  $('#axCfgInfo').innerHTML = `<div class="axcard">${axSvg(v, k, 52)}<div class="axtx"><b>${esc(m.cfg.replace(/\s*\(.*\)\s*$/, '') || m.cfg)}</b><span>${m.ax.map(a => fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0)).join(' + ')} = <b>${fmt(m.pbt / 1000, 1)} t</b> · carga útil ${fmt(NX.vehMaxCargo(v) / 1000, 1)} t</span></div>${opts.length > 1 ? '<button class="btn sm" id="bAxPick">Trocar eixos</button>' : '<span class="mut" style="font-size:11px">limite do fabricante</span>'}</div>`;
+  $('#axCfgInfo').innerHTML = `<div class="axcard">${axSvg(v, k, 52)}<div class="axtx"><b>${esc(m.cfg.replace(/\s*\(.*\)\s*$/, '') || m.cfg)}</b>${opts.length > 1 ? dispB(k) : ''}<span>${m.ax.map(a => fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0)).join(' + ')} = <b>${fmt(m.pbt / 1000, 1)} t</b> · carga útil ${fmt(NX.vehMaxCargo(v) / 1000, 1)} t</span></div>${opts.length > 1 ? '<button class="btn sm" id="bAxPick">Trocar eixos</button>' : '<span class="mut" style="font-size:11px">limite do fabricante</span>'}</div>`;
   const bo = NX.bodyOptions(v.cat), cb = NX.bodyOf(v);
+  const man = NX.opcoes().manual;
+  $('#axCfgInfo').insertAdjacentHTML('beforeend', `<div class="arrseg" role="radiogroup" aria-label="Quem arruma a carga"><button type="button" role="radio" data-arr="sis" class="${man ? '' : 'on'}" aria-checked="${!man}">🤖 Sistema arruma a carga</button><button type="button" role="radio" data-arr="usr" class="${man ? 'on' : ''}" aria-checked="${man}">✋ Usuário arruma a carga</button></div><p class="mut arrtxt">${man ? 'Coloca tudo encostado a partir da cabine, sem mexer por causa do peso por eixo. Só avisa se passar da carga permitida. Depois arrume os volumes como quiser (arrastar, setas, girar) e acompanhe o peso de cada eixo no quadro do 3D.' : 'O sistema coloca a carga junta a partir da cabine, sem espaço entre as fileiras, e confere o peso como a balança: em veículo de até 50 t (toco, truck, LS) vale o peso total (PBT); acima de 50 t, também cada eixo, com a tolerância de 12,5%. Se não couber, deixa volumes de fora e pergunta pelo veículo extra.'}</p>` + OBS_BAL);
+  $$('#axCfgInfo [data-arr]').forEach(b => b.onclick = () => { const m = b.dataset.arr === 'usr'; if (m === NX.opcoes().manual) return; NX.opcoes({ manual: m, cabine: true }); LS.set('manual', m); renderAxCard(); if (curLines().length) calculate(); toast(m ? 'Usuário arruma a carga: o sistema não mexe por causa dos eixos, só avisa.' : 'Sistema arruma a carga respeitando o peso por eixo.'); });
   if (bo.length) $('#axCfgInfo').insertAdjacentHTML('beforeend', `<div class="bodyseg" role="radiogroup" aria-label="Carroceria"><span>Carroceria</span>${bo.map(b => `<button role="radio" aria-checked="${b === cb}" class="${b === cb ? 'on' : ''}" data-body="${b}">${b === 'bau' ? '▣' : b === 'sider' ? '▥' : '▭'} ${NX.BODIES[b].replace(' (grade)', '')}</button>`).join('')}</div>`);
   $$('#axCfgInfo [data-body]').forEach(x => x.onclick = async () => { const vv = curVeh(); vv.body = x.dataset.body; try { fleet = await DB.saveVehicles(fleet); } catch (er) { toast(er.message, true); } renderVehSel(); toast('Carroceria: ' + NX.BODIES[NX.bodyOf(curVeh())]); if (plan) calculate(); else if (scene) buildScene(); });
+  if (['Truck', 'Carreta', 'Rodotrem', 'Container'].includes(v.cat)) {
+    $('#axCfgInfo').insertAdjacentHTML('beforeend', `<label class="altfuel"><input type="checkbox" id="cAltF" ${v.combAlt ? 'checked' : ''}> ⚡ Elétrico, híbrido ou a gás (GNV/biometano): eixo dianteiro de 7 t <small class="mut">Res. CONTRAN 1015/2024</small></label>`);
+    $('#cAltF').onchange = async e => { const vv = curVeh(); vv.combAlt = e.target.checked || undefined; try { fleet = await DB.saveVehicles(fleet); } catch (er) { toast(er.message, true); } renderAxCard(); toast(e.target.checked ? 'Eixo dianteiro com limite de 7 t (veículo elétrico ou a gás).' : 'Eixo dianteiro com limite de 6 t.'); if (plan) calculate(); };
+  }
+  if (typeof REC === 'object') $('#axCfgInfo').insertAdjacentHTML('beforeend', REC.taraHTML(v));
   const b = $('#bAxPick'); if (b) b.onclick = openAxPicker;
 }
 function openAxPicker() {
   const v = curVeh(), cur = NX.axcfgOf(v);
   $('#maxT').textContent = 'Configuração de eixos — ' + v.name;
-  $('#maxGrid').innerHTML = NX.axOptions(v.cat).map(([k]) => { const vv = { ...v, axcfg: k }, m = NX.axleModel(vv);
-    return `<button class="axopt ${k === cur ? 'on' : ''}" data-ax="${k}" aria-pressed="${k === cur}">${axSvg(v, k, 70)}<b>${esc(m.cfg.replace(/\s*\(.*\)\s*$/, ''))}</b><span>${m.ax.map(a => fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0)).join(' + ')} = <b>${fmt(m.pbt / 1000, 1)} t</b></span><span class="mut">Carga útil máx. ${fmt(NX.vehMaxCargo(vv), 0)} kg · ${m.ax.length} grupos de eixos</span></button>`; }).join('');
+  $('#maxGrid').innerHTML = DISP_LEG + NX.axOptions(v.cat).map(([k]) => { const vv = { ...v, axcfg: k }, m = NX.axleModel(vv);
+    return `<button class="axopt ${k === cur ? 'on' : ''}" data-ax="${k}" aria-pressed="${k === cur}">${axSvg(v, k, 70)}<b>${esc(m.cfg.replace(/\s*\(.*\)\s*$/, ''))}</b>${dispB(k)}<span>${m.ax.map(a => fmt(a.lim / 1000, a.lim % 1000 ? 1 : 0)).join(' + ')} = <b>${fmt(m.pbt / 1000, 1)} t</b></span><span class="mut">Carga útil máx. ${fmt(NX.vehMaxCargo(vv), 0)} kg · ${m.ax.length} grupos de eixos</span></button>`; }).join('');
   $('#mAx').classList.add('on'); setTimeout(() => { const b = $('#maxGrid .axopt.on'); b && b.focus(); }, 30);
 }
 $('#maxGrid').addEventListener('click', async e => { const b = e.target.closest('[data-ax]'); if (!b) return; const v = curVeh(); v.axcfg = b.dataset.ax;
@@ -163,9 +218,10 @@ function describeItem(it, V) {
   return `Volume ${vn2(it.n)}, ${it.nome}, ${tipoNome(it.p.tipo).toLowerCase()} ${fmt(it.l, 2)} por ${fmt(it.w, 2)} por ${fmt(it.h, 2)} metros, ${fmt(it.kg, 0)} quilos. ${V.v.wag > 1 ? 'Vagão ' + (it.wg + 1) + ', ' : ''}fileira ${row} (de ${fmt(it.x, 2)} a ${fmt(it.x + it.l, 2)} m da frente), ${lado}, ${cam}.${cats.length ? ' Atenção: ' + cats.join(', ') + '.' : ''}${stopN(it) != null ? ' Entrega ' + stopN(it) + ', ' + RT.stopName(it.p.stop) + '.' : ''}`;
 }
 function renderList() {
+  const os = $('#oStop'); if (os && mode === 'route') { const v0 = os.value; os.innerHTML = '<option value="">Todas as entregas</option>' + RT.stopOptions(v0); os.value = v0; }
   const el = $('#itemList'); const vn = $('#volsN'); if (vn) vn.textContent = plan ? '(' + plan.vehs[active].items.length + ')' : ''; if (!plan) { el.innerHTML = '<p class="mut">—</p>'; return; }
   const f = $('#oFilter').value.toLowerCase().trim(); const V = plan.vehs[active];
-  const list = [...V.items].sort((a, b) => a.n - b.n).filter(it => !f || (it.nome + ' ' + it.cod + ' ' + vn2(it.n)).toLowerCase().includes(f));
+  const fs = mode === 'route' && $('#oStop') ? $('#oStop').value : ''; const list = [...V.items].sort((a, b) => a.n - b.n).filter(it => (!f || (it.nome + ' ' + it.cod + ' ' + vn2(it.n)).toLowerCase().includes(f)) && (!fs || it.p.stop === fs));
   const cur = list.includes(sel) ? sel : list[0];
   el.setAttribute('role', 'listbox'); el.setAttribute('aria-label', 'Volumes do veículo ativo. Setas para cima e para baixo percorrem; Enter seleciona e leva o teclado para a cena 3D.');
   el.innerHTML = list.map(it => `<div role="option" id="opt-${it.n}" tabindex="${it === cur ? 0 : -1}" data-it="${it.n}" class="${it === sel ? 'sel' : ''}" aria-selected="${it === sel}" aria-label="${esc(describeItem(it, V))}"><span class="sw" style="background:${colorOf(it.p)}" aria-hidden="true"></span><span class="num" aria-hidden="true">${vn2(it.n)}</span><span aria-hidden="true">${esc(it.nome)}</span>${stopN(it) != null ? `<span class="stopb" aria-hidden="true">E${stopN(it)}</span>` : ''}<span class="mut" style="margin-left:auto" aria-hidden="true">${V.v.wag > 1 ? 'V' + (it.wg + 1) + ' · ' : ''}${fmt(it.kg, 0)} kg</span></div>`).join('') || '<p class="mut">Nenhum volume neste veículo.</p>';
@@ -185,11 +241,11 @@ function calcHTML(V, vi) {
   ${s.wagons.map(w => `<div class="kv"><span>${v.wag > 1 ? 'Compartimento ' + (w.g + 1) : 'Compartimento'}</span><b>${w.n} vol. · ${fmt(w.kg, 0)} kg · livre no fundo ${fmt(w.freeLen, 2)} m</b></div>`).join('')}
   ${s.cg ? `<div class="kv"><span>Centro de gravidade</span><b>${fmt(s.cg.x, 2)} m da frente · ${s.cg.lat >= 0 ? '+' : ''}${fmt(s.cg.lat * 100, 0)} cm lateral · ${fmt(s.cg.z, 2)} m de altura</b></div>` : ''}
   <h4 style="margin:12px 0 2px">Peso por eixo (carga + tara)</h4><p class="mut" style="font-size:12px;margin:0 0 6px">${esc(NX.axleModel(v).cfg)} · fonte: ${esc(NX.axleModel(v).src)}</p>
-  ${s.al.map(a => `<div class="kv"><span>${a.n}<br><small class="mut">carga ${fmt(a.cargo / 1000, 2)} t + tara ${fmt(a.tare / 1000, 2)} t · folga ${fmt(Math.max(0, a.lim - a.tot) / 1000, 2)} t</small></span><b class="${a.tot > a.lim ? 'bad' : a.tot > a.lim * .9 ? 'warn' : 'ok'}">${fmt(a.tot / 1000, 2)} / ${fmt(a.lim / 1000, 2)} t ${a.tot > a.lim ? '✖' : '✔'}</b></div>${bar(a.tot / a.lim)}`).join('')}
-  <p class="mut" style="font-size:11px">Limite legal usado no cálculo. Tolerância de balança (12,5% por eixo / 5% no PBT, Lei 14.229/2021) não entra no planejamento.</p>`;
+  ${s.al.map(a => `<div class="kv"><span>${a.n}<br><small class="mut">carga ${fmt(a.cargo / 1000, 2)} t + tara ${fmt(a.tare / 1000, 2)} t · folga ${fmt(Math.max(0, a.lim - a.tot) / 1000, 2)} t</small></span><b class="${a.tot > a.tolLim ? 'bad' : a.tot > a.lim ? 'warn' : a.tot > a.lim * .9 ? 'warn' : 'ok'}">${fmt(a.tot / 1000, 2)} / ${fmt(a.lim / 1000, 2)} t ${a.tot > a.tolLim ? '✖' : a.tot > a.lim ? '⚠ na tolerância' : '✔'}</b></div>${bar(a.tot / a.lim)}`).join('')}
+  <p class="mut" style="font-size:11px">${NX.opcoes().cabine ? 'A carga fica junta a partir da cabine. Cada eixo pode chegar até a tolerância de 12,5% (Lei 14.229/2021); o PBT continua no limite legal. Acima do limite legal aparece “⚠ na tolerância”.' : 'A carga sempre começa na cabine; se um eixo passaria do limite legal, o sistema abre espaço entre as fileiras para distribuir o peso. A tolerância de balança (12,5% por eixo / 5% no PBT, Lei 14.229/2021) não entra no planejamento.'}</p>`;
 }
 function renderCalc() {
-  const el = $('#calcOut'); if (!plan) { el.innerHTML = '<p class="mut">Calcule um carregamento.</p>'; return; }
+  const el = $('#calcOut'); if (!plan) { el.innerHTML = '<p class="mut">Toque em “▶ Ver como a carga fica” para ver aqui.</p>'; return; }
   const loaded = plan.vehs.reduce((s, V) => s + V.items.length, 0), kg = plan.vehs.reduce((s, V) => s + V.items.reduce((a, i) => a + i.kg, 0), 0);
   const cub = plan.vehs.reduce((s, V) => s + V.items.reduce((a, i) => a + i.l * i.w * i.h, 0), 0), vt = plan.vehs.reduce((s, V) => s + NX.vol(V.v), 0);
   const v0 = plan.vehs[0].v, lines = curLines();
@@ -198,10 +254,10 @@ function renderCalc() {
    <div><b>${fmt(cub, 1)} m³</b><span>volume ocupado</span></div><div><b>${fmt(cub / vt * 100, 0)}%</b><span>ocupação média</span></div></div>`;
   h += `<h4 style="margin:6px 0">Capacidade máxima estimada no ${esc(v0.name)}</h4><p class="mut" style="font-size:12px;margin:0 0 4px">Encaixe físico por produto (comprimento × largura × camadas), já limitado por empilhamento, níveis e peso.</p>`;
   for (const p of lines) { const g = NX.grid(v0, p); const byKg = Math.floor(NX.vehMaxCargo(v0) / p.kg); h += `<div class="kv"><span><span class="num">${pnum(p.id)}</span>${esc(p.nome)}</span><span>${encChip(p, v0)}${g && byKg < g.tot ? ` <span class="warn" title="limitado pelo peso">peso: ${byKg}</span>` : ''}</span></div>`; }
-  el.innerHTML = h + plan.vehs.map(calcHTML).join('<hr style="border-color:var(--line)">') + '<p class="mut" style="font-size:12px">Limites de referência: Res. CONTRAN 210/2006 (simplificado). Taras estimadas.</p>';
+  el.innerHTML = h + plan.vehs.map(calcHTML).join('<hr style="border-color:var(--line)">') + '<p class="mut" style="font-size:12px">Limites de referência: Res. CONTRAN 882/2021. Taras estimadas.</p>';
 }
 function renderPlanTab() {
-  const el = $('#loadOut'); if (!plan) { el.innerHTML = '<p class="mut">Calcule um carregamento.</p>'; $('#descOut').innerHTML = ''; return; }
+  const el = $('#loadOut'); if (!plan) { el.innerHTML = '<p class="mut">Toque em “▶ Ver como a carga fica” para ver aqui.</p>'; $('#descOut').innerHTML = ''; return; }
   el.innerHTML = '<h3 style="margin:4px 0">Como carregar</h3><p class="mut" style="font-size:12px">Fileiras da frente (junto à cabine) para a traseira. Em cada fileira: camada de baixo primeiro, da esquerda para a direita.</p>' + plan.vehs.map((V, vi) => {
     let h = `<h4 style="margin:10px 0 4px">Veículo ${vi + 1}: ${esc(V.v.name)}</h4>`;
     for (let g = 0; g < V.v.wag; g++) {
@@ -222,7 +278,7 @@ function updBtns() {
   $('#bUndo').disabled = !hist.length; $('#bRedo').disabled = !redo.length; ['#bOri', '#bRot', '#bLay', '#bFocus', '#bDesel'].forEach(s => $(s).disabled = !sel);
   const si = $('#selInfo'); if (si) { si.textContent = sel ? `Volume ${String(sel.n).padStart(2, '0')} · ${sel.nome}` : 'Clique em um volume'; si.classList.toggle('on', !!sel); si.title = si.textContent; }
 }
-function renderAll() { if (plan && !anim) updateBrand(); renderTabs(); renderList(); renderCalc(); renderPlanTab(); updBtns(); highlight(); RT.renderUnload(); }
+function renderAll() { axHud(); if (plan && !anim) updateBrand(); renderTabs(); renderList(); renderCalc(); renderPlanTab(); updBtns(); highlight(); RT.renderUnload(); if (typeof SEC === 'object') SEC.refresh(); if (typeof PERIG === 'object') PERIG.render(); }
 function afterEdit() { updateVoids(); renderAll(); }
 function renderExp() { renderVehSel(); renderOrder(); renderAll(); renderQuote(); $('#cenName').value = ''; RT.render(); }
 function setActive(vi) { if (vi === active) return; stopAnim(true); active = vi; sel = null; setView(curView); renderAll(); }
@@ -285,7 +341,7 @@ function renderDraft() {
 function draftSummary() {
   const n = draft.map(NX.normalize); const v = n.reduce((s, p) => s + (+p.q || 0), 0), pc = n.reduce((s, p) => s + (+p.q || 0) * (+p.pcs || 0), 0), kg = n.reduce((s, p) => s + (+p.q || 0) * (+p.kg || 0), 0);
   $('#moTot').innerHTML = `Total: <b>${v.toLocaleString('pt-BR')}</b> volumes · <b>${pc.toLocaleString('pt-BR')}</b> peças · <b>${fmt(kg || 0, 0)} kg</b>`;
-  let msg = ''; if (!draft.length) msg = 'Inclua pelo menos uma linha de pedido.';
+  let msg = ''; if (!draft.length) msg = 'Faltou a carga: adicione pelo menos um produto (ou cole a lista do pedido).';
   else { for (const p of draft) { const e = rowErrs(p); if (e.length) { msg = `Linha ${esc(p.cod || '(sem código)')}: ${esc(e.join(' '))}`; break; } }
     if (!msg && mode === 'route') { const ns = draft.find(p => RT.rank(p.stop) == null); if (ns) msg = `Linha ${esc(ns.cod || '(sem código)')}: escolha a entrega (destino).`; }
     if (!msg) { const d = draft.map(p => String(p.cod).trim().toLowerCase()); const dup = d.find((c, i) => d.indexOf(c) !== i); if (dup) msg = 'Código repetido: ' + esc(dup.toUpperCase()) + '.'; } }
@@ -369,11 +425,12 @@ $('#pFoto').onchange = e => {
   img.onerror = () => toast('Não foi possível ler a imagem.', true); img.src = url;
 };
 $('#pFotoDel').onclick = () => setFoto('');
-function resetProdForm() { editId = null; $('#fProd').reset(); setFoto(''); $('#pCancel').hidden = true; $('#pSave').textContent = 'Salvar produto'; $$('#pCats input').forEach(i => i.checked = false); $('#pErr').textContent = ''; F().maxLevels.disabled = F().stack.disabled = false; prodFormTipo(); }
+function resetProdForm() { editId = null; $('#fProd').reset(); setFoto(''); $('#pCancel').hidden = true; $('#pSave').textContent = 'Salvar produto'; $$('#pCats input').forEach(i => i.checked = false); if (typeof PERIG === 'object') PERIG.fill({}); $('#pErr').textContent = ''; F().maxLevels.disabled = F().stack.disabled = false; prodFormTipo(); }
 $('#fProd').addEventListener('submit', async e => {
   e.preventDefault(); const o = Object.fromEntries(new FormData(e.target));
   const body = { id: editId || undefined, nome: o.nome.trim(), cod: o.cod.trim(), cat: o.cat.trim(), tipo: o.tipo, emb: o.emb.trim(), l: o.l, w: o.tipo === 'bobina' ? o.l : o.w, h: o.h, d: o.tipo === 'bobina' ? o.l : undefined,
-    pcs: o.pcs, kgp: o.kgp, stackable: o.stackable !== 'nao', maxLevels: o.stackable === 'nao' ? null : (o.maxLevels || null), stack: o.stackable === 'nao' ? 0 : (o.stack === '' || o.stack === undefined ? null : o.stack), pos: o.pos, obs: o.obs, cor: o.cor, foto: fotoData, cats: prodCats() };
+    pcs: o.pcs, kgp: o.kgp, stackable: o.stackable !== 'nao', maxLevels: o.stackable === 'nao' ? null : (o.maxLevels || null), stack: o.stackable === 'nao' ? 0 : (o.stack === '' || o.stack === undefined ? null : o.stack), pos: o.pos, obs: o.obs, cor: o.cor, foto: fotoData, cats: prodCats(), ...PERIG.formData(o) };
+  { const pe = PERIG.validate(body); if (pe) { $('#pErr').textContent = pe; return; } }
   const errs = NX.validateSpec(NX.normalize(body), false); if (errs.length) { $('#pErr').textContent = errs.join(' '); return; }
   $('#pSave').disabled = true;
   try { await DB.saveProduct(body); prods = await DB.listProducts(); toast(editId ? 'Produto atualizado.' : 'Produto cadastrado.'); resetProdForm(); renderProds(); renderCatList(); syncCatSel(); }
@@ -400,7 +457,7 @@ $('#tProd').addEventListener('click', async e => {
   if (b.dataset.px) { const p = prods.find(x => x.id === b.dataset.px); if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Confirmar exclusão'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = '×'; }, 3500); return; }
     try { await DB.deleteProduct(p.id); prods = await DB.listProducts(); catSel.delete(p.id); renderProds(); toast('Produto excluído.'); } catch (er) { toast(er.message, true); } }
   if (b.dataset.pe) { const p = prods.find(x => x.id === b.dataset.pe); editId = p.id; const f = F();
-    f.tipo.value = p.tipo; prodFormTipo(); for (const k of ['nome', 'cod', 'cat', 'emb', 'l', 'w', 'h', 'pcs', 'obs', 'cor']) f[k].value = p[k] ?? ''; f.kgp.value = +(+p.kgp).toFixed(4);
+    f.tipo.value = p.tipo; prodFormTipo(); for (const k of ['nome', 'cod', 'cat', 'emb', 'l', 'w', 'h', 'pcs', 'obs', 'cor']) f[k].value = p[k] ?? ''; f.kgp.value = +(+p.kgp).toFixed(4); PERIG.fill(p);
     f.stackable.value = p.stackable === false ? 'nao' : 'sim'; f.maxLevels.value = p.maxLevels ?? ''; f.stack.value = p.stack ?? ''; f.pos.value = p.pos; $$('#pCats input').forEach(i => i.checked = (p.cats || []).includes(i.value)); f.stackable.onchange(); calcKg(); setFoto(p.foto);
     $('#pCancel').hidden = false; $('#pSave').textContent = 'Atualizar produto'; f.nome.focus(); window.scrollTo(0, 0); $('#main').scrollTop = 0; }
 });
@@ -422,13 +479,13 @@ function renderFleet() { renderAxleInfo();
    <td><input value="${esc(v.name)}" data-fv="${i}" data-k="name" aria-label="Nome" ${ro ? 'disabled' : ''}></td>
    <td><select data-fv="${i}" data-k="cat" aria-label="Categoria" ${ro ? 'disabled' : ''}>${NX.CATS.map(c => `<option ${c === v.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></td>
    ${['L', 'W', 'H', 'wag'].map(k => `<td><input type="number" step="${k === 'wag' ? 1 : 0.01}" min="${k === 'wag' ? 1 : 0.5}" ${k === 'wag' ? 'max="3"' : ''} value="${v[k]}" data-fv="${i}" data-k="${k}" style="width:72px" aria-label="${k}" ${ro ? 'disabled' : ''}></td>`).join('')}
-   <td><select data-fv="${i}" data-k="axcfg" aria-label="Configuração de eixos" ${ro ? 'disabled' : ''} style="max-width:230px">${NX.axOptions(v.cat).map(([k, n]) => `<option value="${k}" ${NX.axcfgOf(v) === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></td>
+   <td><select data-fv="${i}" data-k="axcfg" aria-label="Configuração de eixos" ${ro ? 'disabled' : ''} style="max-width:230px">${NX.axOptions(v.cat).map(([k, n]) => `<option value="${k}" ${NX.axcfgOf(v) === k ? 'selected' : ''}>${esc(n)} — ${NX.axDisp(k).txt.toLowerCase()}</option>`).join('')}</select></td>
    <td>${NX.bodyOptions(v.cat).length ? `<select data-fv="${i}" data-k="body" aria-label="Carroceria" ${ro ? 'disabled' : ''}>${NX.bodyOptions(v.cat).map(b => `<option value="${b}" ${NX.bodyOf(v) === b ? 'selected' : ''}>${NX.BODIES[b]}</option>`).join('')}</select>` : `<span class="mut">${v.cat === 'Container' ? 'Container' : 'Baú'}</span>`}</td>
    <td><input type="number" min="0" placeholder="sem limite" value="${v.max ?? ''}" data-fv="${i}" data-k="max" style="width:110px" aria-label="Carga máxima" ${ro ? 'disabled' : ''}></td>
    <td>${fmt(NX.vol(v))} m³</td><td><button class="btn sm" data-fx="${i}" aria-label="Remover ${esc(v.name)}" ${ro ? 'disabled' : ''}>×</button></td></tr>`).join('');
 }
 $('#tFrota').addEventListener('change', e => { const t = e.target; if (t.dataset.fv == null) return; const v = fleetDraft[+t.dataset.fv], k = t.dataset.k;
-  if (k === 'name' || k === 'cat' || k === 'axcfg' || k === 'body') { v[k] = t.value; if (k === 'cat') { delete v.axcfg; delete v.body; } } else if (k === 'max') v.max = t.value ? +t.value : null; else { const n = +t.value; if (!(n > 0)) { toast('Valor inválido.', true); t.value = v[k]; return; } v[k] = k === 'wag' ? Math.round(Math.min(3, n)) : n; } renderFleet(); });
+  if (k === 'name' || k === 'cat' || k === 'axcfg' || k === 'body') { v[k] = t.value; if (k === 'cat') { delete v.axcfg; delete v.body; } } else if (k === 'max') v.max = t.value ? +t.value : null; else { const n = +t.value; if (!(n > 0)) { toast('Número inválido: digite só os números (ex.: 150 para 1,50 m).', true); t.value = v[k]; return; } v[k] = k === 'wag' ? Math.round(Math.min(3, n)) : n; } renderFleet(); });
 $('#tFrota').addEventListener('click', e => { const b = e.target.closest('[data-fx]'); if (!b) return; if (fleetDraft.length < 2) return toast('Mantenha ao menos um veículo.', true); fleetDraft.splice(+b.dataset.fx, 1); renderFleet(); });
 $('#fAdd').onclick = () => { fleetDraft.push({ id: 'v' + Date.now().toString(36), name: 'Novo veículo', cat: 'Truck', L: 7, W: 2.4, H: 2.5, wag: 1, max: null }); renderFleet(); };
 $('#fReset').onclick = async () => { try { fleet = await DB.officialVehicles(); fleetDraft = JSON.parse(JSON.stringify(fleet)); renderFleet(); afterFleet(); toast('Medidas oficiais restauradas.'); } catch (er) { toast(er.message, true); } };
@@ -442,34 +499,34 @@ function payload() {
     vehs: plan.vehs.map(V => ({ vehicleId: V.v.id, items: V.items.map(i => ({ n: i.n, pid: i.pid, x: +i.x.toFixed(4), y: +i.y.toFixed(4), z: +i.z.toFixed(4), l: i.l, w: i.w, h: i.h, wg: i.wg, ax: i.ax })) })),
     quote: S[mode].quote, summary: summaryOf(plan) };
 }
-function summaryOf(pl) { const its = pl.vehs.flatMap(V => V.items); const cub = its.reduce((s, i) => s + i.l * i.w * i.h, 0); return { veh: pl.vehs[0].v.name, nVeh: pl.vehs.length, nVol: its.length, total: pl.total, left: pl.left.length, kg: its.reduce((s, i) => s + i.kg, 0), cub, occ: cub / pl.vehs.reduce((s, V) => s + NX.vol(V.v), 0), axOk: pl.vehs.every(V => NX.stats(V.v, V.items).axOk) }; }
+function summaryOf(pl) { const its = pl.vehs.flatMap(V => V.items); const cub = its.reduce((s, i) => s + i.l * i.w * i.h, 0); return { veh: pl.vehs[0].v.name, nVeh: pl.vehs.length, nVol: its.length, total: pl.total, left: pl.left.length, kg: its.reduce((s, i) => s + i.kg, 0), cub, occ: cub / pl.vehs.reduce((s, V) => s + NX.vol(V.v), 0), axOk: pl.vehs.every(V => { const st = NX.stats(V.v, V.items); return NX.opcoes().cabine ? st.axTol : st.axOk; }) }; }
 $('#bSavePlan').onclick = async () => {
-  if (!plan) return toast('Calcule um carregamento antes.', true); if (!$('#cenName').value.trim()) { $('#cenName').focus(); return toast('Dê um nome para a montagem.', true); }
+  if (!plan) return toast('Monte a carga antes: toque em “▶ Ver como a carga fica”.', true); if (!$('#cenName').value.trim()) { $('#cenName').focus(); return toast('Faltou o nome do plano de carga (ex.: Pedido 4512 – Cliente X).', true); }
   stopAnim(true); const pl = payload();
   try {
     await DB.savePlan(pl, () => { const e = []; plan.vehs.forEach((V, i) => { if (i && V.v.cat === 'Container') e.push('Containers não podem ser extras.'); const er = NX.verifyVehicle(V.v, V.items); if (er) e.push(V.v.name + ': ' + er); }); return e; });
-    toast('Montagem salva neste navegador.'); $('#cenName').value = '';
+    toast('Plano de carga salvo neste navegador. Para mandar a outra pessoa, use “Compartilhar plano”.'); $('#cenName').value = '';
   } catch (er) { toast('Não foi salvo: ' + er.message, true); }
 };
 async function renderPlans() {
-  $('#mgNote').textContent = 'Montagens salvas neste navegador. Cada uma é conferida pelo motor de cálculo antes de salvar.';
+  $('#mgNote').textContent = 'Planos de carga salvos neste navegador. Cada um é conferido pelo motor de cálculo antes de salvar.';
   try { plansList = await DB.listPlans(); } catch (er) { toast(er.message, true); plansList = []; }
   $('#tPlans tbody').innerHTML = plansList.map(p => { const s = p.summary || {}; return `<tr><td><input type="checkbox" data-cmp="${p.id}" ${cmpSel.has(p.id) ? 'checked' : ''} aria-label="Comparar ${esc(p.name)}"></td><td><b>${esc(p.name)}</b></td>
    <td><span class="mode-tag ${p.mode === 'cat' ? 'cat' : p.mode === 'route' ? 'rota' : ''}" style="font-size:10px">${{ cat: 'Catálogo', route: 'Roteirização' }[p.mode] || 'Rápida'}</span></td><td>${esc(s.veh || '')}</td><td>${p.nVeh}</td><td>${p.nVol}${s.total ? '/' + s.total : ''}</td><td>${s.kg != null ? fmt(s.kg, 0) + ' kg' : '—'}</td><td>${s.occ != null ? fmt(s.occ * 100, 0) + '%' : '—'}</td>
    <td><small>${new Date(p.criado).toLocaleString('pt-BR')}${p.user ? '<br>' + esc(p.user) : ''}</small></td><td style="white-space:nowrap"><button class="btn sm" data-open="${p.id}">Abrir</button> <button class="btn sm" data-del="${p.id}" aria-label="Excluir ${esc(p.name)}">×</button></td></tr>`; }).join('')
-   || '<tr><td colspan="10" class="mut">Nenhuma montagem salva. Use "Salvar/Exportar" no simulador.</td></tr>';
+   || '<tr><td colspan="10" class="mut">Nenhum plano de carga salvo. Monte a carga e use a aba “Salvar”.</td></tr>';
   renderCmp();
 }
 function renderCmp() {
   const c = plansList.filter(p => cmpSel.has(p.id) && p.summary); const el = $('#cmpOut');
-  if (!c.length) { el.innerHTML = '<p class="mut">Marque montagens para comparar lado a lado.</p>'; return; }
+  if (!c.length) { el.innerHTML = '<p class="mut">Marque planos de carga para comparar lado a lado.</p>'; return; }
   const R = [['Origem', s => ({ cat: 'Catálogo', route: 'Roteirização' }[s.mode] || 'Rápida')], ['Veículo principal', s => esc(s.summary.veh)], ['Veículos usados', s => s.summary.nVeh], ['Volumes', s => s.summary.nVol + '/' + s.summary.total], ['Restantes', s => s.summary.left], ['Peso (kg)', s => fmt(s.summary.kg, 0)], ['Cubagem (m³)', s => fmt(s.summary.cub, 1)], ['Ocupação', s => fmt(s.summary.occ * 100, 0) + '%'], ['Eixos OK', s => s.summary.axOk ? '<span class="ok">Sim</span>' : '<span class="bad">Não</span>']];
   el.innerHTML = `<div class="card tbl-wrap"><table><tr><th></th>${c.map(s => `<th>${esc(s.name)}</th>`).join('')}</tr>${R.map(r => `<tr><td class="mut">${r[0]}</td>${c.map(s => `<td>${r[1](s)}</td>`).join('')}</tr>`).join('')}</table></div>`;
 }
 $('#tPlans').addEventListener('change', e => { const id = e.target.dataset.cmp; if (!id) return; e.target.checked ? cmpSel.add(id) : cmpSel.delete(id); renderCmp(); });
 $('#tPlans').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.del) { if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Confirmar'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = '×'; }, 3500); return; } try { await DB.deletePlan(b.dataset.del); cmpSel.delete(b.dataset.del); renderPlans(); toast('Montagem excluída.'); } catch (er) { toast(er.message, true); } }
+  if (b.dataset.del) { if (b.dataset.confirm !== '1') { b.dataset.confirm = '1'; b.textContent = 'Confirmar'; setTimeout(() => { b.dataset.confirm = ''; b.textContent = '×'; }, 3500); return; } try { await DB.deletePlan(b.dataset.del); cmpSel.delete(b.dataset.del); renderPlans(); toast('Plano de carga excluído.'); } catch (er) { toast(er.message, true); } }
   if (b.dataset.open) { try { openPlan(await DB.getPlan(b.dataset.open)); } catch (er) { toast(er.message, true); } }
 });
 function openPlan(sp) {
@@ -494,7 +551,7 @@ function openPlan(sp) {
 const LOGO = () => $('.brand img').src;
 function reportHTML() {
   stopAnim(true); renderer.render(scene, camera); const img = renderer.domElement.toDataURL('image/png');
-  const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Relatório de montagem · ${mode === 'cat' ? 'Mostrar Catálogo' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}</span></div>`;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Plano de carga · ${mode === 'cat' ? 'Mostrar Catálogo' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}</span></div>`;
   const sm = summaryOf(plan);
   let h = head + `<img src="${img}" style="width:100%;margin:8px 0;border:1px solid #ccc;border-radius:6px">
   <h3>Resumo</h3><table style="width:100%;border-collapse:collapse"><tr><th>Veículo selecionado</th><th>Veículos necessários</th><th>Volumes</th><th>Restantes</th><th>Peso total</th><th>Cubagem total</th></tr>
@@ -522,9 +579,10 @@ function quoteHTML() {
   <h3>Carga</h3><table style="width:100%;border-collapse:collapse"><tr><th>Produto</th><th>Tipo</th><th>Medidas</th><th>Volumes</th><th>Peso</th></tr>${curLines().map(p => `<tr><td>${esc(p.nome)} (${esc(p.cod)})</td><td>${tipoNome(p.tipo)}</td><td>${dimTxt(p)}</td><td>${p.q}</td><td>${fmt(p.q * p.kg, 0)} kg</td></tr>`).join('')}</table>
   <p>Veículos necessários: <b>${sm.nVeh}</b> (${plan.vehs.map(V => esc(V.v.name)).join(', ')}) · ${sm.nVol}/${sm.total} volumes · ${fmt(sm.kg, 0)} kg · ${fmt(sm.cub, 2)} m³</p>` + quoteBlock(true);
 }
+window.showPrint = showPrint;
 function showPrint(h) { $('#printPrev').innerHTML = h; $('#printArea').innerHTML = h; $('#mPrint').classList.add('on'); $('#bDoPrint').focus(); }
-$('#bPrint').onclick = () => { if (!plan) return toast('Calcule um carregamento antes.', true); showPrint(reportHTML()); };
-$('#bQuotePrint').onclick = () => { if (!plan) return toast('Calcule um carregamento antes.', true); showPrint(quoteHTML()); };
+$('#bPrint').onclick = () => { if (!plan) return toast('Monte a carga antes: toque em “▶ Ver como a carga fica”.', true); showPrint(reportHTML()); };
+$('#bQuotePrint').onclick = () => { if (!plan) return toast('Monte a carga antes: toque em “▶ Ver como a carga fica”.', true); showPrint(quoteHTML()); };
 $('#bDoPrint').onclick = () => { try { window.print(); } catch (e) {} setTimeout(() => toast('Se a impressão não abriu, abra o NEXORA pelo arquivo index.html ou pelo npm start.'), 700); };
 $('#bClosePrint').onclick = () => $('#mPrint').classList.remove('on');
 function csv() {
@@ -532,7 +590,7 @@ function csv() {
   plan.vehs.forEach((V, vi) => { const ord = [...V.items].sort((a, b) => b.wg - a.wg || (b.x + b.l) - (a.x + a.l) || b.z - a.z); V.items.forEach(it => L.push([(vi + 1) + ' - ' + V.v.name, it.wg + 1, it.seq + 1, vn2(it.n), it.nome, it.cod, tipoNome(it.p.tipo), it.pcs, fmt(it.kg, 1), it.ok || '', fmt(it.x, 2), fmt(it.y, 2), fmt(it.z, 2), fmt(it.l, 2), fmt(it.w, 2), fmt(it.h, 2), ord.indexOf(it) + 1])); });
   return '﻿' + L.map(r => r.map(c => { c = String(c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';')).join('\r\n');
 }
-$('#bCsv').onclick = () => { if (!plan) return toast('Calcule um carregamento antes.', true); const c = csv();
+$('#bCsv').onclick = () => { if (!plan) return toast('Monte a carga antes: toque em “▶ Ver como a carga fica”.', true); const c = csv();
   try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([c], { type: 'text/csv;charset=utf-8' })); a.download = 'nexora-montagem.csv'; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
   $('#csvBox').style.display = 'block'; $('#csvBox').value = c.slice(1); $('#bCsvCopy').style.display = 'inline-block'; toast('Planilha gerada. Se o download for bloqueado, use “Copiar CSV”.'); };
 $('#bCsvCopy').onclick = async () => { try { await navigator.clipboard.writeText($('#csvBox').value); toast('CSV copiado.'); } catch (e) { $('#csvBox').select(); toast('Selecione e copie manualmente (Ctrl+C).', true); } };
@@ -576,7 +634,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------------- NAVEGAÇÃO / SITE ---------------- */
-const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'forum', 'config'];
+const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'fretes', 'transportes', 'empresas', 'forum', 'config'];
 const MODE_OF = { rapida: 'quick', 'carga-catalogo': 'cat', rota: 'route' }, VIEW_OF = { quick: 'rapida', cat: 'carga-catalogo', route: 'rota' };
 function go(v, keepPlan) {
   if (!VIEWS.includes(v)) v = 'home';
@@ -587,12 +645,15 @@ function go(v, keepPlan) {
   $('#aside').classList.remove('open'); $('#burger').setAttribute('aria-expanded', 'false');
   if (location.hash !== '#' + v) try { history.replaceState(null, '', '#' + v); } catch (e) { location.hash = v; }
   if (isExp) { const m = MODE_OF[v]; if (!keepPlan) setMode(m); else if (mode !== m) mode = m; setTimeout(resize, 30); renderExp(); if (m === 'route') RT.showTab(); else if ($('#tabRota').classList.contains('on')) $('[data-tab=pedido]').click();
-    if (!plan && !keepPlan) { if (curLines().length) calculate(); else if (m === 'quick') openOrder(); else if (m === 'route') RT.showTab(true); else { toast('Selecione produtos no catálogo primeiro.'); go('catalogo'); return; } } }
+    if (!plan && !keepPlan) { if (curLines().length) calculate(); else if (m === 'quick') openOrder(); else if (m === 'route') RT.showTab(true); else { toast('Faltou a carga: escolha os produtos no catálogo primeiro.'); go('catalogo'); return; } } }
   if (v === 'produtos') { renderProds(); renderCatList(); }
-  if (v === 'frota') { fleetDraft = JSON.parse(JSON.stringify(fleet)); renderFleet(); }
+  if (v === 'frota') { fleetDraft = JSON.parse(JSON.stringify(fleet)); renderFleet(); renderAxRef(); }
   if (v === 'catalogo') { syncCatSel(); renderVehSel(); renderCatalog(); }
   if (v === 'montagens') renderPlans();
   if (v === 'forum' && typeof FORUM === 'object') FORUM.open();
+  if (v === 'empresas' && typeof EMPRESAS === 'object') EMPRESAS.open();
+  if (v === 'fretes' && typeof FRETES === 'object') FRETES.open();
+  if (v === 'transportes' && typeof TRANSP === 'object') TRANSP.open();
   $('#main').scrollTop = 0; revealAll();
 }
 document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
@@ -665,4 +726,31 @@ async function loadAll() {
   prodFormTipo();
   try { initThree(); } catch (e) { $('#cv').innerHTML = '<p style="padding:20px">Não foi possível iniciar o 3D neste dispositivo (WebGL indisponível).</p>'; }
   await loadAll();
+})();
+
+/* ---------- uso pela web: instalar como app e abrir sem internet ---------- */
+(function () {
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  const b = $('#bInstall'); if (!b) return; let ev = null;
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); ev = e; if (!standalone) b.hidden = false; });
+  window.addEventListener('appinstalled', () => { b.hidden = true; toast('NEXORA instalado. Abra pelo ícone na tela inicial.'); });
+  if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)) b.hidden = false;
+  b.onclick = async () => { if (ev) { ev.prompt(); await ev.userChoice; ev = null; b.hidden = true; } else toast('No iPhone/iPad: toque em Compartilhar (□↑) e depois em “Adicionar à Tela de Início”.'); };
+})();
+
+/* ---------- Home: exemplo pronto (mostra o resultado antes de pedir qualquer dado) ---------- */
+(function () {
+  const b = $('#hDemo'); if (!b) return;
+  b.onclick = () => {
+    const car = fleet.find(v => v.cat === 'Carreta' && v.L > 15) || fleet.find(v => v.cat === 'Carreta'); if (!car) return go('rapida');
+    const antes = S.quick.lines.length ? { veh: S.quick.veh, lines: JSON.parse(JSON.stringify(S.quick.lines)) } : null;
+    car.axcfg = car.axcfg || 'cav-truc-ls'; if (!car.body) car.body = 'sider';
+    S.quick.veh = car.id;
+    S.quick.lines = [{ id: 'ex1', cod: 'EX-BB', nome: 'Big bag (exemplo)', tipo: 'bigbag', l: 1.2, w: 1.1, h: 2, q: 20, pcs: 1, kgp: 1250, kg: 1250, pos: 'pe', stack: 0, maxLevels: null, cor: '#f39a2b' }];
+    saveWork(); go('rapida', true); $$('.modal.on').forEach(m => m.classList.remove('on'));
+    renderVehSel(); calculate();
+    setTimeout(() => { $$('#mExtra.on').forEach(m => m.classList.remove('on')); toast('Exemplo: 20 big bags de 1.250 kg numa carreta LS — juntos da cabine ao fundo, eixos conferidos. Troque a carga para fazer a sua.');
+      if (antes) { const box = $('#bCalc'); if (box && !$('#bDemoUndo')) { box.insertAdjacentHTML('beforebegin', '<button type="button" class="btn sm" id="bDemoUndo" style="width:100%;margin-bottom:8px">↩ Voltar para a minha carga</button>'); $('#bDemoUndo').onclick = () => { S.quick.veh = antes.veh; S.quick.lines = antes.lines; saveWork(); renderVehSel(); calculate(); toast('Sua carga voltou.'); }; } } }, 600);
+  };
 })();
