@@ -2,6 +2,22 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.22.0] — 2026-11-16 · v47
+### Adicionado
+- **Duplicar plano** salvo · **cores por entrega** no 3D da Roteirização · **foto do 3D** para baixar/compartilhar · **mensagem pronta para o WhatsApp**.
+- **Aviso de carga leve** (menos de 50% de espaço e peso) com o veículo menor que leva tudo · **“Quantos mais cabem?”** por produto (espaço, peso e eixos conferidos).
+- **Favoritos** de produtos (catálogo) e de veículos (aparecem primeiro) · **modelos de carga** que se repetem.
+- **Nome de quem montou** no relatório, na etiqueta (QR) e no WhatsApp.
+- **Tema claro** · **dicas da primeira vez** · **busca no menu** · **botão flutuante “Nova carga”** no celular · **calculadoras** (cubagem e conversor de unidades).
+### Corrigido
+- Contraste do tema claro revisado (WCAG AA).
+
+## [3.21.2] — 2026-11-16 · v46 (organização do repositório)
+### Alterado
+- `docs/` sem subpastas: capturas convertidas para **WebP** (de 11 MB para 1,2 MB), `demo.gif` menor (2,2 MB) e `demo.mp4`; 10 capturas antigas sem uso removidas.
+- `js/3d/scene.js` → `js/app/cena3d.js` (uma pasta a menos).
+- `.gitignore` completo (dados, logs, zips, arquivos de sistema) e `.gitattributes` (fim de linha e binários).
+
 ## [3.21.1] — 2026-11-16 · v45 (auditoria de bugs)
 ### Corrigido
 - Registro de fretes/transportes: o contador “N registro(s)” escrevia por cima do resumo do cálculo do transportador na Expedição (IDs repetidos `rgSum`/`tpSum`).

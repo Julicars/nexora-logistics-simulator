@@ -29,7 +29,7 @@ function curLines() {
   if (mode === 'cat') return S.cat.lines.map(l => { const p = prods.find(x => x.id === l.pid); return p ? NX.normalize({ ...p, q: l.q }) : null; }).filter(Boolean);
   return S[QM()].lines.map(l => NX.normalize(l));
 }
-function colorOf(p) { if (cbMode === 'normal') return p.cor || '#f39a2b'; let i = curLines().findIndex(x => x.id === p.id); if (i < 0) i = prods.findIndex(x => x.id === p.id); return PAL[cbMode][Math.max(0, i) % 8]; }
+function colorOf(p) { if (cbMode === 'normal') { const ce = typeof EXTRAS === 'object' ? EXTRAS.corEntrega(p) : null; return ce || p.cor || '#f39a2b'; } let i = curLines().findIndex(x => x.id === p.id); if (i < 0) i = prods.findIndex(x => x.id === p.id); return PAL[cbMode][Math.max(0, i) % 8]; }
 const pnum = pid => { const i = curLines().findIndex(p => p.id === pid); return i >= 0 ? i + 1 : prods.findIndex(p => p.id === pid) + 1; };
 const curVeh = () => fleet.find(v => v.id === S[mode].veh) || fleet[0];
 
@@ -57,6 +57,7 @@ function calculate() {
 }
 function finishCalc() {
   if (NX.opcoes().manual) { const bad = plan.vehs.flatMap(V => NX.stats(V.v, V.items).al.filter(a => a.tot > a.lim + 1).map(a => V.v.name + ': ' + a.n)); if (bad.length) setTimeout(() => toast('Atenção: acima do limite legal — ' + bad.join('; ') + '. Arrume a carga.', true), 600); }
+  if (typeof EXTRAS === 'object') { plan._leve = EXTRAS.cargaLeve(); EXTRAS.avisoLeve(); }
   const loaded = plan.vehs.reduce((s, V) => s + V.items.length, 0);
   toast(plan.left.length ? `${plan.left.length} volume(s) ficaram fora do carregamento.` : plan.vehs.length > 1 ? `${loaded} volumes distribuídos em ${plan.vehs.length} veículos.` : `Todos os ${loaded} volumes couberam no ${plan.vehs[0].v.name}.`, plan.left.length > 0);
   if (!document.body.classList.contains('rm')) startAnim('in');
@@ -196,7 +197,7 @@ $('#maxGrid').addEventListener('click', async e => { const b = e.target.closest(
 $('#maxX').onclick = () => $('#mAx').classList.remove('on');
 $('#mAx').addEventListener('keydown', e => { if (e.key === 'Escape') $('#mAx').classList.remove('on'); });
 function renderVehSel() {
-  const opts = fleet.map(v => `<option value="${v.id}">${esc(v.name)} — ${fmt(NX.vol(v))} m³</option>`).join('');
+  const fv = typeof EXTRAS === 'object' ? EXTRAS.ordFav('v', fleet) : fleet; const opts = fv.map(v => `<option value="${v.id}">${typeof EXTRAS === 'object' && EXTRAS.isFav('v', v.id) ? '★ ' : ''}${esc(v.name)} — ${fmt(NX.vol(v))} m³</option>`).join('');
   $('#selVeh').innerHTML = opts; $('#selVeh').value = curVeh().id;
   renderAxCard();
   $('#ctVeh').innerHTML = opts; $('#ctVeh').value = (fleet.find(v => v.id === S.cat.veh) || fleet[0]).id;
@@ -271,6 +272,7 @@ function renderCalc() {
   h += `<h4 style="margin:6px 0">Capacidade máxima estimada no ${esc(v0.name)}</h4><p class="mut" style="font-size:12px;margin:0 0 4px">Encaixe físico por produto (comprimento × largura × camadas), já limitado por empilhamento, níveis e peso.</p>`;
   for (const p of lines) { const g = NX.grid(v0, p); const byKg = Math.floor(NX.vehMaxCargo(v0) / p.kg); h += `<div class="kv"><span><span class="num">${pnum(p.id)}</span>${esc(p.nome)}</span><span>${encChip(p, v0)}${g && byKg < g.tot ? ` <span class="warn" title="limitado pelo peso">peso: ${byKg}</span>` : ''}</span></div>`; }
   el.innerHTML = h + plan.vehs.map(calcHTML).join('<hr style="border-color:var(--line)">') + '<p class="mut" style="font-size:12px">Limites de referência: Res. CONTRAN 882/2021. Taras estimadas.</p>';
+  if (typeof EXTRAS === 'object') { EXTRAS.avisoLeve(); EXTRAS.botoesCabe(); }
 }
 function renderPlanTab() {
   const el = $('#loadOut'); if (!plan) { el.innerHTML = '<p class="mut">Toque em “▶ Ver como a carga fica” para ver aqui.</p>'; $('#descOut').innerHTML = ''; return; }
@@ -392,9 +394,9 @@ const catSel = new Map(); /* pid -> quantidade */
 function syncCatSel() { catSel.clear(); for (const l of S.cat.lines) if (prods.some(p => p.id === l.pid)) catSel.set(l.pid, l.q); }
 function renderCatalog() {
   const f = $('#ctFilter').value.toLowerCase().trim(), t = $('#ctType').value; const v = fleet.find(x => x.id === $('#ctVeh').value) || fleet[0];
-  const list = prods.filter(p => (!f || (p.nome + ' ' + p.cod).toLowerCase().includes(f)) && (!t || p.tipo === t));
+  let list = prods.filter(p => (!f || (p.nome + ' ' + p.cod).toLowerCase().includes(f)) && (!t || p.tipo === t)); if (typeof EXTRAS === 'object') list = EXTRAS.ordFav('p', list);
   $('#ctGrid').innerHTML = list.map(p => { const on = catSel.has(p.id); return `<article class="pcard ${on ? 'on' : ''}" data-pid="${p.id}">
-    <div class="ph" style="${p.foto ? `background-image:url('${p.foto}')` : ''}">${p.foto ? '' : 'Sem foto'}<span class="tchip ${p.tipo} tp">${tipoNome(p.tipo)}</span></div>
+    <div class="ph" style="${p.foto ? `background-image:url('${p.foto}')` : ''}">${p.foto ? '' : 'Sem foto'}<span class="tchip ${p.tipo} tp">${tipoNome(p.tipo)}</span><button type="button" class="favb ${typeof EXTRAS === 'object' && EXTRAS.isFav('p', p.id) ? 'on' : ''}" data-favp="${p.id}" aria-pressed="${typeof EXTRAS === 'object' && EXTRAS.isFav('p', p.id)}" aria-label="Favorito: ${esc(p.nome)}">★</button></div>
     <div class="bd"><b>${esc(p.nome)}</b><span class="meta">${esc(p.cod)}${p.cat ? ' · ' + esc(p.cat) : ''}${p.emb ? ' · ' + esc(p.emb) : ''}</span>
      <span class="meta">${dimTxt(p)} · ${p.pcs} pç × ${fmt(p.kgp, 2)} kg = <b style="color:var(--txt)">${fmt(p.kg, 1)} kg</b></span>
      ${(p.cats || []).length ? `<span class="meta">${catChips(p)}</span>` : ''}<span class="meta">${esc(stackTxt(p))}</span>${p.obs ? `<span class="meta warn">⚠ ${esc(p.obs)}</span>` : ''}
@@ -500,7 +502,7 @@ function renderFleet() { renderAxleInfo();
   const ro = !canEditFleet(); $('#fleetNote').textContent = ro ? 'Somente administradores alteram a frota.' : 'Alterações valem depois de "Salvar veículos".';
   ['#fAdd', '#fReset', '#fSave'].forEach(s => $(s).disabled = ro);
   $('#tFrota tbody').innerHTML = fleetDraft.map((v, i) => `<tr>
-   <td><input value="${esc(v.name)}" data-fv="${i}" data-k="name" aria-label="Nome" ${ro ? 'disabled' : ''}></td>
+   <td style="white-space:nowrap"><button type="button" class="favb inl ${typeof EXTRAS === 'object' && EXTRAS.isFav('v', v.id) ? 'on' : ''}" data-favv="${v.id}" aria-label="Favorito: ${esc(v.name)}" aria-pressed="${typeof EXTRAS === 'object' && EXTRAS.isFav('v', v.id)}">★</button><input value="${esc(v.name)}" data-fv="${i}" data-k="name" aria-label="Nome" ${ro ? 'disabled' : ''}></td>
    <td><select data-fv="${i}" data-k="cat" aria-label="Categoria" ${ro ? 'disabled' : ''}>${NX.CATS.map(c => `<option ${c === v.cat ? 'selected' : ''}>${c}</option>`).join('')}</select></td>
    ${['L', 'W', 'H', 'wag'].map(k => `<td><input type="number" step="${k === 'wag' ? 1 : 0.01}" min="${k === 'wag' ? 1 : 0.5}" ${k === 'wag' ? 'max="3"' : ''} value="${v[k]}" data-fv="${i}" data-k="${k}" style="width:72px" aria-label="${k}" ${ro ? 'disabled' : ''}></td>`).join('')}
    <td><select data-fv="${i}" data-k="axcfg" aria-label="Configuração de eixos" ${ro ? 'disabled' : ''} style="max-width:230px">${NX.axOptions(v.cat).map(([k, n]) => `<option value="${k}" ${NX.axcfgOf(v) === k ? 'selected' : ''}>${esc(n)} — ${NX.axDisp(k).txt.toLowerCase()}</option>`).join('')}</select></td>
@@ -537,7 +539,7 @@ async function renderPlans() {
   try { plansList = await DB.listPlans(); } catch (er) { toast(er.message, true); plansList = []; }
   $('#tPlans tbody').innerHTML = plansList.map(p => { const s = p.summary || {}; return `<tr><td><input type="checkbox" data-cmp="${p.id}" ${cmpSel.has(p.id) ? 'checked' : ''} aria-label="Comparar ${esc(p.name)}"></td><td><b>${esc(p.name)}</b></td>
    <td><span class="mode-tag ${p.mode === 'cat' ? 'cat' : p.mode === 'route' ? 'rota' : ''}" style="font-size:10px">${{ cat: 'Catálogo', route: 'Roteirização' }[p.mode] || 'Rápida'}</span></td><td>${esc(s.veh || '')}</td><td>${p.nVeh}</td><td>${p.nVol}${s.total ? '/' + s.total : ''}</td><td>${s.kg != null ? fmt(s.kg, 0) + ' kg' : '—'}</td><td>${s.occ != null ? fmt(s.occ * 100, 0) + '%' : '—'}</td>
-   <td><small>${new Date(p.criado).toLocaleString('pt-BR')}${p.user ? '<br>' + esc(p.user) : ''}</small></td><td style="white-space:nowrap"><button class="btn sm" data-open="${p.id}">Abrir</button> <button class="btn sm" data-del="${p.id}" aria-label="Excluir ${esc(p.name)}">×</button></td></tr>`; }).join('')
+   <td><small>${new Date(p.criado).toLocaleString('pt-BR')}${p.user ? '<br>' + esc(p.user) : ''}</small></td><td style="white-space:nowrap"><button class="btn sm" data-open="${p.id}">Abrir</button> <button class="btn sm" data-dup="${p.id}" aria-label="Duplicar ${esc(p.name)}">⧉ Duplicar</button> <button class="btn sm" data-del="${p.id}" aria-label="Excluir ${esc(p.name)}">×</button></td></tr>`; }).join('')
    || '<tr><td colspan="10" class="mut">Nenhum plano de carga salvo. Monte a carga e use a aba “Salvar”.</td></tr>';
   renderCmp();
 }
@@ -577,7 +579,7 @@ function openPlan(sp) {
 const LOGO = () => $('.brand img').src;
 function reportHTML() {
   stopAnim(true); renderer.render(scene, camera); const img = renderer.domElement.toDataURL('image/png');
-  const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Plano de carga · ${mode === 'cat' ? 'Mostrar Catálogo' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}</span></div>`;
+  const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Plano de carga · ${mode === 'cat' ? 'Mostrar Catálogo' : mode === 'route' ? 'Roteirização' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}${LS.get('operador', '') ? ' · montado por ' + esc(LS.get('operador', '')) : ''}</span></div>`;
   const sm = summaryOf(plan);
   let h = head + `<img src="${img}" style="width:100%;margin:8px 0;border:1px solid #ccc;border-radius:6px">
   <h3>Resumo</h3><table style="width:100%;border-collapse:collapse"><tr><th>Veículo selecionado</th><th>Veículos necessários</th><th>Volumes</th><th>Restantes</th><th>Peso total</th><th>Cubagem total</th></tr>
@@ -670,7 +672,7 @@ function go(v, keepPlan) {
   $$('nav [data-go]').forEach(b => { const on = b.dataset.go === v || b.dataset.also === v; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   $('#aside').classList.remove('open'); $('#burger').setAttribute('aria-expanded', 'false');
   if (location.hash !== '#' + v) try { history.replaceState(null, '', '#' + v); } catch (e) { location.hash = v; }
-  if (isExp) { const m = MODE_OF[v]; if (!keepPlan) setMode(m); else if (mode !== m) mode = m; setTimeout(resize, 30); renderExp(); if (m === 'route') RT.showTab(); else if ($('#tabRota').classList.contains('on')) $('[data-tab=pedido]').click();
+  if (isExp) { const m = MODE_OF[v]; if (!keepPlan) setMode(m); else if (mode !== m) mode = m; setTimeout(resize, 30); renderExp(); if (typeof EXTRAS === 'object') EXTRAS.dicas(); if (m === 'route') RT.showTab(); else if ($('#tabRota').classList.contains('on')) $('[data-tab=pedido]').click();
     if (!plan && !keepPlan) { if (curLines().length) calculate(); else if (m === 'quick') openOrder(); else if (m === 'route') RT.showTab(true); else { toast('Faltou a carga: escolha os produtos no catálogo primeiro.'); go('catalogo'); return; } } }
   if (v === 'produtos') { renderProds(); renderCatList(); }
   if (v === 'frota') { fleetDraft = JSON.parse(JSON.stringify(fleet)); renderFleet(); renderAxRef(); }

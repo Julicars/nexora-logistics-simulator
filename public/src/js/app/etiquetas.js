@@ -19,7 +19,7 @@ const ETQ = (function () {
       const k = route && RT.rank(it.p.stop), st = k ? R.stops[k - 1] : null;
       const perig = (it.p.onu ? `ONU ${it.p.onu}${it.p.classe ? ' · Classe ' + it.p.classe : ''}` : '');
       const lines = [`NEXORA · VOLUME ${String(it.n).padStart(2, '0')}/${total}`, `PRODUTO: ${it.nome}`, `CODIGO: ${it.cod}`, `PESO: ${fmt(it.kg, 1)} kg · ${it.pcs} peca(s)`, `MEDIDAS: ${fmt(it.l, 2)} x ${fmt(it.w, 2)} x ${fmt(it.h, 2)} m`,
-        st ? `ENTREGA ${k}/${R.stops.length}: ${st.nome || ''} - ${lab(st)}` : '', route && R.orig ? `REMETENTE: ${R.sender || ''} - ${lab(R.orig)}` : '', `VEICULO ${vi + 1}: ${V.v.name}`, perig ? 'PERIGOSO: ' + perig : '', `MONTAGEM: ${dt}`].filter(Boolean);
+        st ? `ENTREGA ${k}/${R.stops.length}: ${st.nome || ''} - ${lab(st)}` : '', route && R.orig ? `REMETENTE: ${R.sender || ''} - ${lab(R.orig)}` : '', `VEICULO ${vi + 1}: ${V.v.name}`, perig ? 'PERIGOSO: ' + perig : '', `MONTAGEM: ${dt}${LS.get('operador', '') ? ' POR ' + LS.get('operador', '') : ''}`].filter(Boolean);
       out.push(`<div class="etq">
         <div class="etq-h"><b>VOL ${String(it.n).padStart(2, '0')}</b><span>/${total}</span>${k ? `<em>E${k}</em>` : ''}</div>
         <div class="etq-b"><div class="etq-t"><b>${esc(it.nome)}</b><small>${esc(it.cod)} · ${fmt(it.kg, 0)} kg · ${fmt(it.l, 2)}×${fmt(it.w, 2)}×${fmt(it.h, 2)} m</small>

@@ -5,7 +5,7 @@
 ### Montagem de carga em 3D, peso por eixo, frete mínimo ANTT e consulta de empresas — num só lugar.
 
 <p>
-<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.21.1-f39a2b?style=for-the-badge">
+<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.22.0-f39a2b?style=for-the-badge">
 <img alt="Node" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
 <img alt="Sem frameworks" src="https://img.shields.io/badge/HTML%20%2B%20CSS%20%2B%20JS-sem%20frameworks-2f8cf2?style=for-the-badge">
 <img alt="Testes" src="https://img.shields.io/badge/testes-53%20passando-32c48d?style=for-the-badge">
@@ -21,9 +21,9 @@
 <a href="CHANGELOG.md"><b>Novidades</b></a>
 </p>
 
-<img src="docs/img/nexora-demo.gif" alt="Demonstração do NEXORA: carga montada em 3D, amarração, paletização e roteirização" width="900">
+<img src="docs/demo.gif" alt="Demonstração do NEXORA: carga montada em 3D, amarração, paletização e roteirização" width="900">
 
-<sub>▶ <a href="docs/video/nexora-demo.mp4"><b>Assistir ao vídeo em alta qualidade (MP4, 53 s)</b></a></sub>
+<sub>▶ <a href="docs/demo.mp4"><b>Assistir ao vídeo em alta qualidade (MP4, 53 s)</b></a></sub>
 
 </div>
 
@@ -112,20 +112,20 @@ Ou **sem instalar nada**: abra `public/index.html` no navegador. Na Home, toque 
 
 <table>
 <tr>
-<td width="50%"><img src="docs/img/v45-02-montagem-3d.png" alt="Montagem em 3D"><br><b>Montagem em 3D</b> — peso por eixo ao vivo, carroceria, vistas e animação.</td>
-<td width="50%"><img src="docs/img/v45-05-roteirizacao.png" alt="Roteirização"><br><b>Roteirização</b> — várias entregas, ordem de descarga e mapa.</td>
+<td width="50%"><img src="docs/montagem-3d.webp" alt="Montagem em 3D"><br><b>Montagem em 3D</b> — peso por eixo ao vivo, carroceria, vistas e animação.</td>
+<td width="50%"><img src="docs/roteirizacao.webp" alt="Roteirização"><br><b>Roteirização</b> — várias entregas, ordem de descarga e mapa.</td>
 </tr>
 <tr>
-<td><img src="docs/img/v45-04-paletizacao.png" alt="Paletização"><br><b>Paletização</b> — vista de cima e de lado, camadas e paletes.</td>
-<td><img src="docs/img/v45-06-regras-produto.png" alt="Regras no cadastro"><br><b>Regras no cadastro</b> — “não viaja com”, “não vai em cima de”, “só no piso”.</td>
+<td><img src="docs/paletizacao.webp" alt="Paletização"><br><b>Paletização</b> — vista de cima e de lado, camadas e paletes.</td>
+<td><img src="docs/regras-produto.webp" alt="Regras no cadastro"><br><b>Regras no cadastro</b> — “não viaja com”, “não vai em cima de”, “só no piso”.</td>
 </tr>
 <tr>
-<td><img src="docs/img/v45-08-consulta-empresa.png" alt="Consulta de empresas"><br><b>Consulta de empresas</b> — nota de risco, ANTT/RNTRC, IBAMA e sanções.</td>
-<td><img src="docs/img/v45-09-diagrama-vinculos.png" alt="Diagrama de vínculos"><br><b>Diagrama de vínculos</b> — arraste, zoom, tela cheia e expansão por sócio.</td>
+<td><img src="docs/consulta-empresa.webp" alt="Consulta de empresas"><br><b>Consulta de empresas</b> — nota de risco, ANTT/RNTRC, IBAMA e sanções.</td>
+<td><img src="docs/diagrama-vinculos.webp" alt="Diagrama de vínculos"><br><b>Diagrama de vínculos</b> — arraste, zoom, tela cheia e expansão por sócio.</td>
 </tr>
 <tr>
-<td><img src="docs/img/v45-01-home.png" alt="Home"><br><b>Home</b> — exemplo pronto e a carga em 4 passos.</td>
-<td><img src="docs/img/15-registro-fretes.png" alt="Registro de fretes"><br><b>Registro de fretes</b> — planilha web que vira Excel.</td>
+<td><img src="docs/home.webp" alt="Home"><br><b>Home</b> — exemplo pronto e a carga em 4 passos.</td>
+<td><img src="docs/registro-fretes.webp" alt="Registro de fretes"><br><b>Registro de fretes</b> — planilha web que vira Excel.</td>
 </tr>
 </table>
 
@@ -134,10 +134,10 @@ Ou **sem instalar nada**: abra `public/index.html` no navegador. Na Home, toque 
 
 | | |
 |---|---|
-| <img src="docs/img/v45-07-celular-3d.png" width="300" alt="Celular"> **No celular** | ![Fórum](docs/img/11-forum.png) **Fórum** — ANTT, CIOT, frete mínimo, vale-pedágio |
-| ![Etiquetas](docs/img/17-etiquetas-qr.png) **Etiquetas com QR Code** — 8 por folha A4 | ![Perigosos](docs/img/18-produtos-perigosos.png) **Produtos perigosos** — rótulo, painel e lembrete |
-| ![Produtos](docs/img/02-produtos.png) **Cadastro de produtos** | ![Veículos](docs/img/03-veiculos.png) **Frota** — eixos e carroceria |
-| ![Concluir](docs/img/10-roteirizacao-concluir.png) **Concluir** — o que sai em cada entrega | ![Configurações](docs/img/12-configuracoes.png) **Configurações** — acessibilidade, backup e tabela ANTT |
+| <img src="docs/celular-3d.webp" width="300" alt="Celular"> **No celular** | ![Fórum](docs/forum.webp) **Fórum** — ANTT, CIOT, frete mínimo, vale-pedágio |
+| ![Etiquetas](docs/etiquetas-qr.webp) **Etiquetas com QR Code** — 8 por folha A4 | ![Perigosos](docs/produtos-perigosos.webp) **Produtos perigosos** — rótulo, painel e lembrete |
+| ![Produtos](docs/produtos.webp) **Cadastro de produtos** | ![Veículos](docs/veiculos.webp) **Frota** — eixos e carroceria |
+| ![Concluir](docs/roteirizacao-concluir.webp) **Concluir** — o que sai em cada entrega | ![Configurações](docs/configuracoes.webp) **Configurações** — acessibilidade, backup e tabela ANTT |
 
 </details>
 
@@ -171,6 +171,9 @@ Ou **sem instalar nada**: abra `public/index.html` no navegador. Na Home, toque 
 - **Peso cubado** (300/250/200/167 kg/m³) e peso para cobrança; **metros lineares de piso (LDM)**.
 - **VGM do contêiner** (SOLAS, método 2) com declaração para imprimir.
 - **Paletização** de caixas soltas (PBR, europeu, americano, químico, descartável).
+
+### Facilidades do dia a dia
+Duplicar plano, cores por entrega, foto do 3D, mensagem pronta para o WhatsApp, aviso de carga leve com veículo menor, “quantos mais cabem”, favoritos, modelos de carga, nome de quem montou, tema claro, dicas da primeira vez, busca no menu, botão “Nova carga” no celular e calculadoras de cubagem e de unidades.
 
 ### Saídas
 Relatório A4, **passo a passo de carregamento** com desenhos, cotação, planilha CSV/Excel, **folha do motorista** por entrega, etiquetas com QR Code, link para **compartilhar o plano** e planos salvos com comparação lado a lado.
@@ -276,7 +279,7 @@ São 23 configurações no total, ordenadas do mais leve ao mais pesado, com o s
 nexora/
 ├─ server/            index.js (HTTP + APIs) · forum.js · fretes.js · empresas.js · fontes.js
 ├─ test/              engine · carga · palete · empresas · fretes · forum  (53 testes)
-├─ docs/              img/ (capturas e GIF) · video/ (demonstração MP4)
+├─ docs/              capturas (WebP), demo.gif e demo.mp4
 └─ public/
    ├─ index.html · manifest.webmanifest · sw.js (app instalável e offline)
    └─ src/
@@ -285,8 +288,7 @@ nexora/
       ├─ css/         base · layout · pages · responsive
       └─ js/
          ├─ core/     engine (motor) · carga (cubado, LDM, EN 12195-1, VGM) · palete · empresa · mascara · storage · xlsx
-         ├─ 3d/       scene.js (Three.js)
-         ├─ app/      app · rota · fretes · recursos · amarracao · grafo · empresas · etiquetas · perigosos · forum · a11y
+         ├─ app/      app · cena3d (Three.js) · rota · fretes · recursos · amarracao · grafo · empresas · etiquetas · perigosos · forum · a11y
          └─ pages/    uma página por arquivo
 ```
 

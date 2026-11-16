@@ -320,5 +320,5 @@ const REC = (function () {
     let n = 0; for (const W of plan.vehs) { if (!plan.left.length) break; const r = NX.pack(W.v, [...W.items.map(unidade), ...plan.left]); const novos = r.items.length - W.items.length; if (novos > 0) { W.items = r.items; n += novos; plan.left = r.left; } }
     buildScene(); renderAll(); toast(n ? `${n} volume(s) recolocado(s).${plan.left.length ? ' Ainda sobram ' + plan.left.length + '.' : ''}` : 'Não coube nenhum dos volumes de fora nos veículos atuais.', !n);
   }
-  return { vgm, abrirRegras, moverPara, tirar, recolocar, compartilhar, abrirCodigo, abrirCompartilhado, colarLista, lerLinha, passoAPasso, qualVeiculo, taraHTML };
+  return { abrir, fechar, vgm, abrirRegras, moverPara, tirar, recolocar, compartilhar, abrirCodigo, abrirCompartilhado, colarLista, lerLinha, passoAPasso, qualVeiculo, taraHTML };
 })();
