@@ -2,6 +2,34 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.21.1] — 2026-11-16 · v45 (auditoria de bugs)
+### Corrigido
+- Registro de fretes/transportes: o contador “N registro(s)” escrevia por cima do resumo do cálculo do transportador na Expedição (IDs repetidos `rgSum`/`tpSum`).
+- Plano salvo com volumes que sobraram: ao reabrir, os volumes de fora ficavam vazios e “Recolocar”/“veículo extra” podiam falhar.
+- Plano aberto por link/código: agora confere a montagem (sobreposição, peso, eixos) e avisa se houver problema; veículos com medidas absurdas no código são recusados.
+- Impressão da ficha da empresa saía em branco (ou com o último relatório de carga).
+- “Sempre dividir automaticamente” não tinha como ser desligado: nova opção em Configurações.
+- Tela cheia do diagrama travava a rolagem da página ao abrir outra empresa a partir dele; ouvintes de tela/tamanho deixavam de acumular.
+- Configurações no celular: cartões passavam da largura da tela (grades agora encolhem o conteúdo).
+- Regras de carregamento valem também ao mexer à mão num plano reaberto.
+- Servidor: envio grande demais responde 413 (antes derrubava a conexão) e JSON inválido responde 400.
+
+## [3.21.0] — 2026-11-16 · v44
+### Adicionado
+- **Regras de carregamento no cadastro do produto**: “não viaja junto com”, “não pode ficar em cima de” (produtos, códigos ou categorias) e “só no piso”. A montagem já respeita automaticamente; as regras gerais da empresa continuam no ⚙ e a tela mostra as dos produtos.
+### Corrigido
+- Cadastro de produto com medidas formatadas (ex.: 0,60) era recusado como “zero”: o formulário agora lê os números pela máscara.
+
+## [3.20.0] — 2026-11-16 · v43
+### Adicionado
+- **Regras próprias de carregamento** (⚙): “não viaja junto com”, “não pode ficar em cima de” e “só no piso”, por nome, código ou categoria; o motor respeita em toda montagem e em movimentos manuais.
+- **Peso cubado** (fator 300/250/200/167 kg/m³) e **peso para cobrança** (maior entre real e cubado); **metros lineares de piso (LDM)** por veículo.
+- **Cintas pela norma europeia EN 12195-1** (amarração de topo): atrito do piso, STF da catraca e ângulo ajustáveis; usa o maior entre a regra da Res. CONTRAN 945 e a EN 12195-1.
+- **VGM do contêiner** (SOLAS, método 2): carga + escora + tara contra a placa CSC, com declaração para imprimir.
+- **Dividir em vários veículos automaticamente** (“Dividir tudo” e opção “sempre dividir”).
+- 3D: **mover volume para outro veículo**, **tirar da carga** e **recolocar os volumes de fora**.
+- Frete: aviso quando há carga perigosa e a tabela escolhida não é a de maior valor (Res. ANTT 6.076/2026); linha de **crédito de CBS + IBS** para o contratante.
+
 ## [3.19.0] — 2026-11-13 · v42
 ### Adicionado
 - **Nota de risco (0–100)** na consulta completa, com os motivos (situação, idade, capital, sanções, embargo, lista suja, sanções internacionais, RNTRC).
