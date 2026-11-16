@@ -204,3 +204,32 @@ test('eixo dianteiro de 7 t para veículo elétrico ou a gás (Res. CONTRAN 1015
   assert.equal(NX.axleModel(v).ax[0].lim, 6000);
   assert.equal(NX.axleModel({ ...v, combAlt: true }).ax[0].lim, 7000);
 });
+
+test('regras próprias: não viajam juntos, não empilhar sobre, só no piso', () => {
+  const truck = F.find(v => v.cat === 'Truck') || F[2];
+  const mk = (id, nome, q, h) => NX.normalize({ id, nome, cod: id, tipo: 'caixa', l: 0.6, w: 0.4, h: h || 0.4, q, kgp: 10, pos: 'auto' });
+  const A = mk('a', 'Cloro granulado', 4), B = mk('b', 'Arroz 5kg', 4);
+  NX.setRegras([{ t: 'junto', a: 'cloro', b: 'arroz' }]);
+  let r = NX.planLoad(F, truck.id, [A, B], { extras: false });
+  const nomes = new Set(r.vehs[0].items.map(i => i.p.id)); assert.ok(!(nomes.has('a') && nomes.has('b')), 'não podem ir juntos'); assert.ok(r.left.length >= 4);
+  NX.setRegras([{ t: 'piso', a: 'arroz' }]);
+  r = NX.planLoad(F, truck.id, [mk('b', 'Arroz 5kg', 30)], { extras: false });
+  assert.ok(r.vehs[0].items.every(i => i.z < 0.01));
+  NX.setRegras([{ t: 'sobre', a: 'cloro', b: 'arroz' }]);
+  r = NX.planLoad(F, truck.id, [mk('b', 'Arroz 5kg', 2), mk('a', 'Cloro granulado', 2)], { extras: false });
+  const its = r.vehs[0].items; for (const c of its.filter(i => i.p.id === 'a')) assert.ok(!its.some(o => o.p.id === 'b' && Math.abs(o.z + o.h - c.z) < 1e-4 && NX.areaOv(o, c) > 0));
+  NX.setRegras([]);
+  assert.ok(!JSON.stringify(A).includes('_rc'), 'marcação não vai para o salvamento');
+});
+
+test('regras gravadas no cadastro do produto são aplicadas automaticamente', () => {
+  const truck = F.find(v => v.cat === 'Truck') || F[2];
+  const mk = (id, nome, q, extra) => NX.normalize({ id, nome, cod: id, tipo: 'caixa', l: 0.6, w: 0.4, h: 0.4, q, kgp: 10, pos: 'auto', ...extra });
+  NX.setRegras([]);
+  const A = mk('pa', 'Soda cáustica', 4, { regras: { junto: ['cat:alimenticio'] } }), B = mk('pb', 'Biscoito', 4, { cats: ['alimenticio'] });
+  const r = NX.planLoad(F, truck.id, [A, B], { extras: false });
+  const ids = new Set(r.vehs[0].items.map(i => i.p.id)); assert.ok(!(ids.has('pa') && ids.has('pb')));
+  assert.match(NX.regraTxt(NX.regrasDoProduto(A)[0]), /Soda cáustica.*categoria Alimentício/);
+  const P = mk('pp', 'Motor', 20, { regras: { piso: true } }); const r2 = NX.planLoad(F, truck.id, [P], { extras: false });
+  assert.ok(r2.vehs[0].items.every(i => i.z < 0.01));
+});

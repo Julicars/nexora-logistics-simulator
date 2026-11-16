@@ -221,7 +221,9 @@ const EMPRESAS = (function () {
   }
 
   /* ---------- fluxo ---------- */
+  const sairTelaCheia = () => { document.documentElement.classList.remove('gtrava'); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* ok */ } };
   async function consultar(cnpj, modo) {
+    sairTelaCheia();
     const out = q('#eOut'); q('#eList').innerHTML = ''; q('#eErr').textContent = '';
     out.innerHTML = `<div class="card"><p class="mut">⏳ ${modo === 'completa' ? 'Consulta completa' : 'Consultando'} ${E.fmtCnpj(cnpj)}…</p></div>`;
     try {
@@ -229,7 +231,10 @@ const EMPRESAS = (function () {
       out.innerHTML = `<article class="card eres">${cabecalho(r.empresa, modo)}${modo === 'completa' ? riscoHtml(r) : ''}${alertasHtml(r.alertas)}${basico(r.empresa)}${modo === 'completa' ? completo(r) : ''}</article>`;
       if (modo === 'completa') { q('#eRedeGo').onclick = () => carregaRede(cnpj); q('#eRedeUf').onchange = () => carregaRede(cnpj); carregaRede(cnpj);
         q('#eJson').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(ultimo, null, 1)], { type: 'application/json' })); a.download = `empresa-${cnpj}.json`; a.click(); };
-        q('#ePrint').onclick = () => window.print(); }
+        q('#ePrint').onclick = () => { /* a impressão mostra só #printArea: copia a ficha para lá (sem o diagrama interativo e os botões) */
+          const c = q('#eOut .eres').cloneNode(true); c.querySelectorAll('.gwrap,.eacts,.erede-ctl,button,form.etrdoc').forEach(x => x.remove());
+          c.querySelectorAll('[id]').forEach(x => x.removeAttribute('id')); q('#printArea').innerHTML = c.outerHTML; try { window.print(); } catch (e) { /* bloqueado */ }
+          setTimeout(() => toast('Se a impressão não abriu, abra o NEXORA num site ou com npm start.'), 700); }; }
       out.querySelector('h2').setAttribute('tabindex', '-1'); out.querySelector('h2').focus({ preventScroll: true }); out.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) { out.innerHTML = `<div class="card"><p class="bad" role="alert">${esc(e.message)}</p></div>`; }
   }
@@ -249,6 +254,7 @@ const EMPRESAS = (function () {
     q('#eHint').textContent = pes ? 'Mostra em quais empresas a pessoa aparece como sócia ou administradora (dados públicos da Receita, CPF mascarado). Com o CPF, separa pessoas de mesmo nome.' : 'Simples: o básico do cadastro. Completa: tudo + sócios, CNAEs, Simples/MEI, inscrição estadual, sanções, LEI e o diagrama interativo de vínculos.';
   }
   async function buscarPessoa(nome, doc) {
+    sairTelaCheia();
     const out = q('#eOut'), list = q('#eList'); list.innerHTML = ''; q('#eErr').textContent = '';
     out.innerHTML = '<div class="card"><p class="mut">⏳ Procurando as empresas desta pessoa… (pode levar até 1 minuto)</p></div>';
     try {
@@ -282,7 +288,7 @@ const EMPRESAS = (function () {
   }
   q('#eForm').addEventListener('submit', e => { e.preventDefault(); enviar('simples'); });
   q('#eCompleta').onclick = () => enviar('completa');
-  document.getElementById('v-empresas').addEventListener('submit', ev => { const f = ev.target.closest('[data-trdoc]'); if (!f) return; ev.preventDefault(); LS.set('trDoc:' + f.dataset.trdoc, Object.fromEntries(new FormData(f))); toast('Documentos da transportadora salvos neste aparelho.'); });
+  document.getElementById('v-empresas').addEventListener('submit', ev => { const f = ev.target.closest('[data-trdoc]'); if (!f) return; ev.preventDefault(); LS.set('trDoc:' + f.dataset.trdoc, formObj(f)); toast('Documentos da transportadora salvos neste aparelho.'); });
   async function statusListas() { const el = q('#eListaSt'); if (!el) return; let t = null, n = 0; try { const r = await fetch('/api/empresas/listas'); if (r.ok && (r.headers.get('content-type') || '').includes('json')) { const j = await r.json(); if (j.listaSuja) { t = j.listaSuja.t; n = j.listaSuja.qtd; } } } catch (e) { /* sem servidor */ } const l = LS.get('listaSuja', null); if (!t && l) { t = l.t; n = l.lista.length; } el.innerHTML = t ? `<span class="ok">✔ Lista suja carregada: ${n} empregadores (${new Date(t).toLocaleDateString('pt-BR')})</span>` : '<span class="mut">Lista suja ainda não carregada.</span>'; }
   q('#eListaArq').addEventListener('change', async ev => { const f = ev.target.files[0]; if (!f) return; const texto = await f.text(); const lista = E.lerLista(texto);
     if (lista.length < 5) { toast('Não achei CPF/CNPJ nesse arquivo. Abra a planilha oficial e salve como CSV.'); return; }

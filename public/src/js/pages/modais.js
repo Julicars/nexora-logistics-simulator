@@ -36,7 +36,7 @@
  <p id="mxMsg" style="margin:6px 0 12px"></p>
  <label class="f">Veículo extra<select id="mxVeh"></select></label>
  <p id="mxFit" class="mut" style="font-size:12.5px;margin:6px 0 0"></p>
- <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" id="mxNo">Não, deixar sobrando</button><button class="btn pri" id="mxYes">Adicionar veículo</button></div>
+ <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn" id="mxNo">Não, deixar sobrando</button><button class="btn" id="mxAll">Dividir tudo automaticamente</button><button class="btn pri" id="mxYes">Adicionar veículo</button></div><label style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:8px;justify-content:flex-end"><input type="checkbox" id="mxSempre"> Sempre dividir automaticamente (sem perguntar)</label>
 </div></div>
 <div class="modal" id="mPrint" role="dialog" aria-modal="true" aria-label="Prévia de impressão"><div class="card" style="background:#fff;color:#111"><div id="printPrev"></div><div style="margin-top:12px;display:flex;gap:8px"><button class="btn pri" id="bDoPrint">Imprimir</button><button class="btn" id="bClosePrint" style="color:#fff">Fechar</button></div></div></div>
 <div id="printArea"></div>

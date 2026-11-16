@@ -190,12 +190,12 @@ const GRAFO = (function () {
       try { if (on && W.requestFullscreen) W.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* prévia bloqueia: fica o modo em sobreposição */ }
       setTimeout(ajustar, 80);
     }
-    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && W.classList.contains('gfull')) tela(false); });
+    const fsc = () => { if (!W.isConnected) return document.removeEventListener('fullscreenchange', fsc); if (!document.fullscreenElement && W.classList.contains('gfull')) tela(false); }; document.addEventListener('fullscreenchange', fsc);
     box.querySelector('.gbar').addEventListener('click', ev => { const b = ev.target.closest('button[data-g]'); if (!b) return; const a = b.dataset.g;
       if (a === 'mais') zoom(1.25); else if (a === 'menos') zoom(0.8); else if (a === 'fit') ajustar(); else if (a === 'full') tela(!W.classList.contains('gfull'));
       else if (a === 'org') { for (const n of N.values()) { if (!n.raiz) n.fixo = false; n.x = n.y = null; n.a = null; } radial(); relaxar(); posicionar(); ajustar(); } });
     box.querySelector('[data-g=busca]').addEventListener('input', ev => { destacar(); const t = E.normNome(ev.target.value); if (t.length >= 3) { const n = [...N.values()].find(x => E.normNome(x.label + ' ' + (x.razao || '')).includes(t)); if (n) centralizar(n.id); } });
-    let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (box.isConnected) ajustar(); }, 200); });
+    let rz; const onRz = () => { if (!box.isConnected) return window.removeEventListener('resize', onRz); clearTimeout(rz); rz = setTimeout(ajustar, 200); }; window.addEventListener('resize', onRz);
 
     /* ---------- exportar ---------- */
     function svgTexto() {

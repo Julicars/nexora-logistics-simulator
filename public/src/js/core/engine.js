@@ -43,8 +43,28 @@ const bodyOf=v=>{const o=bodyOptions(v.cat);return o.includes(v.body)?v.body:(o[
 const effH = v => bodyOf(v)==='aberta' ? +(ALT_MAX - deckH(v)).toFixed(2) : v.H;
 const effV = v => bodyOf(v)==='aberta' ? {...v, H: effH(v)} : v;
 /* motivo para um produto NÃO poder ir neste veículo (carroceria ou mistura com o que já está nele) */
+
+/* ---------- REGRAS PRÓPRIAS DE CARREGAMENTO (definidas pelo usuário) ----------
+ * {t:'junto', a, b}  a e b não viajam no mesmo veículo
+ * {t:'sobre', a, b}  a não pode ficar em cima de b
+ * {t:'piso',  a}     a só no piso
+ * a/b: 'cat:<categoria>' ou texto que aparece no nome/código do produto */
+let REGRAS=[],RE=[];
+const nrm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function casa(p,termo){if(!p||!termo)return false;const t=nrm(termo);if(t.startsWith('cat:'))return hasCat(p,t.slice(4));if(t.startsWith('pid:'))return String(p.id).toLowerCase()===t.slice(4);return t.length>1&&(nrm(p.nome).includes(t)||nrm(p.cod)===t)}
+/* marca cada produto com as regras que o atingem (propriedade invisível: não vai para o salvamento) */
+/* regras gravadas no próprio produto (cadastro): {junto:[...], sobre:[...], piso:bool} */
+function regrasDoProduto(p){const g=p&&p.regras;if(!g)return [];const a='pid:'+p.id,an=p.nome;const l=x=>(Array.isArray(x)?x:String(x||'').split(',')).map(t=>String(t).trim()).filter(Boolean);
+ return [...l(g.junto).map(b=>({t:'junto',a,an,b})),...l(g.sobre).map(b=>({t:'sobre',a,an,b})),...(g.piso?[{t:'piso',a,an}]:[])]}
+function marcarRegras(lines){RE=[...REGRAS];const vis=new Set();for(const p of lines){if(vis.has(p.id))continue;vis.add(p.id);RE.push(...regrasDoProduto(p))}
+ for(const p of lines){const rc=[];RE.forEach((r,i)=>{if(casa(p,r.a))rc.push('A'+i);if(r.b&&casa(p,r.b))rc.push('B'+i)});try{Object.defineProperty(p,'_rc',{value:rc,writable:true,configurable:true,enumerable:false})}catch(e){}}}
+const rc=(p,k)=>!!(p&&p._rc&&p._rc.includes(k));
+function setRegras(list){REGRAS=(Array.isArray(list)?list:[]).filter(r=>r&&r.a&&(r.t==='piso'||r.b));RE=[...REGRAS]}
+const nomeT=t=>String(t).replace(/^cat:([a-z-]+)$/,(m,k)=>'categoria '+((PCATS[k]||{}).nome||k));
+const regraTxt=r=>{const a=r.an||nomeT(r.a);return r.t==='junto'?`“${a}” não viaja com “${nomeT(r.b)}”`:r.t==='sobre'?`“${a}” não pode ficar em cima de “${nomeT(r.b)}”`:`“${a}” só no piso`};
 function blockReason(v,p,catsIn){
  if(bodyOf(v)==='aberta'){const k=PROTECT.find(c=>hasCat(p,c));if(k)return PCATS[k].nome+' não pode ir em carroceria aberta';}
+ if(catsIn)for(let i=0;i<RE.length;i++){const r=RE[i];if(r.t==='junto'&&((rc(p,'A'+i)&&catsIn.has('B'+i))||(rc(p,'B'+i)&&catsIn.has('A'+i))))return 'Regra própria: '+regraTxt(r)}
  if(catsIn)for(const [a,b] of INCOMPAT){if(hasCat(p,a)&&catsIn.has(b))return PCATS[a].nome+' não pode viajar com '+PCATS[b].nome.toLowerCase();if(hasCat(p,b)&&catsIn.has(a))return PCATS[b].nome+' não pode viajar com '+PCATS[a].nome.toLowerCase();}
  return null;
 }
@@ -234,7 +254,7 @@ function grid(v0,p,mode){
   const nl=Math.floor(v.L/o.l+1e-9),nw=Math.floor(v.W/o.w+1e-9);let nh=Math.floor(v.H/o.h+1e-9);
   nh=Math.min(nh,st===Infinity?99:Math.floor(st/Math.max(p.kg,0.001)+1e-9)+1,levelsOf(p));
   if(p.tipo==='bobina'&&o.ax!=='v')nh=Math.min(nh,1);
-  if(hasCat(p,'pesado'))nh=1;
+  if(hasCat(p,'pesado')||RE.some((r,k)=>r.t==='piso'&&rc(p,'A'+k)))nh=1;
   const n=nl*nw*nh;
   if(n>0&&(!best||n>best.n||(n===best.n&&nw*nh>best.nw*best.nh)))best={o,nl,nw,nh,n,tot:n*v.wag};
  }return best;
@@ -254,6 +274,7 @@ function checkPlace(c,items,b,ignore){
  if(b.z<=EPS) return {ok:true,sup:[],add:new Map(),lv:1};
  if(lyingCoil(b)) return {ok:false,msg:'Bobina deitada deve ficar apoiada no assoalho, calçada'};
  if(hasCat(b.p,'pesado')) return {ok:false,msg:'Carga pesada só pode ficar no piso do veículo'};
+ {const i=RE.findIndex((r,k)=>r.t==='piso'&&rc(b.p,'A'+k));if(i>=0)return {ok:false,msg:'Regra própria: '+regraTxt(RE[i])};}
  let sup=[],tot=0;
  for(const o of items){if(o===ignore||o.wg!==b.wg)continue;if(Math.abs(o.z+o.h-b.z)<1e-4){const a=areaOv(o,b);if(a>0){sup.push({o,a});tot+=a}}}
  const need = b.p&&b.p.tipo==='bigbag' ? 0.9 : 0.75;
@@ -263,6 +284,7 @@ function checkPlace(c,items,b,ignore){
   if(lyingCoil(o)) return {ok:false,msg:'Não é permitido empilhar sobre bobina deitada (volume '+vn(o.n)+')'};
   if(o.p&&o.p.tipo==='bigbag'&&!(b.p&&b.p.tipo==='bigbag')) return {ok:false,msg:'Sobre big bag só pode ir outro big bag (volume '+vn(o.n)+')'};
   if(hasCat(o.p,'fragil')) return {ok:false,msg:'O volume '+vn(o.n)+' ('+o.nome+') é frágil: nada pode ir em cima'};
+  {const i=RE.findIndex((r,k)=>r.t==='sobre'&&rc(b.p,'A'+k)&&rc(o.p,'B'+k));if(i>=0)return {ok:false,msg:'Regra própria: '+regraTxt(RE[i])};}
   if(o.p&&o.p.stackable===false) return {ok:false,msg:'O volume '+vn(o.n)+' ('+o.nome+') não pode ser empilhado'};
   lv=Math.max(lv,(o.lv||1)+1);
  }
@@ -299,7 +321,7 @@ function pack(v0,units){
  const c={L:v.L,W:v.W,H:v.H},items=[],left=[];
  const maxKg=vehMaxCargo(v);let kg=0;const m=axleModel(v);
  /* FASE 1 — grade exata por produto: fileiras da frente para a traseira; camada de baixo primeiro */
- const cx=Array(v.wag).fill(0);let wg=0;const rest=[];const vc=new Set();const addC=p=>{for(const k of (p.cats||[]))vc.add(k)};
+ const cx=Array(v.wag).fill(0);let wg=0;const rest=[];const vc=new Set();const addC=p=>{for(const k of (p.cats||[]))vc.add(k);for(const k of (p._rc||[]))vc.add(k)};
  const groups=[];for(const u of units){let G=groups.find(q=>q.pid===u.pid);if(!G)groups.push(G={pid:u.pid,p:u.p,us:[]});G.us.push(u)}
  for(const G of groups){
   if(blockReason(v,G.p,vc)){left.push(...G.us);continue}
@@ -433,6 +455,7 @@ function suggestExtra(fleet,left,forceId){
 }
 /* plano: veículo principal; extras só quando opts.extras !== false (até 4) */
 function planLoad(fleet,mainId,lines,opts){
+ marcarRegras(lines);
  const units=buildUnits(lines);
  const v0=fleet.find(v=>v.id===mainId)||fleet[0];
  const res=pack(v0,units);const vehs=[{v:v0,items:res.items}];let left=res.left;
@@ -458,14 +481,14 @@ function verifyVehicle(v,items){
  const c={L:v.L,W:v.W,H:effH(v)};
  const its=items.map(i=>({...i,c,stack:stackOf(i.p),kg:+i.p.kg,nome:i.p.nome,pcs:i.p.pcs}));
  for(const i of its){if(!(i.wg>=0&&i.wg<v.wag))return 'Volume '+vn(i.n)+': compartimento inválido'}
- { const vc=new Set(); for(const i of its){const why=blockReason(v,i.p,vc);if(why)return 'Volume '+vn(i.n)+': '+why;for(const k of (i.p.cats||[]))vc.add(k)} }
+ { const vc=new Set(); for(const i of its){const why=blockReason(v,i.p,vc);if(why)return 'Volume '+vn(i.n)+': '+why;for(const k of [...(i.p.cats||[]),...(i.p._rc||[])])vc.add(k)} }
  const err=rebuildLoads(its);if(err)return 'Volume '+vn(err.it.n)+': '+err.msg;
  const kg=its.reduce((s,i)=>s+i.kg,0);if(kg>vehMaxCargo(v)+1)return 'Peso acima da capacidade do veículo';
  const al=axleLoads(v,its);const bad=al.find(a=>a.tot>axLim(a)+1);if(bad&&!OPC.manual)return 'Excede limite do eixo: '+bad.n;
  return null;
 }
 
-const NX={axDisp,multaExcesso,balanca,EPS,MAXKG,ALT_MAX,deckH,effH,effV,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
+const NX={regrasDoProduto,setRegras,marcarRegras,regraTxt,casaRegra:casa,axDisp,multaExcesso,balanca,EPS,MAXKG,ALT_MAX,deckH,effH,effV,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
  overlap3,areaOv,checkPlace,commit,rebuildLoads,balanceAxles,opcoes,axLim,pack,buildUnits,planLoad,stats,verifyVehicle,vn};
 if(typeof module==='object'&&module.exports)module.exports=NX;else{root.NX=NX;for(const k in NX)if(!(k in root))root[k]=NX[k]}
 })(typeof window!=='undefined'?window:globalThis);

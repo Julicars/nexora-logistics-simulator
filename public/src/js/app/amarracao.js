@@ -13,6 +13,16 @@ const SEC = (function () {
   let show = false, group = null;
   const bodyOf = v => v.cat === 'Container' ? 'bau' : NX.bodyOf(v);
   const isCat = (it, k) => (it.p.cats || []).includes(k);
+  const cfgA = () => Object.assign({ mu: 0.45, stf: 400, ang: 60 }, LS.get('amarraCfg', {}));
+  function cfgHTML() {
+    const c = cfgA(), A = window.NX_CARGA ? NX_CARGA.ATRITO : [];
+    return `<details class="secfg"><summary>Ajustar o cálculo das cintas (EN 12195-1)</summary><div class="taragrid">
+      <label class="f">Contato da carga com o piso<select id="secMu">${A.map(([k, t, mu]) => `<option value="${mu}" ${Math.abs(mu - c.mu) < 1e-9 ? 'selected' : ''}>${t} (μ ${String(mu).replace('.', ',')})</option>`).join('')}</select></label>
+      <label class="f">Força da catraca — STF (daN)<input id="secStf" type="number" min="100" step="50" value="${c.stf}"></label>
+      <label class="f">Ângulo da cinta com o piso (°)<input id="secAng" type="number" min="20" max="90" step="5" value="${c.ang}"></label></div>
+      <small class="mut">A STF vem escrita na etiqueta da cinta (ex.: “STF 400 daN”). Ângulo de 90° = cinta na vertical; abaixo de 30° a cinta quase não segura.</small></details>`;
+  }
+  document.addEventListener('change', e => { if (!['secMu', 'secStf', 'secAng'].includes(e.target.id)) return; LS.set('amarraCfg', { mu: +q('#secMu').value, stf: +q('#secStf').value || 400, ang: +q('#secAng').value || 60 }); render(); if (show) draw(); });
 
   function analyze(V) {
     const v = V.v, out = [], body = bodyOf(v), H = NX.effH(v);
@@ -40,10 +50,11 @@ const SEC = (function () {
         const kg = r.its.reduce((a, it) => a + it.kg, 0), tall = r.its.some(it => it.h > 1.6 * Math.min(it.l, it.w) || it.lv >= 3);
         const need = body === 'aberta' || body === 'sider' || tall || r.its.some(it => isCat(it, 'pesado') || it.p.tipo === 'bobina');
         if (need) {
-          const n = Math.max(2, Math.ceil(2 * kg / LC));
+          const cfg = cfgA(), en = window.NX_CARGA ? NX_CARGA.cintasTopo(kg, { mu: cfg.mu, stf: cfg.stf, ang: cfg.ang, travaFrente: true, travaTras: i < rows.length - 1 || body !== 'aberta' && v.L - r.x1 < GAP, travaLado: body === 'bau' && v.W - (y1 - y0) < GAP }) : { n: 0 };
+          const nC = Math.max(2, Math.ceil(2 * kg / LC)), n = Math.max(nC, en.n);
           const why = body === 'aberta' ? 'carroceria aberta' : body === 'sider' ? 'sider (a lona não segura carga)' : r.its.some(it => it.p.tipo === 'bobina') ? 'bobina' : tall ? 'pilha alta e estreita' : 'carga pesada';
           const hh = Math.max(...r.its.map(it => it.z + it.h));
-          out.push({ tipo: 'cinta', g, x: r.x0, l: r.x1 - r.x0, y: y0, w: y1 - y0, z: hh, h: 0.03, n, kg, txt: `Fileira ${i + 1}${tag} (${why}): ${n} cinta(s) com catraca. A soma da capacidade precisa ser de pelo menos 2× o peso da fileira (${fmt(kg, 0)} kg → ${fmt(2 * kg, 0)} daN; ex.: ${n} × ${fmt(LC, 0)} daN). Nunca use corda para amarrar carga.` });
+          out.push({ tipo: 'cinta', g, x: r.x0, l: r.x1 - r.x0, y: y0, w: y1 - y0, z: hh, h: 0.03, n, kg, txt: `Fileira ${i + 1}${tag} (${why}): ${n} cinta(s) com catraca. A soma da capacidade precisa ser de pelo menos 2× o peso da fileira (${fmt(kg, 0)} kg → ${fmt(2 * kg, 0)} daN; ex.: ${n} × ${fmt(LC, 0)} daN). ${en.n > nC ? ` Pela norma europeia EN 12195-1 (atrito ${fmt(en.mu, 2)}, catraca de ${en.stf} daN, ângulo ${en.ang}°) precisa de ${en.n}, por causa das ${en.porque}.` : ` Conferido pela EN 12195-1 (atrito ${fmt(en.mu, 2)}): ${en.n || 'nenhuma'} cinta(s) bastariam só pelo atrito.`} Nunca use corda para amarrar carga.` });
         }
       });
       /* tipos especiais */
@@ -64,7 +75,7 @@ const SEC = (function () {
   function render() {
     const el = q('#secOut'); if (!el) return;
     if (!plan) { el.innerHTML = ''; return; }
-    el.innerHTML = `<h3 style="margin:14px 0 4px">Calços e amarração</h3><p class="mut" style="font-size:12px;margin:0 0 6px">Sugestões a partir dos espaços vazios e do tipo de carga. Base: Res. CONTRAN 945/2022 — cintas, correntes ou cabos com capacidade de no mínimo 2× o peso da carga; cordas são proibidas para amarrar carga. Confira sempre no carregamento.</p>`
+    el.innerHTML = `<h3 style="margin:14px 0 4px">Calços e amarração</h3>${cfgHTML()}<p class="mut" style="font-size:12px;margin:0 0 6px">Sugestões a partir dos espaços vazios e do tipo de carga. Base: Res. CONTRAN 945/2022 — cintas, correntes ou cabos com capacidade de no mínimo 2× o peso da carga; cordas são proibidas para amarrar carga. Confira sempre no carregamento.</p>`
       + plan.vehs.map((V, vi) => { const a = analyze(V); const cint = a.filter(o => o.tipo === 'cinta').reduce((s, o) => s + o.n, 0), bar = a.filter(o => o.tipo === 'barra').length, cal = a.filter(o => o.tipo === 'calco').length;
         return `<div class="secv"><b>Veículo ${vi + 1}: ${esc(V.v.name)}</b> <small class="mut">${esc(NX.BODIES[bodyOf(V.v)] || 'Baú')}</small><p class="secsum">${cint ? `🟦 ${cint} cinta(s)` : ''} ${bar ? `🟥 ${bar} barra(s)/bloqueio(s)` : ''} ${cal ? `🟨 ${cal} ponto(s) de calço` : ''}${!cint && !bar && !cal ? '✔ Carga justa, sem folgas relevantes.' : ''}</p><ul class="seclist">${a.map(o => `<li><span aria-hidden="true">${ICON[o.tipo]}</span> <b>${NOME[o.tipo]}:</b> ${esc(o.txt)}</li>`).join('')}</ul></div>`; }).join('');
   }

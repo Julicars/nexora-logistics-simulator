@@ -63,12 +63,17 @@ function finishCalc() {
 }
 /* pergunta antes de cada veículo extra */
 let xSug = null, calcSeq = 0;
+function autoExtras() {
+  let n = 0; while (plan.left.length && plan.vehs.length < 5) { const sg = NX.suggestExtra(fleet, plan.left); if (!sg) break; plan.vehs.push({ v: sg.v, items: sg.r.items }); plan.left = sg.r.left; n++; }
+  $('#mExtra').classList.remove('on'); xSug = null; buildScene(); renderAll(); renderQuote(); if (n) toast(`${n} veículo(s) extra(s) adicionados: ${plan.vehs.slice(-n).map(V => V.v.name).join(', ')}.`); finishCalc();
+}
 function askExtra() {
+  if (LS.get('autoExtra', false)) return autoExtras();
   if (plan.vehs.length >= 5) { toast('Limite de 4 veículos extras atingido.', true); return finishCalc(); }
   xSug = NX.suggestExtra(fleet, plan.left); if (xSug) xSug.plan = plan;
   if (!xSug) { toast('Nenhum veículo rodoviário da frota leva os volumes restantes.', true); return finishCalc(); }
   const kg = plan.left.reduce((s, u) => s + u.kg, 0), last = plan.vehs[plan.vehs.length - 1].v;
-  const why = new Set(); for (const V of plan.vehs) { const vc = new Set(V.items.flatMap(i => i.p.cats || [])); for (const u of plan.left) { const r = NX.blockReason(V.v, u.p, vc); if (r) why.add(r); } }
+  const why = new Set(); for (const V of plan.vehs) { const vc = new Set(V.items.flatMap(i => [...(i.p.cats || []), ...(i.p._rc || [])])); for (const u of plan.left) { const r = NX.blockReason(V.v, u.p, vc); if (r) why.add(r); } }
   $('#mxMsg').innerHTML = `A carga não coube toda no <b>${esc(last.name)}</b>: sobraram <b>${plan.left.length} volume(s)</b> (${fmt(kg, 0)} kg). Deseja adicionar ${plan.vehs.length > 1 ? 'mais um' : 'um'} veículo extra?` + (why.size ? `<br><small class="warn">Motivo: ${[...why].map(esc).join('; ')}.</small>` : '');
   $('#mxVeh').innerHTML = fleet.filter(v => v.cat !== 'Container').sort((a, b) => NX.vol(a) - NX.vol(b)).map(v => `<option value="${v.id}" ${v.id === xSug.v.id ? 'selected' : ''}>${esc(v.name)}${v.id === xSug.v.id ? ' — sugerido' : ''}</option>`).join('');
   mxFit(); $('#mExtra').classList.add('on'); setTimeout(() => $('#mxYes').focus(), 30);
@@ -79,7 +84,12 @@ function mxFit() {
   $('#mxYes').disabled = !xSug;
 }
 $('#mxVeh').onchange = mxFit;
+document.addEventListener('change', e => { if (e.target.id === 'fatorCub') { LS.set('fatorCub', +e.target.value); renderCalc(); } });
+document.addEventListener('click', e => { const b = e.target.closest('[data-vgm]'); if (b && typeof REC === 'object' && REC.vgm) REC.vgm(+b.dataset.vgm); });
 $('#mxYes').onclick = () => { if (!xSug || xSug.plan !== plan || !plan.left.length) { $('#mExtra').classList.remove('on'); xSug = null; return; } $('#mExtra').classList.remove('on'); plan.vehs.push({ v: xSug.v, items: xSug.r.items }); plan.left = xSug.r.left; buildScene(); renderAll(); renderQuote(); toast(`${xSug.v.name} adicionado como veículo extra.`); if (plan.left.length) { const seq = calcSeq, pl = plan; setTimeout(() => { if (seq === calcSeq && pl === plan) askExtra(); }, 250); } else finishCalc(); };
+$('#mxAll').onclick = () => { if ($('#mxSempre').checked) LS.set('autoExtra', true); autoExtras(); };
+{ const ae = $('#aeMode'); if (ae) { ae.checked = !!LS.get('autoExtra', false); ae.onchange = () => { LS.set('autoExtra', ae.checked); $('#mxSempre').checked = ae.checked; toast(ae.checked ? 'Divisão automática ligada.' : 'Divisão automática desligada: o sistema vai perguntar antes de cada veículo extra.'); }; } }
+$('#mxSempre').checked = !!LS.get('autoExtra', false); $('#mxSempre').onchange = e => { LS.set('autoExtra', e.target.checked); { const ae = $('#aeMode'); if (ae) ae.checked = e.target.checked; } if (e.target.checked) toast('Daqui em diante, quando não couber, o sistema já adiciona os veículos necessários.'); };
 $('#mxNo').onclick = () => { $('#mExtra').classList.remove('on'); finishCalc(); };
 $('#mExtra').addEventListener('keydown', e => { if (e.key === 'Escape') $('#mxNo').click(); });
 
@@ -239,6 +249,10 @@ function calcHTML(V, vi) {
   <div class="kv"><span>Peso da carga</span><b>${fmt(s.kg, 0)} / ${fmt(s.maxKg, 0)} kg (${fmt(s.kgOcc * 100, 0)}%)</b></div>${bar(s.kgOcc)}
   <div class="kv"><span>Peso bruto total (PBT)</span><b class="${s.pbt > s.pbtLim ? 'bad' : 'ok'}">${fmt(s.pbt, 0)} / ${fmt(s.pbtLim, 0)} kg</b></div>
   ${s.wagons.map(w => `<div class="kv"><span>${v.wag > 1 ? 'Compartimento ' + (w.g + 1) : 'Compartimento'}</span><b>${w.n} vol. · ${fmt(w.kg, 0)} kg · livre no fundo ${fmt(w.freeLen, 2)} m</b></div>`).join('')}
+  ${(() => { const C = window.NX_CARGA; if (!C) return ''; const cb = C.cubado(V.items, +LS.get('fatorCub', 300)), ld = C.ldm(V.items);
+    return `<div class="kv"><span>Peso cubado <small class="mut">(${cb.fator} kg/m³)</small></span><b>${fmt(cb.cubado, 0)} kg · cobra pelo <span class="${cb.base === 'cubado' ? 'warn' : 'ok'}">${cb.base === 'cubado' ? 'cubado' : 'peso real'}</span></b></div>
+    <div class="kv"><span>Metros lineares de piso (LDM)</span><b>${fmt(ld.ldm, 2)} m <small class="mut">· ${fmt(ld.comprimento, 2)} m de comprimento usado</small></b></div>`
+    + (v.cat === 'Container' ? (() => { const g = C.vgm(V.items, v, LS.get('vgm:' + v.id, {})); return `<div class="kv"><span>VGM — peso bruto verificado (SOLAS, método 2)<br><small class="mut">carga ${fmt(g.carga, 0)} + escora ${fmt(g.escora, 0)} + tara ${fmt(g.tara, 0)} kg</small></span><b class="${g.ok ? 'ok' : 'bad'}">${fmt(g.total, 0)} / ${fmt(g.max, 0)} kg ${g.ok ? '✔' : '✖ acima da placa CSC'}</b></div><button type="button" class="btn sm" data-vgm="${vi}" style="margin:4px 0 8px">📄 Declaração de VGM</button>`; })() : ''); })()}
   ${s.cg ? `<div class="kv"><span>Centro de gravidade</span><b>${fmt(s.cg.x, 2)} m da frente · ${s.cg.lat >= 0 ? '+' : ''}${fmt(s.cg.lat * 100, 0)} cm lateral · ${fmt(s.cg.z, 2)} m de altura</b></div>` : ''}
   <h4 style="margin:12px 0 2px">Peso por eixo (carga + tara)</h4><p class="mut" style="font-size:12px;margin:0 0 6px">${esc(NX.axleModel(v).cfg)} · fonte: ${esc(NX.axleModel(v).src)}</p>
   ${s.al.map(a => `<div class="kv"><span>${a.n}<br><small class="mut">carga ${fmt(a.cargo / 1000, 2)} t + tara ${fmt(a.tare / 1000, 2)} t · folga ${fmt(Math.max(0, a.lim - a.tot) / 1000, 2)} t</small></span><b class="${a.tot > a.tolLim ? 'bad' : a.tot > a.lim ? 'warn' : a.tot > a.lim * .9 ? 'warn' : 'ok'}">${fmt(a.tot / 1000, 2)} / ${fmt(a.lim / 1000, 2)} t ${a.tot > a.tolLim ? '✖' : a.tot > a.lim ? '⚠ na tolerância' : '✔'}</b></div>${bar(a.tot / a.lim)}`).join('')}
@@ -252,6 +266,8 @@ function renderCalc() {
   let h = `<div class="kpi"><div><b>${plan.vehs.length}</b><span>veículo(s) necessário(s)</span></div><div><b>${loaded}<small class="mut">/${plan.total}</small></b><span>volumes carregados</span></div>
    <div><b class="${plan.left.length ? 'bad' : 'ok'}">${plan.left.length}</b><span>volumes restantes</span></div><div><b>${fmt(kg / 1000, 2)} t</b><span>peso total</span></div>
    <div><b>${fmt(cub, 1)} m³</b><span>volume ocupado</span></div><div><b>${fmt(cub / vt * 100, 0)}%</b><span>ocupação média</span></div></div>`;
+  if (window.NX_CARGA) { const cb = NX_CARGA.cubado(plan.vehs.flatMap(V => V.items), +LS.get('fatorCub', 300));
+    h += `<div class="kv"><span>Peso para cobrança (maior entre real e cubado) <label class="mut" style="font-size:12px">· fator <select id="fatorCub" aria-label="Fator de cubagem">${[300, 250, 200, 167].map(f => `<option value="${f}" ${f === cb.fator ? 'selected' : ''}>${f} kg/m³${f === 300 ? ' (lotação)' : f === 250 ? ' (fracionada)' : f === 167 ? ' (aéreo)' : ''}</option>`).join('')}</select></label></span><b>${fmt(cb.taxavel, 0)} kg <small class="mut">(${cb.base === 'cubado' ? 'cubado' : 'real'})</small></b></div>`; }
   h += `<h4 style="margin:6px 0">Capacidade máxima estimada no ${esc(v0.name)}</h4><p class="mut" style="font-size:12px;margin:0 0 4px">Encaixe físico por produto (comprimento × largura × camadas), já limitado por empilhamento, níveis e peso.</p>`;
   for (const p of lines) { const g = NX.grid(v0, p); const byKg = Math.floor(NX.vehMaxCargo(v0) / p.kg); h += `<div class="kv"><span><span class="num">${pnum(p.id)}</span>${esc(p.nome)}</span><span>${encChip(p, v0)}${g && byKg < g.tot ? ` <span class="warn" title="limitado pelo peso">peso: ${byKg}</span>` : ''}</span></div>`; }
   el.innerHTML = h + plan.vehs.map(calcHTML).join('<hr style="border-color:var(--line)">') + '<p class="mut" style="font-size:12px">Limites de referência: Res. CONTRAN 882/2021. Taras estimadas.</p>';
@@ -275,7 +291,7 @@ function renderPlanTab() {
     return h; }).join('');
 }
 function updBtns() {
-  $('#bUndo').disabled = !hist.length; $('#bRedo').disabled = !redo.length; ['#bOri', '#bRot', '#bLay', '#bFocus', '#bDesel'].forEach(s => $(s).disabled = !sel);
+  $('#bUndo').disabled = !hist.length; $('#bRedo').disabled = !redo.length; ['#bOri', '#bRot', '#bLay', '#bFocus', '#bDesel', '#bMove', '#bTirar'].forEach(s => { const b = $(s); if (b) b.disabled = !sel || (s === '#bMove' && plan.vehs.length < 2); }); { const b = $('#bRecol'); if (b) b.disabled = !plan || !plan.left.length; }
   const si = $('#selInfo'); if (si) { si.textContent = sel ? `Volume ${String(sel.n).padStart(2, '0')} · ${sel.nome}` : 'Clique em um volume'; si.classList.toggle('on', !!sel); si.title = si.textContent; }
 }
 function renderAll() { axHud(); if (plan && !anim) updateBrand(); renderTabs(); renderList(); renderCalc(); renderPlanTab(); updBtns(); highlight(); RT.renderUnload(); if (typeof SEC === 'object') SEC.refresh(); if (typeof PERIG === 'object') PERIG.render(); }
@@ -426,10 +442,18 @@ $('#pFoto').onchange = e => {
 };
 $('#pFotoDel').onclick = () => setFoto('');
 function resetProdForm() { editId = null; $('#fProd').reset(); setFoto(''); $('#pCancel').hidden = true; $('#pSave').textContent = 'Salvar produto'; $$('#pCats input').forEach(i => i.checked = false); if (typeof PERIG === 'object') PERIG.fill({}); $('#pErr').textContent = ''; F().maxLevels.disabled = F().stack.disabled = false; prodFormTipo(); }
+/* regras de carregamento no cadastro do produto */
+const rgCat = t => { const m = String(t).trim().match(/^categoria:\s*(.+)$/i); if (!m) return String(t).trim(); const k = Object.keys(NX.PCATS).find(k => NX.PCATS[k].nome.toLowerCase() === m[1].trim().toLowerCase() || k === m[1].trim().toLowerCase()); return k ? 'cat:' + k : String(t).trim(); };
+const rgMostra = t => String(t).replace(/^cat:([a-z-]+)$/, (m, k) => 'Categoria: ' + ((NX.PCATS[k] || {}).nome || k));
+const rgLista = v => String(v || '').split(',').map(rgCat).filter(Boolean);
+function rgLer(o) { const r = { junto: rgLista(o.rgJunto), sobre: rgLista(o.rgSobre), piso: !!o.rgPiso }; return r.junto.length || r.sobre.length || r.piso ? r : null; }
+function rgTermos() { const d = $('#pRgTermos'); if (d) d.innerHTML = [...prods.map(p => p.nome), ...Object.values(NX.PCATS).map(c => 'Categoria: ' + c.nome)].map(t => `<option value="${esc(t)}">`).join(''); }
+$('#fProd').addEventListener('focusin', e => { if (/^rg(Junto|Sobre)$/.test(e.target.name)) rgTermos(); });
+{ const b = $('#pRgGerais'); if (b) b.onclick = () => { if (typeof REC === 'object') REC.abrirRegras(); }; }
 $('#fProd').addEventListener('submit', async e => {
-  e.preventDefault(); const o = Object.fromEntries(new FormData(e.target));
+  e.preventDefault(); const o = formObj(e.target);
   const body = { id: editId || undefined, nome: o.nome.trim(), cod: o.cod.trim(), cat: o.cat.trim(), tipo: o.tipo, emb: o.emb.trim(), l: o.l, w: o.tipo === 'bobina' ? o.l : o.w, h: o.h, d: o.tipo === 'bobina' ? o.l : undefined,
-    pcs: o.pcs, kgp: o.kgp, stackable: o.stackable !== 'nao', maxLevels: o.stackable === 'nao' ? null : (o.maxLevels || null), stack: o.stackable === 'nao' ? 0 : (o.stack === '' || o.stack === undefined ? null : o.stack), pos: o.pos, obs: o.obs, cor: o.cor, foto: fotoData, cats: prodCats(), ...PERIG.formData(o) };
+    pcs: o.pcs, kgp: o.kgp, stackable: o.stackable !== 'nao', maxLevels: o.stackable === 'nao' ? null : (o.maxLevels || null), stack: o.stackable === 'nao' ? 0 : (o.stack === '' || o.stack === undefined ? null : o.stack), pos: o.pos, obs: o.obs, cor: o.cor, foto: fotoData, cats: prodCats(), regras: rgLer(o), ...PERIG.formData(o) };
   { const pe = PERIG.validate(body); if (pe) { $('#pErr').textContent = pe; return; } }
   const errs = NX.validateSpec(NX.normalize(body), false); if (errs.length) { $('#pErr').textContent = errs.join(' '); return; }
   $('#pSave').disabled = true;
@@ -458,7 +482,7 @@ $('#tProd').addEventListener('click', async e => {
     try { await DB.deleteProduct(p.id); prods = await DB.listProducts(); catSel.delete(p.id); renderProds(); toast('Produto excluído.'); } catch (er) { toast(er.message, true); } }
   if (b.dataset.pe) { const p = prods.find(x => x.id === b.dataset.pe); editId = p.id; const f = F();
     f.tipo.value = p.tipo; prodFormTipo(); for (const k of ['nome', 'cod', 'cat', 'emb', 'l', 'w', 'h', 'pcs', 'obs', 'cor']) f[k].value = p[k] ?? ''; f.kgp.value = +(+p.kgp).toFixed(4); PERIG.fill(p);
-    f.stackable.value = p.stackable === false ? 'nao' : 'sim'; f.maxLevels.value = p.maxLevels ?? ''; f.stack.value = p.stack ?? ''; f.pos.value = p.pos; $$('#pCats input').forEach(i => i.checked = (p.cats || []).includes(i.value)); f.stackable.onchange(); calcKg(); setFoto(p.foto);
+    f.stackable.value = p.stackable === false ? 'nao' : 'sim'; f.maxLevels.value = p.maxLevels ?? ''; f.stack.value = p.stack ?? ''; f.pos.value = p.pos; $$('#pCats input').forEach(i => i.checked = (p.cats || []).includes(i.value)); { const g = p.regras || {}; f.rgJunto.value = (g.junto || []).map(rgMostra).join(', '); f.rgSobre.value = (g.sobre || []).map(rgMostra).join(', '); f.rgPiso.checked = !!g.piso; } f.stackable.onchange(); calcKg(); setFoto(p.foto);
     $('#pCancel').hidden = false; $('#pSave').textContent = 'Atualizar produto'; f.nome.focus(); window.scrollTo(0, 0); $('#main').scrollTop = 0; }
 });
 $('#pFilter').oninput = renderProds;
@@ -535,14 +559,16 @@ function openPlan(sp) {
   if (m === 'route' && sp.route) Object.assign(S.route, JSON.parse(JSON.stringify(sp.route)));
   S[m].veh = sp.mainVehicleId || (sp.vehs[0] && sp.vehs[0].vehicleId) || S[m].veh; S[m].quote = sp.quote || {}; saveWork();
   mode = m; if (prevMode !== m) { S[prevMode].plan = plan; S[prevMode].hist = hist; S[prevMode].redo = redo; } /* troca explícita */
-  const lines = curLines(); const byId = new Map(lines.map(l => [l.id, l])); const miss = [];
+  const lines = curLines(); if (NX.marcarRegras) NX.marcarRegras(lines); const byId = new Map(lines.map(l => [l.id, l])); const miss = [];
   const vehs = sp.vehs.map(V => { const v = fleet.find(x => x.id === V.vehicleId); if (!v) { miss.push('veículo ' + V.vehicleId); return null; }
     const c = { L: v.L, W: v.W, H: v.H };
     const items = V.items.map(i => { const p = byId.get(i.pid); if (!p) { miss.push('produto do volume ' + i.n); return null; } const o = NX.orientations(p, 'auto').concat(NX.orientations(p)).find(q => Math.abs(q.l - i.l) < 1e-6 && Math.abs(q.w - i.w) < 1e-6 && Math.abs(q.h - i.h) < 1e-6) || {};
       return { ...i, p, c, nome: p.nome, cod: p.cod, kg: +p.kg, pcs: p.pcs, stack: NX.stackOf(p), ok: o.k || '', ax: i.ax || o.ax, load: 0, sup: [], lv: 1 }; }).filter(Boolean);
     items.sort((a, b) => a.wg - b.wg || a.x - b.x || a.z - b.z || a.y - b.y).forEach((it, k) => it.seq = k); NX.rebuildLoads(items); return { v, items }; }).filter(Boolean);
   if (!vehs.length) return toast('Não foi possível abrir: ' + miss.join(', ') + '.', true);
-  plan = { vehs, left: Array.from({ length: sp.left || 0 }), total: sp.total || vehs.reduce((s, V) => s + V.items.length, 0) }; active = 0; hist = []; redo = []; sel = null;
+  { const placed = new Set(vehs.flatMap(V => V.items.map(i => i.n))); const bad = vehs.map(V => { const e = NX.verifyVehicle(V.v, V.items); return e ? V.v.name + ': ' + e : null; }).filter(Boolean); if (bad.length) setTimeout(() => toast('Plano aberto, mas com problema — ' + bad[0] + '. Toque em “▶ Ver como a carga fica” para refazer.', true), 400);
+    var leftU = NX.buildUnits(lines).filter(u => !placed.has(u.n)); }
+  plan = { vehs, left: leftU, total: sp.total || vehs.reduce((s, V) => s + V.items.length, 0) }; active = 0; hist = []; redo = []; sel = null;
   go(VIEW_OF[m], true); buildScene(); renderExp(); $('#cenName').value = sp.name;
   if (miss.length) toast('Aberto com pendências: ' + [...new Set(miss)].join(', ') + ' não existem mais.', true); else toast('Montagem "' + sp.name + '" aberta.');
 }

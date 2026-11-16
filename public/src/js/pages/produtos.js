@@ -31,6 +31,12 @@
      </div>
      <label class="f" style="margin-top:10px">Restrições de transporte<textarea name="obs" rows="2" maxlength="500" placeholder="Ex.: este lado para cima, não molhar, transportar calçada…"></textarea></label>
      <fieldset class="pcats"><legend>Categoria de manuseio e risco <small class="mut">(marque todas que se aplicam — o cálculo respeita as regras)</small></legend><div id="pCats"></div></fieldset>
+     <fieldset class="pregras"><legend>Regras de carregamento deste produto <small class="mut">(o cálculo já monta respeitando)</small></legend>
+      <div class="grid g2" style="gap:8px"><label class="f">Não viaja junto com<input name="rgJunto" list="pRgTermos" autocomplete="off" placeholder="Ex.: Arroz 5kg, Categoria: Alimentício"></label>
+      <label class="f">Não pode ficar em cima de<input name="rgSobre" list="pRgTermos" autocomplete="off" placeholder="Ex.: Caixa de vidro"></label></div>
+      <label style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" name="rgPiso" value="1"> Só pode ir no piso do veículo (nada embaixo dele)</label>
+      <small class="mut">Separe vários com vírgula. Vale o nome (ou parte do nome) de outro produto, o código ou uma categoria. <button type="button" class="lnk" id="pRgGerais">Regras gerais da empresa…</button></small>
+      <datalist id="pRgTermos"></datalist></fieldset>
      <p class="mut" id="pHint" style="font-size:12px"></p>
      <p id="pErr" class="bad" role="alert"></p>
      <button class="btn pri" id="pSave">Salvar produto</button> <button type="button" class="btn" id="pCancel" hidden>Cancelar edição</button>

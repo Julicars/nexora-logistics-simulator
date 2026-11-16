@@ -195,7 +195,7 @@ function createEmpresas(dataDir, opts = {}) {
   }
 
   function send(res, SEC, code, obj) { res.writeHead(code, { ...SEC, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); }
-  function readBody(req, max = 5000) { return new Promise((ok, no) => { let b = ''; req.on('data', d => { b += d; if (b.length > max) { req.destroy(); no(new Error('grande')); } }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); }); }
+  function readBody(req, max = 5000) { return new Promise((ok, no) => { let b = '', grande = false; req.on('data', d => { if (grande) return; b += d; if (b.length > max) { grande = true; b = ''; no(Object.assign(new Error('Envio grande demais.'), { status: 413 })); } }); req.on('end', () => { if (grande) return; try { ok(JSON.parse(b || '{}')); } catch (e) { no(Object.assign(new Error('Requisição inválida.'), { status: 400 })); } }); }); }
 
   async function handle(req, res, p, SEC) {
     try {

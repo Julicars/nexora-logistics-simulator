@@ -57,7 +57,13 @@ const REC = (function () {
   async function abrirCodigo(code) {
     let sp; try { sp = JSON.parse(await unzip(code)); } catch (e) { throw new Error('Código inválido: ' + e.message); }
     if (!sp || !sp.nx || !Array.isArray(sp.vehs)) throw new Error('Este código não é de um plano do NEXORA.');
-    for (const v of sp.vehicles || []) { if (!fleet.some(x => x.id === v.id)) fleet.push({ ...v, name: v.name + (fleet.some(x => x.name === v.name) ? ' (compartilhado)' : '') }); }
+    /* veículos que vêm no código: só entram se as medidas forem de veículo de verdade */
+    const n = (x, a, b) => { x = +x; return isFinite(x) && x >= a && x <= b ? x : null; };
+    for (const v of sp.vehicles || []) { if (!v || fleet.some(x => x.id === v.id)) continue;
+      const vv = { ...v, name: String(v.name || 'Veículo').slice(0, 60), L: n(v.L, 1, 30), W: n(v.W, 1, 3.2), H: n(v.H, 0.5, 4.6), wag: Math.round(n(v.wag, 1, 3) || 0), cat: NX.CATS.includes(v.cat) ? v.cat : null };
+      if (vv.L == null || vv.W == null || vv.H == null || !vv.wag || !vv.cat) throw new Error('O código traz um veículo com medidas inválidas (' + vv.name + ').');
+      if (vv.axcfg && !NX.AXCFG[vv.axcfg]) delete vv.axcfg; if (vv.max != null && !(n(vv.max, 100, 80000))) delete vv.max;
+      if (fleet.some(x => x.name === vv.name)) vv.name += ' (compartilhado)'; fleet.push(vv); }
     sp.lines = (sp.lines || []).map(l => ({ ...l, id: l.id || uid() }));
     if (sp.obs) obsSet(sp.obs, sp.mode === 'route' ? 'route' : 'quick');
     openPlan(sp); toast('Plano “' + (sp.name || 'compartilhado') + '” aberto.');
@@ -239,7 +245,8 @@ const REC = (function () {
       q('#bShare').onclick = compartilhar;
     }
     const pr = q('#bPrint'); if (pr && !q('#bSteps')) { pr.insertAdjacentHTML('beforebegin', `<button class="btn pri" id="bSteps" style="width:100%;margin-bottom:8px">🪜 Passo a passo do carregamento (A4)</button>`); q('#bSteps').onclick = passoAPasso; }
-    const calc = q('#bCalc'); if (calc && !q('#bPaste')) { calc.insertAdjacentHTML('beforebegin', `<div class="recrow"><button type="button" class="btn sm" id="bPaste">📋 Colar lista do pedido</button><button type="button" class="btn sm" id="bWhich">🚚 Qual veículo leva tudo?</button><button type="button" class="btn sm" id="bPal">🧱 Paletizar caixas soltas</button></div>`); q('#bPal').onclick = paletizar; q('#bPaste').onclick = colarLista; q('#bWhich').onclick = qualVeiculo; }
+    const lay = q('#bLay'); if (lay && !q('#bMove')) { lay.insertAdjacentHTML('afterend', `<button class="btn sm" id="bMove" title="Mover para outro veículo" aria-label="Mover para outro veículo">⇄ <span class="lbl">Outro veículo</span></button><button class="btn sm" id="bTirar" title="Tirar da carga" aria-label="Tirar da carga">⊖ <span class="lbl">Tirar</span></button><button class="btn sm" id="bRecol" title="Recolocar os volumes que ficaram de fora" aria-label="Recolocar volumes de fora">⊕ <span class="lbl">Recolocar</span></button>`); q('#bMove').onclick = moverPara; q('#bTirar').onclick = tirar; q('#bRecol').onclick = recolocar; }
+    const calc = q('#bCalc'); if (calc && !q('#bPaste')) { calc.insertAdjacentHTML('beforebegin', `<div class="recrow"><button type="button" class="btn sm" id="bPaste">📋 Colar lista do pedido</button><button type="button" class="btn sm" id="bWhich">🚚 Qual veículo leva tudo?</button><button type="button" class="btn sm" id="bPal">🧱 Paletizar caixas soltas</button><button type="button" class="btn sm" id="bRegras">⚙ Regras de carregamento</button></div>`); q('#bPal').onclick = paletizar; q('#bRegras').onclick = abrirRegras; q('#bPaste').onclick = colarLista; q('#bWhich').onclick = qualVeiculo; }
     const mg = q('#mgNote'); if (mg && !q('#bOpenShared')) { mg.insertAdjacentHTML('afterend', '<button class="btn" id="bOpenShared" style="margin:6px 0 10px">📥 Abrir plano compartilhado</button>'); q('#bOpenShared').onclick = abrirCompartilhado; }
   }
   montarBotoes();
@@ -248,5 +255,70 @@ const REC = (function () {
   /* observações também no relatório A4 */
   if (typeof reportHTML === 'function') { const base = reportHTML; window.reportHTML = reportHTML = function () { const o = obsGet(); return base() + (o ? `<h3>Observações para o carregamento</h3><p>${esc(o).replace(/\n/g, '<br>')}</p>` : ''); }; }
   setTimeout(() => { try { renderAxCard(); } catch (e) {} }, 0);
-  return { compartilhar, abrirCodigo, abrirCompartilhado, colarLista, lerLinha, passoAPasso, qualVeiculo, taraHTML };
+
+  /* ================= REGRAS PRÓPRIAS DE CARREGAMENTO ================= */
+  const regras = () => LS.get('regras', []);
+  const aplicaRegras = () => { if (NX.setRegras) NX.setRegras(regras()); };
+  aplicaRegras();
+  function abrirRegras() {
+    const termos = [...new Set([...prods.map(p => p.nome), ...curLines().map(l => l.nome)].filter(Boolean))].slice(0, 300);
+    const cats = Object.entries(NX.PCATS).map(([k, c]) => `cat:${k}`);
+    const doProd = () => { const l = prods.flatMap(p => NX.regrasDoProduto(p)); return l.length ? `<h4 style="margin:12px 0 4px">Regras gravadas nos produtos <small class="mut">(edite no cadastro de produtos)</small></h4><ul class="rglist">${l.map(r => `<li><span>${esc(NX.regraTxt(r))}</span></li>`).join('')}</ul>` : ''; };
+    const lista = () => (regras().length ? `<ul class="rglist">${regras().map((r, i) => `<li><span>${esc(NX.regraTxt(r)).replace(/cat:([a-z-]+)/g, (m, k) => 'categoria ' + ((NX.PCATS[k] || {}).nome || k))}</span><button type="button" class="btn sm" data-rgdel="${i}" aria-label="Apagar regra">✕</button></li>`).join('')}</ul>` : '<p class="mut">Nenhuma regra geral ainda.</p>') + doProd();
+    abrir('⚙ Regras de carregamento', `<p class="mut" style="margin:0 0 8px">Regras de um produto específico ficam no <b>cadastro de produtos</b>. Aqui ficam as regras gerais da empresa que o NEXORA respeita em toda montagem, além das regras legais (carga perigosa, frágil, alimento…). Use parte do nome do produto, o código, ou uma categoria.</p>
+      <div id="cgrList">${lista()}</div>
+      <form id="cgrForm" class="taragrid" style="margin-top:10px"><label class="f">Regra<select name="t"><option value="junto">não viaja junto com</option><option value="sobre">não pode ficar em cima de</option><option value="piso">só pode ir no piso</option></select></label>
+        <label class="f">Produto ou categoria (A)<input name="a" list="cgrTermos" required placeholder="Ex.: cloro, cat:toxico"></label>
+        <label class="f rgb">Produto ou categoria (B)<input name="b" list="cgrTermos" placeholder="Ex.: arroz, cat:alimenticio"></label>
+        <button class="btn pri" type="submit" style="align-self:end">Adicionar regra</button></form>
+      <datalist id="cgrTermos">${[...termos, ...cats].map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+      <p class="mut" style="font-size:12px;margin-top:8px">Exemplos: “químico” não viaja junto com “cat:alimenticio” · “vidro” não pode ficar em cima de nada → use a categoria Frágil · “motor” só no piso. Depois de mudar, toque em “▶ Ver como a carga fica” de novo.</p>`);
+    const f = q('#cgrForm'), E2 = f.elements, sync = () => { f.querySelector('.rgb').hidden = E2.t.value === 'piso'; E2.b.required = E2.t.value !== 'piso'; };
+    E2.t.onchange = sync; sync();
+    f.onsubmit = e => { e.preventDefault(); const r = { t: E2.t.value, a: E2.a.value.trim(), b: E2.t.value === 'piso' ? '' : E2.b.value.trim() }; if (!r.a || (r.t !== 'piso' && !r.b)) return; LS.set('regras', [...regras(), r]); aplicaRegras(); q('#cgrList').innerHTML = lista(); f.reset(); sync(); toast('Regra adicionada: ' + NX.regraTxt(r) + '.'); if (plan) calculate(); };
+    q('#cgrList').onclick = e => { const b = e.target.closest('[data-rgdel]'); if (!b) return; const l = regras(); l.splice(+b.dataset.rgdel, 1); LS.set('regras', l); aplicaRegras(); q('#cgrList').innerHTML = lista(); if (plan) calculate(); };
+  }
+
+  /* ================= VGM — declaração do peso bruto verificado (contêiner) ================= */
+  function vgm(vi) {
+    if (!plan || !plan.vehs[vi]) return; const V = plan.vehs[vi], v = V.v, k = 'vgm:' + v.id, d = Object.assign({ tara: (NX_CARGA.CONTEINER[v.name] || {}).tara, max: (NX_CARGA.CONTEINER[v.name] || {}).max, escora: 0 }, LS.get(k, {}));
+    abrir('📄 Declaração de VGM (SOLAS)', `<p class="mut" style="margin:0 0 8px">Peso bruto verificado pelo <b>método 2</b>: soma de todos os volumes (com palete e embalagem) + material de escora/amarração + tara do contêiner. Confira a tara e o peso máximo na placa CSC da porta do contêiner.</p>
+      <form id="vgF" class="taragrid"><label class="f">Nº do contêiner<input name="num" value="${esc(d.num || '')}" placeholder="ABCU1234567" maxlength="11" style="text-transform:uppercase"></label><label class="f">Booking / reserva<input name="book" value="${esc(d.book || '')}"></label>
+        <label class="f">Embarcador (shipper)<input name="emb" value="${esc(d.emb || '')}"></label><label class="f">Responsável que assina<input name="resp" value="${esc(d.resp || '')}"></label>
+        <label class="f">Tara do contêiner (kg)<input name="tara" type="number" value="${d.tara || ''}"></label><label class="f">Peso bruto máx. — placa CSC (kg)<input name="max" type="number" value="${d.max || ''}"></label>
+        <label class="f">Escora, calços e amarração (kg)<input name="escora" type="number" value="${d.escora || 0}"></label><label class="f">Lacre<input name="lacre" value="${esc(d.lacre || '')}"></label></form>
+      <div id="vgOut" style="margin-top:8px"></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn pri" id="vgPrint">Imprimir declaração</button></div>`);
+    const f = q('#vgF'), ler = () => Object.fromEntries([...f.elements].filter(e => e.name).map(e => [e.name, e.value])), calc = () => { const o = ler(); LS.set(k, o); const g = NX_CARGA.vgm(V.items, v, o);
+      q('#vgOut').innerHTML = `<div class="kv"><span>VGM</span><b class="${g.ok ? 'ok' : 'bad'}">${fmt(g.total, 0)} kg ${g.max ? (g.ok ? `· folga ${fmt(g.folga, 0)} kg ✔` : '· ✖ acima do peso máximo do contêiner') : ''}</b></div>`; return g; };
+    f.oninput = calc; calc();
+    q('#vgPrint').onclick = () => { const o = ler(), g = calc(); fechar(); showPrint(`<div style="font-family:Arial,sans-serif;color:#111;max-width:720px"><h1 style="font-size:20px">Declaração de Peso Bruto Verificado — VGM</h1><p style="font-size:12px">SOLAS, Capítulo VI, Regra 2 · IMO MSC.1/Circ.1475 · Método 2 (soma dos pesos)</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px" border="1" cellpadding="6"><tr><td>Contêiner</td><td><b>${esc(String(o.num || '').toUpperCase())}</b> (${esc(v.name)})</td></tr><tr><td>Booking</td><td>${esc(o.book || '')}</td></tr><tr><td>Lacre</td><td>${esc(o.lacre || '')}</td></tr><tr><td>Embarcador</td><td>${esc(o.emb || '')}</td></tr>
+      <tr><td>Carga (${V.items.length} volumes, com embalagem/palete)</td><td>${fmt(g.carga, 0)} kg</td></tr><tr><td>Escora, calços e amarração</td><td>${fmt(g.escora, 0)} kg</td></tr><tr><td>Tara do contêiner</td><td>${fmt(g.tara, 0)} kg</td></tr>
+      <tr><td><b>VGM — peso bruto verificado</b></td><td><b>${fmt(g.total, 0)} kg</b></td></tr><tr><td>Peso bruto máximo (placa CSC)</td><td>${g.max ? fmt(g.max, 0) + ' kg' : '—'}</td></tr></table>
+      <p style="margin-top:28px">Declaro que o peso acima foi obtido pelo método 2 da SOLAS.</p><p style="margin-top:40px">______________________________<br>${esc(o.resp || 'Responsável')} · ${new Date().toLocaleDateString('pt-BR')}</p></div>`); };
+  }
+
+  /* ================= MOVER VOLUME ENTRE VEÍCULOS / TIRAR / RECOLOCAR ================= */
+  const unidade = it => ({ n: it.n, pid: it.pid, p: it.p, nome: it.nome, cod: it.cod, kg: it.kg, stack: NX.stackOf(it.p), pcs: it.pcs });
+  function reorg(V, extra) { /* reacomoda o veículo com seus volumes + os novos; só aceita se couber tudo */
+    const us = [...V.items.map(unidade), ...extra], r = NX.pack(V.v, us); return r.left.length ? null : r.items;
+  }
+  function moverPara() {
+    if (!plan || !sel) return; const V = plan.vehs[active]; if (plan.vehs.length < 2) return toast('Só há um veículo. Use “Dividir” ou adicione um extra.', true);
+    if (onTop(sel).length) return toast('Há volumes em cima deste; mova-os primeiro.', true);
+    abrir('🚚 Mover volume para outro veículo', `<p>Volume <b>${String(sel.n).padStart(2, '0')}</b> — ${esc(sel.nome)}</p><div class="elist">${plan.vehs.map((W, i) => i === active ? '' : `<button type="button" class="btn" data-mvv="${i}">Veículo ${i + 1}: ${esc(W.v.name)}</button>`).join('')}</div><p class="mut" style="font-size:12px">O veículo de destino é reorganizado para encaixar o volume (as fileiras continuam juntas a partir da cabine).</p>`);
+    q('#mRecB').onclick = e => { const b = e.target.closest('[data-mvv]'); if (!b) return; stopAnim(true); const W = plan.vehs[+b.dataset.mvv], it = sel;
+      const novo = reorg(W, [unidade(it)]); if (!novo) return toast('Não coube no ' + W.v.name + ' (espaço, peso ou regra de carga).', true);
+      W.items = novo; V.items = V.items.filter(o => o !== it); NX.rebuildLoads(V.items); sel = null; hist = []; redo = []; fechar(); buildScene(); renderAll(); toast(`Volume ${String(it.n).padStart(2, '0')} movido para o ${W.v.name}.`); };
+  }
+  function tirar() {
+    if (!plan || !sel) return; stopAnim(true); if (onTop(sel).length) return toast('Há volumes em cima deste; mova-os primeiro.', true);
+    const V = plan.vehs[active], it = sel; V.items = V.items.filter(o => o !== it); NX.rebuildLoads(V.items); plan.left.push(unidade(it)); sel = null; hist = []; redo = []; buildScene(); renderAll(); toast(`Volume ${String(it.n).padStart(2, '0')} tirado da carga (fica na lista “de fora”).`);
+  }
+  function recolocar() {
+    if (!plan || !plan.left.length) return toast('Nenhum volume ficou de fora.'); stopAnim(true);
+    let n = 0; for (const W of plan.vehs) { if (!plan.left.length) break; const r = NX.pack(W.v, [...W.items.map(unidade), ...plan.left]); const novos = r.items.length - W.items.length; if (novos > 0) { W.items = r.items; n += novos; plan.left = r.left; } }
+    buildScene(); renderAll(); toast(n ? `${n} volume(s) recolocado(s).${plan.left.length ? ' Ainda sobram ' + plan.left.length + '.' : ''}` : 'Não coube nenhum dos volumes de fora nos veículos atuais.', !n);
+  }
+  return { vgm, abrirRegras, moverPara, tirar, recolocar, compartilhar, abrirCodigo, abrirCompartilhado, colarLista, lerLinha, passoAPasso, qualVeiculo, taraHTML };
 })();

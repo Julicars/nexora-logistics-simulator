@@ -92,3 +92,15 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   window.NX_MASK = { apply, raw, show };
 })();
+/* lê um formulário respeitando as máscaras (FormData pega o texto formatado, ex.: "0,60"; aqui vem o número 0.60) */
+function formObj(form) {
+  const o = {};
+  for (const el of form.elements) {
+    if (!el.name || el.disabled) continue;
+    if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) continue;
+    if (el.type === 'file' || el.tagName === 'BUTTON' || el.tagName === 'FIELDSET') continue;
+    o[el.name] = el.value;
+  }
+  return o;
+}
+if (typeof window !== 'undefined') window.formObj = formObj;

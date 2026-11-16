@@ -53,7 +53,7 @@ function createRegistry(cfg) {
       return `<td class="${[num(c) ? 'rn' : '', c.ed ? 'ed' : 'calc', st].join(' ')}" ${c.ed ? `tabindex="0" data-k="${c.k}" aria-label="${c.t}: ${esc(fmtCell(c, v)) || 'vazio'}. Enter para editar"` : ''}>${esc(fmtCell(c, v))}</td>`; }).join('')}<td><button class="btn sm" data-rgdel="${f.id}" aria-label="Excluir registro">×</button></td></tr>`).join('')
       || `<tr><td colspan="${COLS.length + 1}" class="mut">${T.dataset.vazio}</td></tr>`;
     T.querySelector('tfoot').innerHTML = rows.length ? `<tr>${COLS.map((c, i) => `<td class="${num(c) ? 'rn' : ''}">${i === 0 ? '<b>Total</b>' : c.soma ? '<b>' + fmtCell(c, rows.reduce((s, f) => s + (+val(c, f) || 0), 0)) + '</b>' : c.media ? '<b>' + fmtCell(c, cfg.media(rows)) + '</b>' : ''}</td>`).join('')}<td></td></tr>` : '';
-    q('Sum').textContent = `${rows.length} registro(s)` + (cfg.resumo ? cfg.resumo(rows) : '');
+    q('Resumo').textContent = `${rows.length} registro(s)` + (cfg.resumo ? cfg.resumo(rows) : '');
   }
   function edit(td) {
     if (td.querySelector('input')) return; const id = td.parentElement.dataset.id, f = list.find(x => x.id === id), c = COLS.find(x => x.k === td.dataset.k); if (!f || !c) return;

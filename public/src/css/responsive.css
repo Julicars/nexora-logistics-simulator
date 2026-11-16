@@ -493,3 +493,11 @@ input.masked{font-variant-numeric:tabular-nums}input.masked.money{text-align:rig
 .erisco{display:flex;gap:14px;align-items:flex-start;border:1px solid var(--line);border-left:6px solid;border-radius:10px;padding:10px 12px;margin:10px 0}.erisco.ok{border-left-color:#4ade80}.erisco.warn{border-left-color:#facc15}.erisco.bad{border-left-color:#f87171}
 .erisco-n{font-family:Barlow,system-ui,sans-serif;text-align:center;min-width:64px}.erisco-n b{font-size:34px;line-height:1;display:block}.erisco ul{margin:4px 0 0;padding-left:18px;font-size:14px}
 .etrdoc{border:1px dashed var(--line);border-radius:10px;padding:10px;margin:6px 0 10px}.elistas summary{cursor:pointer}.elistas{margin-top:12px}
+/* regras próprias e amarração EN 12195-1 (v43) */
+.rglist{list-style:none;padding:0;margin:0;display:grid;gap:6px}.rglist li{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.secfg{margin:4px 0 10px;font-size:13px}.secfg summary{cursor:pointer;color:var(--mut,#9fb0d0)}
+/* v45: colunas de grade nunca passam da tela (conteúdo largo encolhe em vez de empurrar) */
+.grid>*{min-width:0}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1100px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}}

@@ -12,6 +12,7 @@
     <label class="chk"><input type="checkbox" id="rmMode"> Reduzir animações (carregamento 3D não anima sozinho)</label>
     <label class="chk"><input type="checkbox" id="fcMode"> Destacar o foco do teclado com mais força</label>
     <label class="chk"><input type="checkbox" id="nbMode" checked> Mostrar número em cada volume no 3D</label>
+    <label class="chk"><input type="checkbox" id="aeMode"> Quando a carga não couber, dividir em mais veículos automaticamente (sem perguntar)</label>
    </div>
    <div class="card"><h2>Interface</h2>
     <label class="chk"><input type="checkbox" id="pNavMin"> Menu lateral recolhido</label>
