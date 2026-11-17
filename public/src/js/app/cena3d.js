@@ -18,14 +18,15 @@ function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
   el.appendChild(renderer.domElement);
-  scene = new THREE.Scene(); scene.background = new THREE.Color(0x172548); scene.fog = new THREE.Fog(0x172548, 70, 170);
+  scene = new THREE.Scene(); /* cores do fundo: temaCena() troca entre escuro e claro */
+  scene.background = new THREE.Color(0x172548); scene.fog = new THREE.Fog(0x172548, 70, 170);
   camera = new THREE.PerspectiveCamera(45, 1, 0.05, 400);
   controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true; controls.addEventListener('change', () => invalidate(false)); controls.maxPolarAngle = Math.PI * 0.495;
   scene.add(new THREE.HemisphereLight(0xcfe3ff, 0x1a2440, 0.75));
   const d = new THREE.DirectionalLight(0xffffff, 0.85); d.position.set(15, 30, 20); d.castShadow = true; d.shadow.mapSize.set(1024, 1024);
   Object.assign(d.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, far: 120 }); scene.add(d);
-  const g = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x1a2a52, roughness: 1 })); g.rotation.x = -Math.PI / 2; g.receiveShadow = true; scene.add(g);
-  const grid = new THREE.GridHelper(200, 100, 0x223a6e, 0x1d3060); grid.position.y = 0.01; scene.add(grid);
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x1a2a52, roughness: 1 })); g.rotation.x = -Math.PI / 2; g.receiveShadow = true; scene.add(g); chaoRef = g;
+  const grid = new THREE.GridHelper(200, 100, 0x223a6e, 0x1d3060); grid.position.y = 0.01; scene.add(grid); gridRef = grid; temaCena();
   camera.position.set(-14, 10, 16); controls.target.set(6, 1.5, 0);
   new ResizeObserver(resize).observe(el); resize(); bindPointer(); loop();
 }
@@ -519,4 +520,15 @@ function focusSel() { if (!sel) return; const m = meshes.get(sel); if (!m) retur
 /* qualquer mudança na cena pede um novo desenho */
 for (const f of ['buildScene', 'placeMesh', 'highlight', 'setWalls', 'setDoors', 'updateVoids', 'updateBrand', 'resize', 'setView', 'tryMove', 'startAnim', 'stopAnim', 'restore']) {
   const o = window[f]; if (typeof o === 'function') window[f] = function () { const r = o.apply(this, arguments); invalidate(); return r; };
+}
+
+/* fundo da cena 3D acompanha o tema (claro/escuro) */
+var gridRef = null, chaoRef = null;
+function temaCena() {
+  if (typeof scene === 'undefined' || !scene) return; const claro = document.body.classList.contains('light');
+  const bg = claro ? 0xe6ecf5 : 0x172548; scene.background = new THREE.Color(bg); if (scene.fog) scene.fog.color = new THREE.Color(bg);
+  if (gridRef) { const m = Array.isArray(gridRef.material) ? gridRef.material : [gridRef.material]; m[0] && m[0].color && m[0].color.set(claro ? 0xb9c4d8 : 0x223a6e); if (m[1]) m[1].color.set(claro ? 0xcfd8e6 : 0x1d3060); else if (gridRef.geometry && gridRef.geometry.attributes.color) { const c = gridRef.geometry.attributes.color, a = new THREE.Color(claro ? 0xc6d0e0 : 0x1d3060); for (let i = 0; i < c.count; i++) c.setXYZ(i, a.r, a.g, a.b); c.needsUpdate = true; } }
+  if (chaoRef) chaoRef.material.color.set(claro ? 0xd5dde9 : 0x1a2a52);
+  const st = document.querySelector('#stage'); if (st) st.style.background = claro ? '#e6ecf5' : '';
+  if (typeof invalidate === 'function') invalidate();
 }

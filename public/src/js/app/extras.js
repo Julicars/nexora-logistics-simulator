@@ -131,7 +131,7 @@ const EXTRAS = (function () {
     m3: [1, 'm3', 'metro cúbico (m³)'], l: [0.001, 'm3', 'litro (L)'], ft3: [0.0283168, 'm3', 'pé cúbico (ft³)'] };
 
   /* ---------- tema claro ---------- */
-  const aplicaTema = () => document.body.classList.toggle('light', LS.get('tema', 'escuro') === 'claro');
+  const aplicaTema = () => { document.body.classList.toggle('light', LS.get('tema', 'escuro') === 'claro'); if (typeof temaCena === 'function') temaCena(); };
 
   /* ---------- busca no menu ---------- */
   const PALAVRAS = { home: 'inicio painel', 'carga-catalogo': 'catalogo pedido montar', rapida: 'montagem rapida 3d simular carga', rota: 'rota roteirizacao entrega frete antt piso mapa', produtos: 'produto cadastro item regra', frota: 'veiculo frota caminhao carreta eixo', montagens: 'planos salvos montagem historico', fretes: 'registro empregador frete nfe', transportes: 'registro transportador cte', empresas: 'empresa cnpj socio pessoa consulta risco', forum: 'forum duvida comunidade', config: 'configuracoes backup tema acessibilidade antt tabela', contato: 'contato suporte', sobre: 'sobre' };

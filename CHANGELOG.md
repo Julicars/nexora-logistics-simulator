@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.22.2] — 2026-11-17 · tema claro revisado
+### Corrigido
+- Tema claro em todo o site: título da capa da Home invisível, cartões “Menos multa…” escuros com texto apagado, cartões do Fórum, selos “fácil/médio/difícil de achar”, estrelas de favorito, tabelas e mapa da Roteirização, botões laranja com pouco contraste.
+- A **cena 3D** também fica clara no tema claro (fundo, chão e grade), e os painéis sobre o 3D seguem o tema.
+- Varredura automática de contraste (texto × fundo) em todas as telas, janelas e abas nos dois temas: nenhum texto abaixo do mínimo.
+
 ## [3.22.1] — 2026-11-17 · versão final para o GitHub
 ### Corrigido
 - Dicas da primeira vez: o balão continuava na tela ao trocar de página e cobria botões (ex.: “Excel” no Registro de fretes); agora fecha ao navegar e não abre duas vezes.
