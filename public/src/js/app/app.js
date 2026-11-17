@@ -662,7 +662,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------------- NAVEGAÇÃO / SITE ---------------- */
-const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'fretes', 'transportes', 'empresas', 'forum', 'config'];
+const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'fretes', 'transportes', 'empresas', 'combustivel', 'forum', 'config'];
 const MODE_OF = { rapida: 'quick', 'carga-catalogo': 'cat', rota: 'route' }, VIEW_OF = { quick: 'rapida', cat: 'carga-catalogo', route: 'rota' };
 function go(v, keepPlan) {
   if (!VIEWS.includes(v)) v = 'home';
@@ -680,6 +680,7 @@ function go(v, keepPlan) {
   if (v === 'montagens') renderPlans();
   if (v === 'forum' && typeof FORUM === 'object') FORUM.open();
   if (v === 'empresas' && typeof EMPRESAS === 'object') EMPRESAS.open();
+  if (v === 'combustivel' && typeof COMB === 'object') COMB.open();
   if (v === 'fretes' && typeof FRETES === 'object') FRETES.open();
   if (v === 'transportes' && typeof TRANSP === 'object') TRANSP.open();
   $('#main').scrollTop = 0; revealAll();

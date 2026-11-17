@@ -11,6 +11,7 @@ const PORT = +process.env.PORT || 3000, ROOT = path.join(__dirname, '..', 'publi
 const { createForum } = require('./forum');
 const { createFretes } = require('./fretes');
 const { createEmpresas } = require('./empresas');
+const { createCombustivel } = require('./combustivel');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json; charset=utf-8', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8', '.webp': 'image/webp' };
 const SEC = {
   'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Referrer-Policy': 'same-origin',
@@ -18,10 +19,11 @@ const SEC = {
 };
 function createServer(opts = {}) {
   const dataDir = opts.dataDir || process.env.NEXORA_DADOS || path.join(__dirname, '..', 'data');
-  const forum = createForum(dataDir), fretes = createFretes(dataDir, 'fretes'), transportes = createFretes(dataDir, 'transportes'), empresas = createEmpresas(dataDir, opts);
+  const forum = createForum(dataDir), fretes = createFretes(dataDir, 'fretes'), transportes = createFretes(dataDir, 'transportes'), empresas = createEmpresas(dataDir, opts), combustivel = createCombustivel(dataDir, opts);
   const srv = http.createServer((req, res) => {
     let p; try { p = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch (e) { res.writeHead(400, SEC); return res.end('URL inválida'); }
     if (p.startsWith('/api/empresas/')) return empresas.handle(req, res, p, SEC);
+    if (p.startsWith('/api/combustivel/')) return combustivel.handle(req, res, p, SEC);
     if (p.startsWith('/api/forum')) return forum.handle(req, res, p, SEC);
     if (p === '/api/fretes' || p.startsWith('/api/fretes/')) return fretes.handle(req, res, p, SEC);
     if (p === '/api/transportes' || p.startsWith('/api/transportes/')) return transportes.handle(req, res, p, SEC);

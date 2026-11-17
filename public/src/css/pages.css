@@ -49,3 +49,82 @@
 @media (max-width:1100px){.h-hero{grid-template-columns:1fr}.h-steps{grid-template-columns:repeat(2,1fr)}.h-steps li:after{display:none}.h-kpis{grid-template-columns:repeat(2,1fr)}.h-feats,.h-fleet{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:820px){.h-hero{padding:22px 16px}.h-copy h1{font-size:30px}.h-kpis,.h-steps,.h-feats,.h-fleet{grid-template-columns:1fr}.h-final{padding:18px}}
 body.rm .h-pallets .pl{animation:none;opacity:1}body.rm .h-dash,body.rm .h-chip,body.rm .h-eyebrow i{animation:none}
+/* Diesel & Abastecimento */
+#v-combustivel h2{font-size:16px;margin:0 0 8px}
+.cbstatus{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
+.cbstatus>span:nth-child(2){flex:1;min-width:220px}
+.cbdot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:none;background:var(--mut,#888)}
+.cbdot.ok{background:#22c55e}.cbdot.bad{background:#ef4444}
+.cbtag{font-size:11px;border:1px solid var(--line);border-radius:20px;padding:2px 8px;white-space:nowrap}
+.cbcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.cbcard{display:flex;flex-direction:column;gap:3px}
+.cbcard b{font-size:26px;line-height:1.15}.cbcard b small{font-size:13px;font-weight:400}
+.cbgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:12px;margin-bottom:12px}
+#v-combustivel>.wrap>div>.card,#v-combustivel .cbgrid>.card{min-width:0}
+.cbhd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.cbhd h2{margin:0}
+.cbhist svg{width:100%;height:auto;display:block}
+.cbgl{stroke:var(--line);stroke-width:1}.cbtx{fill:currentColor;opacity:.7;font-size:11px}
+.cbl{fill:none;stroke-width:2.5}.cbl.s10,.cbp.s10{stroke:#f59e0b}.cbl.s500,.cbp.s500{stroke:#3b82f6}.cbp{fill:var(--panel);stroke-width:2}
+.cbleg{display:flex;gap:14px;font-size:12px;flex-wrap:wrap}.cbleg i{display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:middle}.cbleg i.s10{background:#f59e0b}.cbleg i.s500{background:#3b82f6}
+.cbufs{display:flex;flex-direction:column;gap:2px;max-height:340px;overflow:auto}
+.cbuf{display:grid;grid-template-columns:30px 1fr 74px 118px;gap:8px;align-items:center;background:none;border:0;border-radius:6px;padding:4px 6px;text-align:left;color:inherit;cursor:pointer;font-size:13px}
+.cbuf:hover,.cbuf:focus-visible{background:var(--line)}
+.cbbar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.cbbar i{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#f59e0b,#ef4444);border-radius:4px}
+.cbrank{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.cbrank li{display:grid;grid-template-columns:1fr auto;gap:0 8px}.cbrank li small{grid-column:1/-1}
+.cbrank .lnk{background:none;border:0;padding:0;color:inherit;cursor:pointer;text-align:left;text-decoration:underline dotted}
+.cbfiltro{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px}
+.cbfiltro .f{flex:1 1 130px}.cbfiltro .cbbusca{flex:2 1 180px}
+.cbacoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cbmapa{height:420px;border-radius:8px;margin-bottom:10px;border:1px solid var(--line)}
+.cbtab td{vertical-align:top}
+.cbcalc{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.cbcalcout .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line)}
+.cbcalcout .cbtot b{font-size:18px;color:var(--acc)}
+#v-combustivel .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:560px){.cbuf{grid-template-columns:28px 1fr 70px}.cbuf small{display:none}.cbmapa{height:320px}}
+.cbmerc{margin-bottom:12px}.cbh3{font-size:14px;margin:0 0 6px}
+.cbalerta{padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:13px;border:1px solid}
+.cbalerta.alta{border-color:#ef4444;background:#ef444418}.cbalerta.queda{border-color:#22c55e;background:#22c55e18}
+.cbcomp{display:flex;height:34px;border-radius:7px;overflow:hidden;margin:4px 0 8px;font-size:12px;font-weight:600}
+.cbcomp span{display:flex;align-items:center;justify-content:center;color:#fff;white-space:nowrap;overflow:hidden;padding:0 4px}
+.cbcomp .pb{background:#16a34a}.cbcomp .bio{background:#0891b2}.cbcomp .resto{background:#64748b}
+.cbpetro{margin-top:10px}.cbpetro summary{cursor:pointer;font-weight:600;font-size:13px}.cbpetro form{margin-top:8px}
+.cbl.dol,.cbp.dol{stroke:#a855f7}.cbl.brr,.cbp.brr{stroke:#ef4444}.cbl.pb,.cbp.pb{stroke:#16a34a}
+.cbleg i.dol{background:#a855f7}.cbleg i.brr{background:#ef4444}.cbleg i.pb{background:#16a34a}
+.cbl.gas,.cbp.gas{stroke:#ef4444}.cbl.gasad,.cbp.gasad{stroke:#ec4899}.cbl.etanol,.cbp.etanol{stroke:#22c55e}.cbl.gnv,.cbp.gnv{stroke:#06b6d4}
+.cbleg i.gas{background:#ef4444}.cbleg i.gasad{background:#ec4899}.cbleg i.etanol{background:#22c55e}.cbleg i.gnv{background:#06b6d4}
+.cbabas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.cbabas button{background:none;border:1px solid var(--line);border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;color:inherit;cursor:pointer}
+.cbabas button.on{background:var(--acc);border-color:var(--acc);color:#1b1200}
+.cbmerc.cbfora{display:none}
+.cbmanual{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#f59e0b;color:#1b1200;border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+.cbmanualbt{border:0;cursor:pointer;margin:6px 0 0;align-self:flex-start;font-size:11px;padding:4px 8px}
+.cbpetroajuda{border-left:3px solid #f59e0b;padding:8px 10px;margin:8px 0;font-size:13px;background:#f59e0b12;border-radius:0 6px 6px 0}
+.cbauto{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:#16a34a;color:#fff;border-radius:4px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+.cbfontl{list-style:none;margin:6px 0 0;padding:0;font-size:12px;display:flex;flex-direction:column;gap:4px}.cbfontl .cbdot{display:inline-block;margin:0 6px 0 0;vertical-align:middle}
+/* Combustíveis — celular */
+.cbcard small b{font-size:inherit;line-height:inherit}
+@media (max-width:640px){
+  #v-combustivel h1{font-size:24px}
+  .cbabas{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:-4px;padding:2px 4px 8px}.cbabas::-webkit-scrollbar{display:none}
+  .cbabas button{flex:1 0 auto;padding:9px 14px;font-size:14px}
+  .cbcards{grid-template-columns:1fr 1fr;gap:8px}.cbcard{padding:10px}.cbcard b{font-size:20px}.cbcard small{font-size:11px}
+  .cbstatus{font-size:12px}.cbtag{order:-1}
+  .cbcalc{grid-template-columns:1fr 1fr}
+  .cbfiltro .f{flex:1 1 45%}.cbfiltro .cbbusca{flex:1 1 100%}
+  .cbacoes .btn{flex:1 1 auto;text-align:center}
+  .cbcomp{font-size:11px}
+  .cbcardtab thead{display:none}
+  .cbcardtab,.cbcardtab tbody,.cbcardtab tr,.cbcardtab td{display:block;width:100%}
+  .cbcardtab tr{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+  .cbcardtab td{border:0!important;padding:2px 0!important;display:flex;justify-content:space-between;gap:10px;text-align:right}
+  .cbcardtab td::before{content:attr(data-l);color:var(--mut,#8a94a6);font-size:12px;text-align:left;flex:none}
+  .cbcardtab td:first-child{display:block;text-align:left}.cbcardtab td:first-child::before{content:none}
+  .cbcardtab td.hm{display:flex!important}
+  .cbcardtab .cbpreco b{font-size:17px;color:var(--acc)}
+  .cbcardtab td:last-child:empty{display:none}
+  .cbcardtab td .btn{margin-left:auto}
+  body:has(#v-combustivel.on) .fxfab{display:none}
+}
+.cbcalc>*{min-width:0}.cbcalc input,.cbcalc select{width:100%;min-width:0;box-sizing:border-box}

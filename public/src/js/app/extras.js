@@ -133,7 +133,7 @@ const EXTRAS = (function () {
   /* ---------- tema claro ---------- */
   /* logo: versão com letras escuras no tema claro (src/img/logo-claro.png) */
   function trocaLogo() { const cl = document.body.classList.contains('light'); qa('img[src*="logo"]').forEach(i => { const s = i.getAttribute('src'); if (!/logo(-claro)?\.png/.test(s)) return; const n = cl ? s.replace(/logo\.png/, 'logo-claro.png') : s.replace(/logo-claro\.png/, 'logo.png'); if (n !== s) i.setAttribute('src', n); }); }
-  const aplicaTema = () => { document.body.classList.toggle('light', LS.get('tema', 'escuro') === 'claro'); if (typeof temaCena === 'function') temaCena(); if (window.temaMapa) temaMapa(); trocaLogo(); };
+  const aplicaTema = () => { document.body.classList.toggle('light', LS.get('tema', 'escuro') === 'claro'); if (typeof temaCena === 'function') temaCena(); if (window.temaMapa) temaMapa(); if (window.temaMapaComb) temaMapaComb(); trocaLogo(); };
 
   /* ---------- busca no menu ---------- */
   const PALAVRAS = { home: 'inicio painel', 'carga-catalogo': 'catalogo pedido montar', rapida: 'montagem rapida 3d simular carga', rota: 'rota roteirizacao entrega frete antt piso mapa', produtos: 'produto cadastro item regra', frota: 'veiculo frota caminhao carreta eixo', montagens: 'planos salvos montagem historico', fretes: 'registro empregador frete nfe', transportes: 'registro transportador cte', empresas: 'empresa cnpj socio pessoa consulta risco', forum: 'forum duvida comunidade', config: 'configuracoes backup tema acessibilidade antt tabela', contato: 'contato suporte', sobre: 'sobre' };
