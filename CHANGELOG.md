@@ -2,6 +2,11 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.22.3] — 2026-11-17
+### Corrigido
+- **Mapa da Roteirização:** o OpenStreetMap passou a bloquear o acesso (“Access blocked”) e um ícone da biblioteca do mapa aparecia gigante (bandeira azul e amarela). Agora usa os mapas da CARTO (base OpenStreetMap), claro ou escuro conforme o tema, e o ícone foi removido.
+- **Tema claro:** a capa da Home ficou clara (sem o bloco azul), o logo ganhou versão com letras escuras (`logo-claro.png`) e o topo do menu e do celular ficaram claros. Relatórios impressos continuam com o logo original.
+
 ## [3.22.2] — 2026-11-17 · tema claro revisado
 ### Corrigido
 - Tema claro em todo o site: título da capa da Home invisível, cartões “Menos multa…” escuros com texto apagado, cartões do Fórum, selos “fácil/médio/difícil de achar”, estrelas de favorito, tabelas e mapa da Roteirização, botões laranja com pouco contraste.

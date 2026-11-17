@@ -576,7 +576,7 @@ function openPlan(sp) {
 }
 
 /* ---------------- RELATÓRIO, COTAÇÃO, CSV ---------------- */
-const LOGO = () => $('.brand img').src;
+const LOGO = () => $('.brand img').src.replace('logo-claro.png', 'logo.png');
 function reportHTML() {
   stopAnim(true); renderer.render(scene, camera); const img = renderer.domElement.toDataURL('image/png');
   const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Plano de carga · ${mode === 'cat' ? 'Mostrar Catálogo' : mode === 'route' ? 'Roteirização' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}${LS.get('operador', '') ? ' · montado por ' + esc(LS.get('operador', '')) : ''}</span></div>`;

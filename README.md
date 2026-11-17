@@ -5,7 +5,7 @@
 ### Montagem de carga em 3D, peso por eixo, frete mínimo ANTT e consulta de empresas — num só lugar.
 
 <p>
-<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.22.2-f39a2b?style=for-the-badge">
+<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.22.3-f39a2b?style=for-the-badge">
 <img alt="Node" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
 <img alt="Sem frameworks" src="https://img.shields.io/badge/HTML%20%2B%20CSS%20%2B%20JS-sem%20frameworks-2f8cf2?style=for-the-badge">
 <img alt="Testes" src="https://img.shields.io/badge/testes-53%20passando-32c48d?style=for-the-badge">

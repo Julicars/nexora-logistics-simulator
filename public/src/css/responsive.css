@@ -182,7 +182,7 @@ fieldset.pcats legend{font-size:11.5px;color:var(--mut);padding:0 4px}
 .rstops .rbtns .btn{min-width:30px;padding:2px 6px}
 .rmapbox{margin:10px 0 6px}
 #rMap{height:240px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#0b1a33}
-#rMap svg{width:100%;height:100%;display:block}
+#rMap>svg{width:100%;height:100%;display:block}
 #rMapNote{font-size:12px;margin-top:3px}
 .rpin{background:#2f8cf2;color:#fff;border:2px solid #fff;border-radius:50%;font:800 12px/22px sans-serif;text-align:center;box-shadow:0 1px 4px #0008}
 .rpin.o{background:#f7a334;color:#1b1200}
@@ -503,13 +503,13 @@ input.masked{font-variant-numeric:tabular-nums}input.masked.money{text-align:rig
 @media (max-width:820px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}}
 /* ===== v47: tema claro ===== */
 body.light{--bg:#f3f5fa;--bg2:#ffffff;--panel:#ffffff;--line:#d5dbe8;--txt:#14203a;--mut:#56637f;--acc:#b45309;--blue:#1d6fd6;--ok:#0f8a5f;--bad:#c62828;--warn:#a15c00}
-body.light :is(input,select,textarea,.glass,.seg,.pcard,.ph,.photo,.thumb,.kpi div,.navmin,.sidemin,.axcard,.axopt,.navtoggle,.pcat-ck,.bodyseg button,.rstops li,.rkpis,.kpi,.rul,.axinfo,#moRows tr,details.vols,.edmode button,.axfix,#rFimSum,.retv,.impbox,.rgtbl th,.rgtbl tfoot td,.rgform,.secv,.perigv,.perigck,.perfil,.arrseg button,.axhud,.ekv,.ealert li,.eitem,.echip,.h-proof>div):not(.h-hero *):not(.gwrap *){background:#f6f8fc!important;color:var(--txt)}
+body.light :is(input,select,textarea,.glass,.seg,.pcard,.ph,.photo,.thumb,.kpi div,.navmin,.sidemin,.axcard,.axopt,.navtoggle,.pcat-ck,.bodyseg button,.rstops li,.rkpis,.kpi,.rul,.axinfo,#moRows tr,details.vols,.edmode button,.axfix,#rFimSum,.retv,.impbox,.rgtbl th,.rgtbl tfoot td,.rgform,.secv,.perigv,.perigck,.perfil,.arrseg button,.axhud,.ekv,.ealert li,.eitem,.echip,.h-proof>div):not(.gwrap *){background:#f6f8fc!important;color:var(--txt)}
 body.light .btn{background:#eef2f9;color:var(--txt)}body.light .btn.pri{background:var(--acc);color:#fff}
 body.light nav button:hover{background:#0000000a}body.light nav button.on{background:linear-gradient(90deg,#d9770622,transparent)}
 body.light .modal>.card,body.light .card{box-shadow:0 2px 10px #14203a14}
 body.light .gwrap,body.light .gbar{background:#0b1430;color:#e6ecf8}body.light .gwrap .mut{color:#9fb0d0}
 body.light #toast>div{background:#14203a;color:#fff}
-body.light .brand{background:#0a1122;border-radius:0 0 10px 10px}
+
 /* ===== v47: favoritos, carga leve, botão flutuante, dicas, busca no menu, calculadoras ===== */
 .favb{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#0b1430cc;color:#8a9bc0;cursor:pointer;font-size:16px;line-height:1}
 .favb.on{color:#f7a334;border-color:#f7a334}.favb.inl{position:static;width:28px;height:28px;margin-right:6px;vertical-align:middle}
@@ -521,22 +521,29 @@ body.light .brand{background:#0a1122;border-radius:0 0 10px 10px}
 .fxalvo{outline:3px solid var(--acc)!important;outline-offset:3px;border-radius:8px;position:relative;z-index:5}
 .fxnav{padding:4px 10px 0}.fxnav input{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .fxres{margin-top:6px}
-body.light .topbar{background:#0a1122;color:#e6ecf8}body.light .topbar .btn{background:#1b2c52;color:#e6ecf8}
+
 body.light .tchip{color:#3b2a0a!important;background:#fde7c4!important;border-color:#e0b46d!important}
 body.light .enc{color:#0b5e40!important}body.light .enc.warn,body.light .enc.bad{color:#7a2e00!important}
 
 /* v48: no tema claro, algumas áreas continuam escuras (3D, capa da Home, diagrama): lá dentro as cores voltam às do tema escuro */
-body.light :is(.h-hero,.hero,.gwrap){--bg:#0a1122;--bg2:#0f1a33;--panel:#121f3d;--line:#22345e;--txt:#e6ecf8;--mut:#9fb0d0;--acc:#f7a334;--blue:#5cb4ff;--ok:#32c48d;--bad:#ff7a7a;--warn:#ffc244;color:var(--txt)}
+body.light :is(.gwrap){--bg:#0a1122;--bg2:#0f1a33;--panel:#121f3d;--line:#22345e;--txt:#e6ecf8;--mut:#9fb0d0;--acc:#f7a334;--blue:#5cb4ff;--ok:#32c48d;--bad:#ff7a7a;--warn:#ffc244;color:var(--txt)}
 body.light #stage .glass{box-shadow:0 2px 8px #14203a1f}
-body.light .h-hero .btn:not(.pri){background:#eef2f9;color:#14203a}
+
 body.light .h-feats article{background:#fff;border-color:var(--line)}
 body.light .h-final{background:linear-gradient(90deg,#fde7c4,#e3efff)}
 body.light .qt th,body.light .rgtbl th,body.light .rgtbl tfoot td{background:#eef2f9!important;color:var(--txt)}
 body.light{--card:#ffffff}
 body.light .disp.facil{background:#dcfce7;color:#14532d}body.light .disp.medio{background:#fef3c7;color:#713f12}body.light .disp.dificil{background:#fee2e2;color:#7f1d1d}
-body.light :is(.h-hero,.hero) .btn.pri{background:#f7a334;color:#1b1200;border-color:#f7a334}
+
 /* v48: no tema claro, os brancos translúcidos do tema escuro viram cinzas suaves */
 body.light :is(td,.kv,.list>div,.plan-row){border-color:#e3e8f1}
 body.light :is(.chip,.num,.bar,.list>div:hover,.rgtbl tbody tr:nth-child(even),.acopt em){background:#eef2f9}
 body.light .favb{background:#ffffffe6;color:#94a3b8;border-color:#cbd5e1}body.light .favb.on{color:#b45309;border-color:#b45309}
-body.light #rMap{background:#dbe6f4}body.light #rMap svg>rect{fill:#dbe6f4}body.light #rMap svg path{fill:#f7f9fd;stroke:#9fb3d1}
+body.light #rMap{background:#dbe6f4}body.light #rMap>svg>rect{fill:#dbe6f4}body.light #rMap>svg path{fill:#f7f9fd;stroke:#9fb3d1}
+
+/* v49: capa da Home clara no tema claro */
+body.light .h-hero,body.light .hero{background:radial-gradient(900px 380px at 90% -10%,#2f8cf21f,transparent 60%),radial-gradient(600px 300px at -5% 110%,#f7a33424,transparent 60%),linear-gradient(180deg,#ffffff,#eef3fb)!important;border-color:var(--line)!important;box-shadow:0 4px 18px #14203a12}
+body.light .h-hero:before{background-image:linear-gradient(#14203a0a 1px,transparent 1px),linear-gradient(90deg,#14203a0a 1px,transparent 1px)!important}
+body.light .h-copy h1 span{background:linear-gradient(90deg,#c2410c,#b45309 45%,#1d6fd6);-webkit-background-clip:text;background-clip:text;color:transparent}
+body.light .h-chip rect{fill:#ffffff}body.light .h-c1{fill:#56637f!important}body.light .h-c2{fill:#14203a!important}
+body.light .h-hero svg [stroke="#e8eef8"]{stroke:#8a9bc0}body.light .h-hero svg [stroke="#e8eef8"][stroke-opacity]{stroke-opacity:.45}body.light .h-hero #hg-bx stop{stop-color:#b9c6dc}body.light .h-road>rect{fill:#9fb0cc}body.light .h-dash rect{fill:#b9c6dc}

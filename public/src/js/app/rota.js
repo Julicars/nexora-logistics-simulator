@@ -83,13 +83,16 @@ const RT = (function () {
     tilesOk = false; const img = new Image(); let done = false;
     const fin = ok => { if (done) return; done = true; tilesOk = ok; if (ok) drawMap(); };
     img.onload = () => fin(true); img.onerror = () => fin(false); setTimeout(() => fin(false), 6000);
-    img.referrerPolicy = 'no-referrer'; img.src = 'https://tile.openstreetmap.org/4/5/8.png';
+    img.src = 'https://a.basemaps.cartocdn.com/light_all/4/5/8.png';
   }
+  /* mapa claro ou escuro conforme o tema (CARTO, base OpenStreetMap; não exige referer como o tile.openstreetmap.org) */
+  let tiles = null; const tileUrl = () => `https://{s}.basemaps.cartocdn.com/${document.body.classList.contains('light') ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`;
+  window.temaMapa = () => { if (tiles) tiles.setUrl(tileUrl()); };
   function drawMap() {
     const box = q('#rMap'); if (!box) return;
     const p = pts(); const ri = routeInfo;
     if (tilesOk && window.L) {
-      if (!lmap) { box.innerHTML = ''; lmap = L.map(box, { zoomControl: true, attributionControl: true }); L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(lmap); llayer = L.layerGroup().addTo(lmap); }
+      if (!lmap) { box.innerHTML = ''; lmap = L.map(box, { zoomControl: true, attributionControl: true }); tiles = L.tileLayer(tileUrl(), { maxZoom: 18, subdomains: 'abcd', attribution: '© OpenStreetMap · © CARTO' }).addTo(lmap); lmap.attributionControl.setPrefix(false); llayer = L.layerGroup().addTo(lmap); }
       llayer.clearLayers();
       if (!p.length) { lmap.setView([-15, -52], 4); return; }
       if (ri) L.polyline(ri.geom, { color: '#f7a334', weight: 4, opacity: .9 }).addTo(llayer);
