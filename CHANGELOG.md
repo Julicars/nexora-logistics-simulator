@@ -2,6 +2,74 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.27.1] — 2026-11-17
+### Melhorado (celular)
+- Aba Combustíveis:
+  - As listas de postos, de mudanças de preço e de preços da Petrobras viram cartões empilhados no celular, com rótulos.
+  - A lista de postos mostra 30 por vez, com o botão "Mostrar mais".
+  - As abas de combustível ficam numa única linha com rolagem lateral.
+  - Os cartões aparecem em 2 colunas, e filtros e calculadora se ajustam à tela, sem rolagem lateral.
+  - O botão flutuante "Nova carga" fica oculto nessa aba, para não cobrir o conteúdo.
+- Correções:
+  - O número em negrito dentro do texto pequeno dos cartões não aparece mais gigante.
+  - Na lista de cidades, o nome e a UF não ficam mais grudados.
+- Todas as telas foram verificadas em 360 px de largura, sem estouro lateral.
+
+## [3.27.0] — 2026-11-17
+### Adicionado
+- **Preço da Petrobras automático** (`server/petrobras.js`):
+  - **Fonte principal:** os comunicados da Agência Petrobras, lidos 1 vez por dia e de hora em hora quando há alerta de petróleo ou dólar. O servidor extrai "passará de R$ X para R$ Y por litro" e a data de vigência; quando o comunicado traz só a variação (por exemplo, "em R$ 0,38"), também entende.
+  - **Conferência:** a Síntese Semanal de Preços da ANP (PDF). O servidor lê o preço de realização do diesel A e o PPI, mostra a defasagem e alerta quando ela passa de 10%.
+- **Validação automática:** faixa de valor, variação máxima de 30%, preço anterior citado no comunicado, data plausível e diferença de até 15% em relação à ANP. Se algo não bater, o preço fica **pendente**, com o motivo, um trecho do comunicado e os botões Confirmar e Descartar.
+- **Dedução:** se o diesel na bomba se mover R$ 0,15 ou mais em uma semana sem reajuste registrado, o sistema avisa que pode haver um anúncio não capturado.
+- **Painel de saúde das fontes:** última leitura de cada fonte, ok ou falha.
+- **Histórico com origem:** cada preço mostra se veio de comunicado ou de cadastro manual, com link para a fonte.
+- O cadastro manual continua disponível como reserva.
+- API: `POST /api/combustivel/petrobras/verificar`, `POST /petrobras/pendente/:id` (confirmar) e `DELETE /petrobras/pendente/:id` (descartar).
+
+## [3.26.1] — 2026-11-17
+### Adicionado
+- O preço da Petrobras agora aparece marcado como **ATUALIZAÇÃO MANUAL**.
+- O cartão da Petrobras ganhou o botão "ver como", que abre o cadastro.
+- O cadastro explica o que digitar e onde pegar o valor: Agência Petrobras e precos.petrobras.com.br.
+
+## [3.26.0] — 2026-11-17
+### Adicionado
+- Aba Combustíveis separada por combustível: **Diesel**, **Gasolina** (comum e aditivada), **Etanol** e **GNV**.
+- Cada aba mostra só os seus cartões, linhas do gráfico, ranking, postos, mudanças de preço e calculadora.
+- O painel de mercado (dólar, petróleo e Petrobras) e o ARLA aparecem só no Diesel.
+- A aba escolhida fica salva e pode ser trocada pelo teclado com as setas.
+- Servidor: `mudancas.porProd`, com as mudanças de preço separadas por combustível.
+
+## [3.25.0] — 2026-11-17
+### Adicionado
+- A aba agora se chama **Combustíveis** e cobre todos os combustíveis da pesquisa da ANP: diesel S-10, diesel S-500, gasolina comum, gasolina aditivada, etanol e GNV.
+- Isso vale para os cartões, o gráfico semanal (com todas as linhas), o ranking por estado e cidade, a lista de postos, o mapa, as mudanças de preço, o Excel e a calculadora.
+- Cartão "Etanol ou gasolina?" com a regra dos 70%.
+- Na calculadora, o combustível é escolhido e o ARLA só entra para diesel.
+
+## [3.24.0] — 2026-11-17
+### Adicionado
+- Painel **Mercado** na aba Diesel & Abastecimento:
+  - **Dólar:** PTAX do Banco Central (API oficial, atualizada por dia útil).
+  - **Brent:** em dólar, em reais por barril e em reais por litro (série diária da EIA via FRED, que chega com alguns dias de atraso).
+  - **Petrobras:** preço do diesel A às distribuidoras, que vem de comunicados; já vem com os anúncios de março e junho de 2026 e você cadastra os novos.
+- Gráfico "Quem puxa quem": índice base 100 com dólar, Brent em reais, preço da Petrobras e preço da bomba (ANP).
+- Composição estimada do litro do S-10: parcela da Petrobras e o restante.
+- Alertas quando o Brent em reais se move 5% em 7 dias ou 10% em 30 dias, ou quando o dólar se move 3% em 7 dias.
+- API: `GET /api/combustivel/mercado`, `POST /mercado/atualizar`, `POST /petrobras` e `DELETE /petrobras/:data`. O mercado é atualizado ao iniciar e a cada 6 h.
+
+## [3.23.0] — 2026-11-17
+### Adicionado
+- Nova aba **Diesel & Abastecimento** (menu Consultas): preço do diesel S-10 e S-500 por posto, cidade, estado e Brasil, com dados oficiais e gratuitos da ANP.
+- `server/combustivel.js`: confere a página da ANP ao iniciar e a cada 6 h e baixa só as semanas novas da planilha "preços por posto revendedor" (até 8 de uma vez, para formar o histórico). Guarda os dados em `data/combustivel`.
+- `server/xlsxler.js`: leitor de .xlsx sem dependências (zip + XML).
+- Médias, mínimo e máximo, gráfico de evolução semanal (Brasil ou UF), ranking por estado, as 10 cidades mais baratas e as 10 mais caras, e a variação de preço de cada posto em relação à semana anterior.
+- Lista de postos com filtros (UF, cidade, produto, ordem, busca), exportação para Excel e mapa. As coordenadas vêm da API Revendedores da ANP; sem coordenada, o posto aparece no centro da cidade.
+- Calculadora do custo de diesel e ARLA da viagem, que usa a média de preço do Brasil ou da UF e a distância da última rota.
+- Importação manual da planilha da ANP (.xlsx) para quando o site da ANP estiver fora do ar.
+- API: `/api/combustivel/{status,resumo,postos,municipios,geo}`, `POST /atualizar` e `POST /importar`.
+
 ## [3.22.3] — 2026-11-17
 ### Corrigido
 - **Mapa da Roteirização:** o OpenStreetMap passou a bloquear o acesso (“Access blocked”) e um ícone da biblioteca do mapa aparecia gigante (bandeira azul e amarela). Agora usa os mapas da CARTO (base OpenStreetMap), claro ou escuro conforme o tema, e o ícone foi removido.
