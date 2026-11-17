@@ -1,0 +1,14 @@
+# dependências e dados gerados ao rodar
+node_modules/
+data/
+*.log
+npm-debug.log*
+
+# sistema / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# pacotes gerados
+*.zip
