@@ -12,3 +12,6 @@ Thumbs.db
 
 # pacotes gerados
 *.zip
+
+# registro do envio automatico
+subir-auto.log

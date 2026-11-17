@@ -2,6 +2,12 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.22.1] — 2026-11-17 · versão final para o GitHub
+### Corrigido
+- Dicas da primeira vez: o balão continuava na tela ao trocar de página e cobria botões (ex.: “Excel” no Registro de fretes); agora fecha ao navegar e não abre duas vezes.
+### Adicionado
+- `subir-auto.bat`: envio automático para o GitHub (Windows), com registro em `subir-auto.log` (fora do Git).
+
 ## [3.22.0] — 2026-11-16 · v47
 ### Adicionado
 - **Duplicar plano** salvo · **cores por entrega** no 3D da Roteirização · **foto do 3D** para baixar/compartilhar · **mensagem pronta para o WhatsApp**.

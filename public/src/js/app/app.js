@@ -666,7 +666,7 @@ const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'car
 const MODE_OF = { rapida: 'quick', 'carga-catalogo': 'cat', rota: 'route' }, VIEW_OF = { quick: 'rapida', cat: 'carga-catalogo', route: 'rota' };
 function go(v, keepPlan) {
   if (!VIEWS.includes(v)) v = 'home';
-  const isExp = !!MODE_OF[v];
+  const isExp = !!MODE_OF[v]; if (typeof EXTRAS === 'object') EXTRAS.fecharDicas();
   document.body.classList.toggle('exp-on', isExp);
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v)); $('#exp').classList.toggle('on', isExp);
   $$('nav [data-go]').forEach(b => { const on = b.dataset.go === v || b.dataset.also === v; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });

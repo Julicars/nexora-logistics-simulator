@@ -161,8 +161,10 @@ const EXTRAS = (function () {
     ['#stage', 'Mexa no 3D', 'Arraste para girar a câmera. Toque num volume para mover, girar ou mandar para outro veículo.'],
     ['#fxBtns', 'Compartilhe', 'Foto da carga, mensagem pronta para o WhatsApp e modelos de carga que se repetem.']
   ];
+  let tipFim = null; /* tour aberto: função que fecha */
+  const fecharDicas = () => { if (tipFim) tipFim(); };
   function dicas(forcar) {
-    if (!forcar && LS.get('dicasOk', false)) return; let i = 0;
+    if ((!forcar && LS.get('dicasOk', false)) || tipFim) return; let i = 0;
     const box = document.createElement('div'); box.className = 'fxtip'; box.setAttribute('role', 'dialog'); box.setAttribute('aria-live', 'polite'); document.body.appendChild(box);
     const L = PASSOS.filter(x => q(x[0]) && q(x[0]).offsetParent);
     const mostra = () => {
@@ -173,7 +175,7 @@ const EXTRAS = (function () {
       const H = box.offsetHeight, alto = Math.min(r.bottom, innerHeight) + 10, top = alto + H < innerHeight - 10 ? alto : r.top - H - 10 > 10 ? r.top - H - 10 : innerHeight - H - 10; box.style.top = Math.max(10, top) + 'px'; if (!document.activeElement || document.activeElement === document.body) box.querySelector('[data-tip=ok]').focus({ preventScroll: true });
     };
     const limpa = () => qa('.fxalvo').forEach(e => e.classList.remove('fxalvo'));
-    const fim = () => { limpa(); box.remove(); LS.set('dicasOk', true); };
+    const fim = () => { limpa(); box.remove(); LS.set('dicasOk', true); tipFim = null; }; tipFim = fim;
     box.onclick = e => { const b = e.target.closest('[data-tip]'); if (!b) return; limpa(); if (b.dataset.tip === 'pular') return fim(); i++; mostra(); };
     box.onkeydown = e => { if (e.key === 'Escape') fim(); };
     setTimeout(mostra, 400);
@@ -208,5 +210,5 @@ const EXTRAS = (function () {
   }, true);
 
   aplicaTema(); buscaMenu(); fab(); botoes(); configs();
-  return { isFav, ordFav, corEntrega, cargaLeve, avisoLeve, botoesCabe, foto, whatsapp, abrirModelos, calculadoras, dicas, duplicar, resumoTexto, botoes };
+  return { fecharDicas, isFav, ordFav, corEntrega, cargaLeve, avisoLeve, botoesCabe, foto, whatsapp, abrirModelos, calculadoras, dicas, duplicar, resumoTexto, botoes };
 })();
