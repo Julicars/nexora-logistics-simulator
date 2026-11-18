@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="public/src/img/logo.png" alt="NEXORA Logistics Intelligence" width="320">
+<img src="public/src/img/logo.webp" alt="NEXORA Logistics Intelligence" width="320">
 
 ### Montagem de carga em 3D, peso por eixo, frete mínimo ANTT e consulta de empresas — num só lugar.
 
 <p>
-<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.27.1-f39a2b?style=for-the-badge">
+<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.30.0-f39a2b?style=for-the-badge">
 <img alt="Node" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
 <img alt="Sem frameworks" src="https://img.shields.io/badge/HTML%20%2B%20CSS%20%2B%20JS-sem%20frameworks-2f8cf2?style=for-the-badge">
 <img alt="Testes" src="https://img.shields.io/badge/testes-53%20passando-32c48d?style=for-the-badge">
@@ -108,6 +108,23 @@ Ou **sem instalar nada**: abra `public/index.html` no navegador. Na Home, toque 
 
 ---
 
+## 👥 Clientes e roteirização automática
+
+- **Clientes:** cadastre pelo CNPJ ou pelo CEP e o endereço vem pronto. Na rota, basta digitar o nome do cliente.
+- **Roteirização:** cole a lista de entregas, escolha vários clientes ou digite CEPs. Cada entrega mostra clima (Open-Meteo), feriado nacional e estadual, e horário e agendamento do cliente.
+- **Pedágio:** mostra as praças federais concedidas no caminho, com dados abertos da ANTT.
+- **Piso ANTT:** avisa quando o diesel passa do gatilho de reajuste de 5%.
+- **Calculadoras:** correção de valores pelo IPCA, com dados do Banco Central.
+
+## ☁️ Dados no servidor, link do motorista e relatórios
+
+- **Sincronização:** com o servidor, os dados ficam iguais no PC e no celular. Outros aparelhos pedem a **chave de acesso** uma vez.
+- **Backup:** automático todo dia, e você também baixa e restaura pela tela de Configurações.
+- **Link do motorista:** no celular, o motorista marca as entregas e manda a foto do canhoto; o escritório acompanha.
+- **Saúde do sistema:** mostra se todas as atualizações automáticas estão funcionando.
+- **Relatórios:** frete por mês, R$/km comparado ao diesel, destinos e transportadoras.
+- **Publicar na internet:** veja [DEPLOY.md](DEPLOY.md).
+
 ## ⛽ Combustíveis & Abastecimento
 
 Preços oficiais da ANP para diesel S-10 e S-500, gasolina comum e aditivada, etanol e GNV, com atualização **semanal** sobre uma amostra de cerca de 400 municípios, baixados sozinhos pelo servidor (`npm start`). A aba mostra:
@@ -151,6 +168,8 @@ Para desligar a busca automática, use `NEXORA_COMBUSTIVEL=off`.
 | ![Etiquetas](docs/etiquetas-qr.webp) **Etiquetas com QR Code** — 8 por folha A4 | ![Perigosos](docs/produtos-perigosos.webp) **Produtos perigosos** — rótulo, painel e lembrete |
 | ![Produtos](docs/produtos.webp) **Cadastro de produtos** | ![Veículos](docs/veiculos.webp) **Frota** — eixos e carroceria |
 | ![Concluir](docs/roteirizacao-concluir.webp) **Concluir** — o que sai em cada entrega | ![Configurações](docs/configuracoes.webp) **Configurações** — acessibilidade, backup e tabela ANTT |
+| ![Combustíveis](docs/combustivel.webp) **Combustíveis** — diesel, gasolina, etanol e GNV (ANP), dólar, Brent e Petrobras | ![Clientes](docs/clientes.webp) **Clientes** — CNPJ e CEP preenchem o endereço |
+| ![Saúde](docs/saude.webp) **Saúde do sistema** — situação das fontes automáticas | <img src="docs/motorista.webp" width="240" alt="Motorista"> <img src="docs/roteirizacao-entregas.webp" width="200" alt="Entregas"> **Motorista e entregas** — link no celular, clima e feriados |
 
 </details>
 
@@ -293,6 +312,8 @@ nexora/
 ├─ server/            index.js (HTTP + APIs) · forum.js · fretes.js · empresas.js · fontes.js
 ├─ test/              engine · carga · palete · empresas · fretes · forum  (53 testes)
 ├─ docs/              capturas (WebP), demo.gif e demo.mp4
+├─ DEPLOY.md          como publicar (hospedagem Node.js, VPS, domínio, HTTPS)
+├─ SEGURANCA.md       proteções e cuidados ao publicar
 └─ public/
    ├─ index.html · manifest.webmanifest · sw.js (app instalável e offline)
    └─ src/

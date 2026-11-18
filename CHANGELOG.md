@@ -2,6 +2,96 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.30.0] — 2026-11-17
+### Segurança
+- **CSRF:** alterações na API só são aceitas vindas da própria origem.
+- **Força bruta:** 10 chaves erradas em 15 min bloqueiam o IP por 15 min.
+- **Novo `NEXORA_EXIGIR_CHAVE=1`:** passa a pedir a chave também no localhost.
+- **Cabeçalhos:**
+  - `Permissions-Policy` e `Cross-Origin-Opener-Policy`.
+  - HSTS quando o acesso é por HTTPS.
+  - CSP com `object-src 'none'`, `base-uri`, `form-action` e `frame-ancestors`.
+- **Arquivos:**
+  - Arquivos ocultos bloqueados no servidor de arquivos.
+  - `chave.txt` gravado com permissão 600.
+- Novo guia `SEGURANCA.md`. O DEPLOY.md agora recomenda o cron com a chave no cabeçalho.
+- Novo teste de segurança: CSRF, arquivos ocultos, bloqueio por tentativas e chave obrigatória.
+### Arquivos menores
+- `docs/`: 4,8 MB → 3,5 MB.
+  - Vídeo MP4: 1,6 MB → 0,95 MB.
+  - GIF: 2,2 MB → 1,4 MB.
+  - Capturas recomprimidas.
+- **Logos** em WebP na página (44 + 32 KB → 18 + 18 KB). O `logo.png` continua só para o ícone do app.
+- **Municípios** sem o "|0" repetido (194 → 183 KB).
+- **Espaços em branco** sobrando removidos.
+### Documentação
+- Cabeçalhos explicativos em todos os testes e na folha de estilo do motorista; comentários nos pontos de segurança do servidor.
+- README com novas capturas: Combustíveis, Clientes, Saúde do sistema, motorista e entregas.
+
+## [3.29.1] — 2026-11-17
+### Melhorado
+- Saúde do sistema: o aviso "Atenção" de preço da Petrobras para confirmar agora aparece na própria tela, com o motivo, o link do comunicado e os botões Confirmar e Descartar.
+- Mais detalhes em cada fonte: número de praças de pedágio, último IPCA, quantidade de feriados e preço de refinaria da síntese ANP.
+
+## [3.29.0] — 2026-11-17
+### Adicionado
+- **Dados no servidor** (`server/dados.js` + `core/sync.js`):
+  - Produtos, frota, planos, clientes, regras e preferências são sincronizados entre aparelhos; vale a versão salva por último.
+  - Sem servidor, tudo continua funcionando no navegador.
+- **Chave de acesso:**
+  - Gerada na primeira execução (aparece no terminal e fica em `data/chave.txt`) ou definida em `NEXORA_CHAVE`.
+  - Acesso pelo próprio computador não pede chave; outros aparelhos pedem uma vez.
+  - Protege `/api/dados`, `/api/fretes`, `/api/transportes`, `/api/viagens`, `/api/cron` e as alterações em `/api/combustivel`.
+- **Backup:**
+  - Automático, 1 por dia, guardando 30 (`data/backups`).
+  - Em Configurações: "Baixar backup completo" e "Restaurar backup". Antes de restaurar, o estado atual é salvo.
+- **Saúde do sistema:** nova tela com a situação de cada fonte automática (ANP, dólar, Brent, Petrobras, síntese ANP, pedágio, IPCA, feriados e backup), teste pelo navegador (clima, CEP, rota, CNPJ) e o botão "Testar tudo agora".
+- **Hospedagem:**
+  - `/api/cron?chave=…` roda todas as tarefas, para hospedagens que "dormem".
+  - Guia `DEPLOY.md` para hospedagem Node.js e para VPS (PM2, Nginx, HTTPS e domínio).
+- **Custo estimado da viagem** (aba Frete):
+  - Diesel pela média ANP da UF de origem, com consumo editável; ARLA; pedágio federal; valores adicionais.
+  - Comparação com o piso ANTT.
+- **Horário de recebimento:**
+  - Nova hora de saída da viagem.
+  - Chegada estimada em cada entrega (direção + 40 min por parada), com aviso quando cai fora do horário do cliente.
+- **Link do motorista** (`motorista.html` + `server/viagens.js`):
+  - **Para o motorista:** entregas na ordem, mapa, botão de ligar, "Entregue" (com recebedor, foto do canhoto e GPS) e "Problema".
+  - **No escritório:** acompanhamento a cada 30 s e envio pelo WhatsApp.
+  - Viagens apagadas após 120 dias.
+- **Relatórios:**
+  - Frete por mês, custo por km comparado ao diesel S-10, frete por tonelada e percentual acima do piso.
+  - Destinos e transportadoras ou clientes mais frequentes, entregas feitas pelo link do motorista, exportação para Excel.
+- **Mais leve:** o mapa (Leaflet) e o gerador de QR Code só são baixados quando usados (cerca de 200 KB a menos na abertura).
+
+## [3.28.0] — 2026-11-17
+### Adicionado
+- **Cadastro de clientes** (menu Cadastro → Clientes):
+  - Pelo CNPJ, o sistema busca razão social, endereço, telefone e e-mail na Receita. Pelo CEP, preenche o endereço (ViaCEP, com a BrasilAPI de reserva).
+  - Também guarda contato, horário de recebimento, se exige agendamento, restrição a veículo grande e observações.
+  - Busca, exportação para Excel e importação de CSV.
+  - Botão "Usar em rota".
+- **Roteirização mais fácil:**
+  - **Entregas:**
+    - Nome do cliente com autocompletar: escolhendo um cliente cadastrado, cidade, endereço e CEP vêm prontos.
+    - CEP em cada entrega, que preenche a cidade sozinho.
+    - "👥 Escolher clientes", para adicionar vários de uma vez.
+    - "📋 Colar lista": uma entrega por linha, com cliente, cidade ou CEP; aceita colar do Excel.
+  - **Viagem:**
+    - Data de saída e data de cada entrega.
+    - "⭐ Origem padrão", que preenche sozinho o remetente e a origem.
+- **Clima na rota:** previsão do Open-Meteo para cada entrega no dia (até 16 dias), com avisos de chuva forte, vento e calor.
+- **Feriados:**
+  - Nacionais pela BrasilAPI, com cache no servidor e reserva fixa.
+  - Estaduais de data fixa, numa lista do próprio sistema.
+  - Aviso na saída e em cada entrega; os domingos também são avisados.
+- **Pedágio:**
+  - Praças das rodovias federais concedidas no traçado real da rota (ANTT, dados abertos, atualização semanal).
+  - Estimativa do custo pelos eixos do veículo, com a tarifa média por eixo opcional e salva.
+- **Gatilho do piso ANTT:** compara o diesel S-10 atual (ANP) com o diesel de referência da tabela (R$ 7,33, Portaria SUROC 22/2026). Avisa quando a variação chega a 5% (Lei 13.703/2018, art. 5º, §3º) na Roteirização e na aba Combustíveis → Diesel.
+- **Calculadora de correção pela inflação (IPCA)** nas Calculadoras, com dados do Banco Central (SGS 433).
+- API: `/api/servicos/{pedagio,ipca,feriados/:ano}`, com cache em disco e uso do último dado bom quando a fonte cai.
+
 ## [3.27.1] — 2026-11-17
 ### Melhorado (celular)
 - Aba Combustíveis:
