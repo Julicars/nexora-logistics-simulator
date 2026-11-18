@@ -1,3 +1,5 @@
+/* Testes — registro de fretes (empregador e transportador): criar, editar, apagar e limites.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 const test = require('node:test'), assert = require('node:assert'), os = require('os'), fs = require('fs'), path = require('path');
 const { createServer } = require('../server/index.js');

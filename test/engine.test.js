@@ -1,3 +1,5 @@
+/* Testes — motor de montagem de carga: encaixe, pesos por eixo, regras e veículos extras.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
@@ -134,10 +136,6 @@ test('carroceria aberta: altura útil = 4,40 m menos o assoalho; carga máx. pes
   assert.equal(byName('Truck 10.4m').max, 14000);
   assert.ok(NX.vehMaxCargo(byName('Truck 10.4m')) <= 14000);
 });
-
-
-
-
 
 test('padrão: começa na cabine, fileiras juntas, eixos dentro da tolerância legal', () => {
   const car = NX.FLEET0.find(v => v.cat === 'Carreta' && v.L > 15);

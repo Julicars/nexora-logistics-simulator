@@ -1,3 +1,5 @@
+/* Testes — preço Petrobras automático: leitura de comunicados, síntese ANP em PDF e validação.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 const test = require('node:test'), assert = require('node:assert'), zlib = require('zlib'), fs = require('fs'), os = require('os'), path = require('path');
 const PB = require('../server/petrobras'), { createServer } = require('../server/index');
 

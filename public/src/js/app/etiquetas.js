@@ -28,7 +28,8 @@ const ETQ = (function () {
     }));
     return out;
   }
-  function print() {
+  async function print() {
+    if (typeof qrcode === 'undefined') { try { await NXLOAD('src/vendor/qrcode/qrcode.js'); await NXLOAD('src/vendor/qrcode/qrcode_UTF8.js'); } catch (e) { return toast('Não foi possível carregar o gerador de QR Code.', true); } }
     const L = labels(); if (!L) return;
     const pages = []; for (let i = 0; i < L.length; i += 8) pages.push(`<div class="etq-page">${L.slice(i, i + 8).join('')}</div>`);
     showPrint(`<style>.etq-page{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:66mm;gap:3mm;break-after:page;font-family:system-ui,sans-serif;color:#000}.etq-page:last-child{break-after:auto}

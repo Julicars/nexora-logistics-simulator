@@ -41,11 +41,16 @@
     <div class="grid" style="gap:8px">
      <label class="f">Nome do remetente<input id="rSender" maxlength="120" placeholder="Ex.: Sua empresa"></label>
      <label class="f">Cidade de origem<input id="rOrig" class="cityac" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" placeholder="Digite a cidade (ex.: Campinas - SP)" aria-describedby="rOrigMsg"></label>
+     <label class="f">Data de saída<input id="rSaida" type="date"></label>
+     <label class="f">Hora de saída<input id="rHora" type="time" value="07:00"></label>
      <small id="rOrigMsg" class="mut"></small>
+     <div class="rorigbt"><button type="button" class="btn sm" id="rOrigPad" title="Guarda remetente e origem para preencher sozinho nas próximas rotas">⭐ Salvar como origem padrão</button><span id="rSaidaInfo" class="mut" aria-live="polite"></span></div>
     </div>
     <h3 class="rh">Entregas <small class="mut">(a ordem é a sequência de descarga)</small></h3>
     <ol id="rStops" class="rstops" aria-label="Entregas na ordem de descarga"></ol>
-    <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" id="rAdd">+ Adicionar entrega</button><button class="btn sm" id="rOpt" title="Reordena pela menor distância total a partir da origem">↯ Sugerir melhor ordem</button></div>
+    <div class="raddbar"><button class="btn sm pri" id="rAdd">+ Adicionar entrega</button><button class="btn sm" id="rAddCli">👥 Escolher clientes</button><button class="btn sm" id="rCola">📋 Colar lista</button><button class="btn sm" id="rOpt" title="Reordena pela menor distância total a partir da origem">↯ Sugerir melhor ordem</button></div>
+    <small class="mut rdica">Dica: digite o nome de um cliente cadastrado, um CEP ou a cidade. O NEXORA completa o resto e mostra clima e feriado do dia da entrega.</small>
+    <datalist id="rCliList"></datalist>
     <div id="rMapBox" class="rmapbox"><div id="rMap" role="img" aria-label="Mapa da rota"></div><div id="rMapNote" class="mut"></div></div>
     <div id="rSum"></div>
     <div class="wiznav"><span></span><button class="btn pri" data-wiz="pedido">Próximo: Carga →</button></div>
@@ -67,6 +72,7 @@
      <div id="rEixos" aria-labelledby="rEixosLbl" aria-live="polite"></div>
      <p id="rEixosInfo" class="mut axinfo" hidden>Eixo é cada linha de rodas que encosta no chão. Conte todas as linhas de rodas do conjunto (cavalo + carreta), inclusive a dianteira e eixos suspensos. Ex.: cavalo trucado (3 eixos) + carreta de 3 eixos = 6 eixos. O número vem automático do veículo escolhido no Pedido; para mudar, use "Trocar eixos" lá. Vans e furgões até 3,5 t são veículos de pequeno porte e não entram na tabela por eixos.</p>
     </div>
+    <div id="rGatilho"></div>
     <div id="rAntt" class="card" style="padding:12px;margin-top:8px"></div>
     <div class="pf-trp">
     <h3 class="rh">Valores adicionais</h3>
@@ -74,6 +80,7 @@
     <div id="rXPre" class="xpre"></div>
     <div id="rExtras"></div>
     <div id="rTotal" class="card rtotal"></div>
+    <div id="rCusto" class="card rtotal" style="margin-top:8px"></div>
     <h3 class="rh">CT-e: valores da prestação</h3>
     <form id="tpForm" class="rgform" novalidate>
      <div class="grid g2" style="gap:8px"><label class="f">Cliente (embarcador)<input id="tpCli" maxlength="120"></label><label class="f">Data<input id="tpDt" type="date"></label></div>
@@ -115,6 +122,8 @@
     <div id="rFimSum"></div>
     <h3 class="rh">O que sai em cada entrega</h3>
     <div id="rUnload"></div>
+    <h3 class="rh">📲 Acompanhar entregas pelo motorista</h3>
+    <div id="rViagem" class="card" style="padding:12px"></div>
     <h3 class="rh">Finalizar</h3>
     <div class="fimgrid"><button class="btn" data-goto="calc">📊 Resultado do carregamento</button><button class="btn" data-goto="desc">📋 Plano de carga e descarga</button><button class="btn" id="rDriver">🖨 Folha do motorista (por entrega)</button><button class="btn" id="rLabels">🏷 Etiquetas com QR Code</button><button class="btn" data-goto="cot">💲 Cotação (A4)</button><button class="btn pri" data-goto="exp2">💾 Salvar / exportar</button></div>
     <div class="wiznav"><button class="btn" data-wiz="frete">← Frete</button><span></span></div>

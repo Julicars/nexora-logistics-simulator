@@ -118,12 +118,20 @@ const EXTRAS = (function () {
       <div id="fxCubR" class="fxres" aria-live="polite"></div>
       <h3 style="margin:16px 0 6px;font-size:16px">Conversor de unidades</h3>
       <div class="taragrid" id="fxConv"><label class="f">Valor<input inputmode="decimal" name="v" value="1"></label><label class="f">De<select name="u">${Object.keys(UN).map(k => `<option value="${k}">${UN[k][2]}</option>`).join('')}</select></label></div>
-      <div id="fxConvR" class="fxres" aria-live="polite"></div>`);
+      <div id="fxConvR" class="fxres" aria-live="polite"></div>
+      <h3 style="margin:16px 0 6px;font-size:16px">Correção pela inflação (IPCA)</h3>
+      <div class="taragrid" id="fxIpca"><label class="f">Valor antigo (R$)<input inputmode="decimal" name="v" value="1000"></label><label class="f">Mês do valor<input type="month" name="m" value="${new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 7)}"></label></div>
+      <div id="fxIpcaR" class="fxres" aria-live="polite"><span class="mut">Calculando…</span></div>`);
     const cub = () => { const f = Object.fromEntries([...q('#fxCub').querySelectorAll('[name]')].map(e => [e.name, e.value])); const m3u = n(f.l) * n(f.w) * n(f.h), m3 = m3u * Math.max(0, Math.round(n(f.q))), kg = n(f.kg) * Math.round(n(f.q)), cb = m3 * n(f.f);
       q('#fxCubR').innerHTML = `<div class="kv"><span>Volume</span><b>${fmt(m3, 3)} m³ <small class="mut">(${fmt(m3u, 4)} m³ cada)</small></b></div><div class="kv"><span>Peso real</span><b>${fmt(kg, 1)} kg</b></div><div class="kv"><span>Peso cubado</span><b>${fmt(cb, 1)} kg</b></div><div class="kv"><span>Cobrar pelo</span><b class="${cb > kg ? 'warn' : 'ok'}">${cb > kg ? 'peso cubado' : 'peso real'} — ${fmt(Math.max(cb, kg), 1)} kg</b></div><div class="kv"><span>Densidade</span><b>${m3 ? fmt(kg / m3, 0) : '—'} kg/m³</b></div>`; };
     const conv = () => { const v = n(q('#fxConv [name=v]').value), u = UN[q('#fxConv [name=u]').value], base = v * u[0];
       const alvo = Object.entries(UN).filter(([, x]) => x[1] === u[1]); q('#fxConvR').innerHTML = alvo.map(([k, x]) => `<div class="kv"><span>${x[2]}</span><b>${fmt(base / x[0], x[1] === 'm' && x[0] < 0.01 ? 1 : 4)}</b></div>`).join(''); };
     q('#fxCub').oninput = cub; q('#fxCub').onchange = cub; q('#fxConv').oninput = conv; q('#fxConv').onchange = conv; cub(); conv();
+    const ipc = async () => { const el = q('#fxIpcaR'), v = n(q('#fxIpca [name=v]').value), m = q('#fxIpca [name=m]').value; if (!el) return; if (!(v > 0) || !m) { el.innerHTML = '<span class="mut">Informe valor e mês.</span>'; return; }
+      try { const r = await SV.corrigir(v, m); const mm = x => x.split('-').reverse().join('/');
+        el.innerHTML = r.meses ? `<div class="kv"><span>Valor corrigido</span><b>${brl(r.valor)}</b></div><div class="kv"><span>Inflação no período</span><b>${fmt(r.pct, 2)}%</b></div><small class="mut">IPCA de ${mm(m)} até ${mm(r.ate)} (${r.meses} meses, último publicado pelo Banco Central). Serve para reajustar fretes e contratos.</small>` : `<span class="mut">Ainda não há IPCA publicado depois de ${mm(m)} (último: ${mm(r.ultimo)}).</span>`; }
+      catch (e) { el.innerHTML = '<span class="bad">Não foi possível buscar o IPCA no Banco Central agora.</span>'; } };
+    if (q('#fxIpca')) { q('#fxIpca').oninput = ipc; q('#fxIpca').onchange = ipc; ipc(); }
   }
   /* fator para a unidade base (m, kg, m³) · grandeza · nome */
   const UN = { m: [1, 'm', 'metro (m)'], cm: [0.01, 'm', 'centímetro (cm)'], mm: [0.001, 'm', 'milímetro (mm)'], pol: [0.0254, 'm', 'polegada (in)'], pe: [0.3048, 'm', 'pé (ft)'],
@@ -131,12 +139,12 @@ const EXTRAS = (function () {
     m3: [1, 'm3', 'metro cúbico (m³)'], l: [0.001, 'm3', 'litro (L)'], ft3: [0.0283168, 'm3', 'pé cúbico (ft³)'] };
 
   /* ---------- tema claro ---------- */
-  /* logo: versão com letras escuras no tema claro (src/img/logo-claro.png) */
-  function trocaLogo() { const cl = document.body.classList.contains('light'); qa('img[src*="logo"]').forEach(i => { const s = i.getAttribute('src'); if (!/logo(-claro)?\.png/.test(s)) return; const n = cl ? s.replace(/logo\.png/, 'logo-claro.png') : s.replace(/logo-claro\.png/, 'logo.png'); if (n !== s) i.setAttribute('src', n); }); }
+  /* logo: versão com letras escuras no tema claro (src/img/logo-claro.webp) */
+  function trocaLogo() { const cl = document.body.classList.contains('light'); qa('img[src*="logo"]').forEach(i => { const s = i.getAttribute('src'); if (!/logo(-claro)?\.webp/.test(s)) return; const n = cl ? s.replace(/logo\.webp/, 'logo-claro.webp') : s.replace(/logo-claro\.webp/, 'logo.webp'); if (n !== s) i.setAttribute('src', n); }); }
   const aplicaTema = () => { document.body.classList.toggle('light', LS.get('tema', 'escuro') === 'claro'); if (typeof temaCena === 'function') temaCena(); if (window.temaMapa) temaMapa(); if (window.temaMapaComb) temaMapaComb(); trocaLogo(); };
 
   /* ---------- busca no menu ---------- */
-  const PALAVRAS = { home: 'inicio painel', 'carga-catalogo': 'catalogo pedido montar', rapida: 'montagem rapida 3d simular carga', rota: 'rota roteirizacao entrega frete antt piso mapa', produtos: 'produto cadastro item regra', frota: 'veiculo frota caminhao carreta eixo', montagens: 'planos salvos montagem historico', fretes: 'registro empregador frete nfe', transportes: 'registro transportador cte', empresas: 'empresa cnpj socio pessoa consulta risco', forum: 'forum duvida comunidade', config: 'configuracoes backup tema acessibilidade antt tabela', contato: 'contato suporte', sobre: 'sobre' };
+  const PALAVRAS = { home: 'inicio painel', 'carga-catalogo': 'catalogo pedido montar', rapida: 'montagem rapida 3d simular carga', rota: 'rota roteirizacao entrega frete antt piso mapa clima feriado pedagio', clientes: 'clientes cadastro destinatario cnpj cep endereco', combustivel: 'combustivel diesel gasolina etanol gnv preco anp petrobras dolar', produtos: 'produto cadastro item regra', frota: 'veiculo frota caminhao carreta eixo', montagens: 'planos salvos montagem historico', fretes: 'registro empregador frete nfe', transportes: 'registro transportador cte', empresas: 'empresa cnpj socio pessoa consulta risco', forum: 'forum duvida comunidade', config: 'configuracoes backup tema acessibilidade antt tabela', contato: 'contato suporte', sobre: 'sobre' };
   const sem = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function buscaMenu() {
     const nav = q('aside nav'); if (!nav || q('#fxNav')) return;

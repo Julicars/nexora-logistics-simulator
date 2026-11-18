@@ -1,3 +1,5 @@
+/* Testes — fórum: tópicos, respostas, moderação e senha de administrador.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 const test = require('node:test'), assert = require('node:assert'), os = require('os'), fs = require('fs'), path = require('path');
 process.env.NEXORA_ADMIN_SENHA = 'teste-123';

@@ -39,6 +39,22 @@ const DB = {
   },
   async deleteProduct(id) { LS.set('products', (await this.listProducts()).filter(p => p.id !== id)); return { ok: true }; },
 
+  /* ---- clientes ---- */
+  async listClients() { return LS.get('clientes', []); },
+  async saveClient(c) {
+    const list = await this.listClients(), e = [];
+    const x = { ...c, id: c.id || localId('c'), nome: String(c.nome || '').trim(), doc: String(c.doc || '').replace(/\D/g, ''), atualizado: new Date().toISOString() };
+    if (!x.nome) e.push('Informe o nome do cliente.');
+    if (x.doc && x.doc.length !== 11 && x.doc.length !== 14) e.push('CPF/CNPJ inválido (11 ou 14 dígitos).');
+    if (x.doc && list.some(o => o.doc === x.doc && o.id !== x.id)) e.push('Já existe um cliente com este CPF/CNPJ.');
+    if (e.length) throw new ApiError(e.join(' '), 400, e);
+    const i = list.findIndex(o => o.id === x.id); if (i >= 0) list[i] = x; else list.push(x);
+    list.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    if (!LS.set('clientes', list)) throw new ApiError('Sem espaço no navegador para salvar.', 507);
+    return x;
+  },
+  async deleteClient(id) { LS.set('clientes', (await this.listClients()).filter(c => c.id !== id)); return { ok: true }; },
+
   /* ---- veículos ---- */
   async listVehicles() {
     let l = LS.get('vehicles', null) || JSON.parse(JSON.stringify(NX.FLEET0));

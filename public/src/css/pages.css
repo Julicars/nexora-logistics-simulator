@@ -81,7 +81,6 @@ body.rm .h-pallets .pl{animation:none;opacity:1}body.rm .h-dash,body.rm .h-chip,
 .cbcalc{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
 .cbcalcout .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line)}
 .cbcalcout .cbtot b{font-size:18px;color:var(--acc)}
-#v-combustivel .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media (max-width:560px){.cbuf{grid-template-columns:28px 1fr 70px}.cbuf small{display:none}.cbmapa{height:320px}}
 .cbmerc{margin-bottom:12px}.cbh3{font-size:14px;margin:0 0 6px}
 .cbalerta{padding:8px 12px;border-radius:8px;margin-bottom:8px;font-size:13px;border:1px solid}
@@ -128,3 +127,31 @@ body.rm .h-pallets .pl{animation:none;opacity:1}body.rm .h-dash,body.rm .h-chip,
   body:has(#v-combustivel.on) .fxfab{display:none}
 }
 .cbcalc>*{min-width:0}.cbcalc input,.cbcalc select{width:100%;min-width:0;box-sizing:border-box}
+/* Clientes */
+.clhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.clbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.clbar input[type=search]{flex:1 1 240px}
+.clform{margin-bottom:12px}.clgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}.clgrid>*{min-width:0}.clgrid input,.clgrid textarea{width:100%;box-sizing:border-box}
+.clwide{grid-column:1/-1}.clin{display:flex;gap:4px}.clin input{flex:1;min-width:0}.clchk{flex-direction:row!important;align-items:center;gap:6px;display:flex}
+.cllist{list-style:none;margin:0;padding:0;display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))}
+.clitem{display:flex;flex-direction:column;gap:4px}.clinfo{font-size:13px}.clbt{margin-top:4px}
+.cltag{font-size:11px;border:1px solid var(--line);border-radius:12px;padding:1px 7px;white-space:nowrap}
+@media (max-width:640px){.clgrid{grid-template-columns:1fr 1fr}.clbt .btn{flex:1}}
+/* Roteirização — entregas mais fáceis */
+.rrow{display:grid;grid-template-columns:1fr 1fr;gap:4px}.rrow>*{min-width:0}
+.rinfo{display:flex;flex-wrap:wrap;gap:4px}.rchip{font-size:11.5px;border:1px solid var(--line);border-radius:12px;padding:2px 8px;line-height:1.4}
+.rchip.bad{border-color:#ef4444;color:#fca5a5}.rchip.warn{border-color:#f59e0b;color:#fcd34d}
+body.light .rchip.bad{color:#b91c1c}body.light .rchip.warn{color:#92400e}
+.raddbar{display:flex;gap:6px;flex-wrap:wrap}.rdica{display:block;margin:6px 0}
+.rpanel{margin:8px 0;padding:10px;display:flex;flex-direction:column;gap:6px}.rpanel textarea{width:100%;box-sizing:border-box}
+.rclil{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:4px}.rclil label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.rorigbt{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rped{margin-top:8px}.rpedd summary{cursor:pointer}.rpedl{margin:6px 0;padding-left:20px;font-size:13px}.rpedt{margin:6px 0}.rpedt input{max-width:160px}
+.rgat{font-size:12.5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;margin:8px 0}
+@media (max-width:640px){.raddbar .btn{flex:1 1 45%}}
+.nxkey{position:fixed;inset:0;z-index:200;background:#000a;display:grid;place-items:center;padding:16px}.nxkeyc{max-width:420px;width:100%}
+/* viagem / motorista no escritório */
+.vgtop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}.vgprog{flex:1 1 120px;height:8px;background:var(--line);border-radius:5px;overflow:hidden}.vgprog i{display:block;height:100%;background:#22c55e}
+.vglink{display:flex;gap:6px;margin-bottom:8px}.vglink input{flex:1;min-width:0}
+.vglist{list-style:none;margin:0 0 8px;padding:0;display:flex;flex-direction:column;gap:6px}.vglist li{display:flex;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}.vglist .vg-entregue{border-color:#16a34a}.vglist .vg-problema{border-color:#f59e0b}
+.rcinl input{width:62px;padding:2px 4px}
+.rlbar{fill:var(--acc)}.cbl.rlkm{stroke:#a855f7}.cbleg i.rlkm{background:#a855f7}

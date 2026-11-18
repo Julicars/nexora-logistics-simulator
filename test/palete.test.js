@@ -1,3 +1,5 @@
+/* Testes — paletização: camadas, paletes PBR/europeu e caixas deitadas.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 const test = require('node:test'), assert = require('node:assert');
 const P = require('../public/src/js/core/palete.js');

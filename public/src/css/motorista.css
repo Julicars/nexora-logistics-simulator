@@ -1,0 +1,19 @@
+/* NEXORA — página do motorista (motorista.html): celular primeiro, botões grandes (mín. 48 px) e alto contraste. */
+*{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0a1122;color:#e8eefc}
+a{color:#7cc4ff}.mt-top{position:sticky;top:0;z-index:2;display:flex;gap:10px;align-items:center;padding:10px 14px;background:#0e1830;border-bottom:1px solid #22345c}
+#mtTit{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{padding:12px;max-width:640px;margin:0 auto;padding-bottom:80px}.mt-car{text-align:center;opacity:.7;margin-top:40px}
+.mt-res{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:14px}.mt-bar{flex:1;height:10px;background:#22345c;border-radius:6px;overflow:hidden}.mt-bar i{display:block;height:100%;background:#22c55e}
+.mt-st{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.mt-c{background:#111d3a;border:1px solid #22345c;border-radius:12px;padding:12px}.mt-c.ok{border-color:#16a34a;opacity:.8}.mt-c.pb{border-color:#f59e0b}.mt-c.prox{border-color:#f7a334;box-shadow:0 0 0 2px #f7a33455}
+.mt-h{display:flex;gap:10px;align-items:flex-start}.mt-n{flex:none;width:30px;height:30px;border-radius:50%;background:#2f8cf2;display:grid;place-items:center;font-weight:800}
+.mt-c.ok .mt-n{background:#16a34a}.mt-c.pb .mt-n{background:#f59e0b;color:#1b1200}
+.mt-nome{font-weight:700;font-size:17px}.mt-sub{font-size:14px;opacity:.8}.mt-obs{font-size:13px;margin-top:6px;padding:6px 8px;border-radius:8px;background:#f59e0b22}
+.mt-b{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+button,.mt-a{font:inherit;border:1px solid #2c4a7a;background:#1b2c52;color:#fff;border-radius:10px;padding:12px;min-height:48px;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.mt-ok{background:#16a34a;border-color:#16a34a;font-weight:700}.mt-pb{background:#3a2a0a;border-color:#f59e0b}.mt-full{grid-column:1/-1}
+form.mt-f{display:flex;flex-direction:column;gap:8px;margin-top:10px}label{display:flex;flex-direction:column;gap:4px;font-size:14px}
+input,textarea{font:inherit;padding:10px;border-radius:8px;border:1px solid #2c4a7a;background:#0a1122;color:#fff;width:100%}
+.mt-foto{max-width:100%;border-radius:8px;margin-top:6px}.mt-feito{font-size:14px;margin-top:6px;color:#86efac}.mt-feito.pb{color:#fcd34d}
+#mtToast{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;display:none;max-width:90vw}
+#mtToast.err{background:#b91c1c}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f7a334;outline-offset:2px}

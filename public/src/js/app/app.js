@@ -576,7 +576,7 @@ function openPlan(sp) {
 }
 
 /* ---------------- RELATÓRIO, COTAÇÃO, CSV ---------------- */
-const LOGO = () => $('.brand img').src.replace('logo-claro.png', 'logo.png');
+const LOGO = () => $('.brand img').src.replace('logo-claro.webp', 'logo.webp');
 function reportHTML() {
   stopAnim(true); renderer.render(scene, camera); const img = renderer.domElement.toDataURL('image/png');
   const head = `<div style="display:flex;justify-content:space-between;align-items:center;background:#0a1122;padding:8px;border-radius:6px"><img src="${LOGO()}" style="height:40px"><span style="color:#fff">Plano de carga · ${mode === 'cat' ? 'Mostrar Catálogo' : mode === 'route' ? 'Roteirização' : 'Montagem Rápida'} · ${new Date().toLocaleString('pt-BR')}${LS.get('operador', '') ? ' · montado por ' + esc(LS.get('operador', '')) : ''}</span></div>`;
@@ -662,7 +662,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ---------------- NAVEGAÇÃO / SITE ---------------- */
-const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'fretes', 'transportes', 'empresas', 'combustivel', 'forum', 'config'];
+const VIEWS = ['home', 'sobre', 'contato', 'produtos', 'frota', 'catalogo', 'carga-catalogo', 'rapida', 'rota', 'montagens', 'fretes', 'transportes', 'empresas', 'combustivel', 'clientes', 'relatorios', 'forum', 'saude', 'config'];
 const MODE_OF = { rapida: 'quick', 'carga-catalogo': 'cat', rota: 'route' }, VIEW_OF = { quick: 'rapida', cat: 'carga-catalogo', route: 'rota' };
 function go(v, keepPlan) {
   if (!VIEWS.includes(v)) v = 'home';
@@ -681,6 +681,10 @@ function go(v, keepPlan) {
   if (v === 'forum' && typeof FORUM === 'object') FORUM.open();
   if (v === 'empresas' && typeof EMPRESAS === 'object') EMPRESAS.open();
   if (v === 'combustivel' && typeof COMB === 'object') COMB.open();
+  if (v === 'clientes' && typeof CLI === 'object') CLI.open();
+  if (v === 'saude' && typeof SAUDE === 'object') SAUDE.open();
+  if (v === 'relatorios' && typeof RELAT === 'object') RELAT.open();
+  if (v === 'config' && typeof SAUDE === 'object') SAUDE.cfg();
   if (v === 'fretes' && typeof FRETES === 'object') FRETES.open();
   if (v === 'transportes' && typeof TRANSP === 'object') TRANSP.open();
   $('#main').scrollTop = 0; revealAll();
@@ -754,6 +758,7 @@ async function loadAll() {
 (async function init() {
   prodFormTipo();
   try { initThree(); } catch (e) { $('#cv').innerHTML = '<p style="padding:20px">Não foi possível iniciar o 3D neste dispositivo (WebGL indisponível).</p>'; }
+  if (typeof SYNC === 'object') { try { await SYNC.init(); } catch (e) { /* segue local */ } SYNC.pinta(); }
   await loadAll();
 })();
 

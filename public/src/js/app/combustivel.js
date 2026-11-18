@@ -57,7 +57,8 @@ const COMB = (function () {
   }
   function desenhar() {
     const g = R.br.gas, e = R.br.etanol, rz = g && e ? e.media / g.media : null;
-    q('#cbCards').innerHTML = GP().map(k => card(PN[k], k)).join('') + (grupo !== 'gasolina' && grupo !== 'etanol' ? '' :
+    const AN = window.NX_ANTT, gat = grupo === 'diesel' && AN && AN.dieselRef && R.br.s10 ? (() => { const v = (R.br.s10.media / AN.dieselRef - 1) * 100, at = Math.abs(v) >= AN.gatilho; return `<div class="card cbcard"><span class="mut">Piso de frete ANTT · gatilho do diesel</span><b class="${at ? 'bad' : ''}">${v >= 0 ? '+' : ''}${nf(v, 1)}%</b><small>${at ? `<span class="bad">⚠️ Passou de ${AN.gatilho}%: reajuste do piso ${v > 0 ? 'para cima' : 'para baixo'} provável</span>` : `<span class="ok">Abaixo do gatilho de ${AN.gatilho}%</span>`}</small><small class="mut">S-10 hoje ${brl(R.br.s10.media)} × referência da tabela ${brl(AN.dieselRef)} (vigente desde ${AN.vigencia.split('-').reverse().join('/')})</small></div>`; })() : '';
+    q('#cbCards').innerHTML = GP().map(k => card(PN[k], k)).join('') + gat + (grupo !== 'gasolina' && grupo !== 'etanol' ? '' :
       `<div class="card cbcard"><span class="mut">Etanol ou gasolina?</span><b>${rz ? nf(rz * 100, 1) + '%' : '—'}</b><small>${rz ? (rz <= 0.7 ? '<span class="ok">Etanol compensa</span>' : '<span class="bad">Gasolina compensa</span>') : ''} <span class="mut">regra dos 70% (média Brasil)</span></small><small class="mut">etanol ÷ gasolina; abaixo de 70% vale o etanol</small></div>`) +
       `<div class="card cbcard"><span class="mut">Cobertura da semana</span><b>${nf(R.postos)}<small> postos</small></b><small class="mut">${nf(R.municipios)} municípios · coleta ${dt(R.semana.coleta[0])} a ${dt(R.semana.coleta[1])}</small><small class="mut">baixado em ${new Date(R.semana.baixadoEm).toLocaleString('pt-BR')}</small></div>` +
       '';
@@ -125,7 +126,7 @@ const COMB = (function () {
   }
   const tileUrl = () => `https://{s}.basemaps.cartocdn.com/${document.body.classList.contains('light') ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`;
   async function desenhaMapa() {
-    if (typeof L === 'undefined') { q('#cbMapa').textContent = 'Mapa indisponível (Leaflet não carregou).'; return; }
+    if (typeof L === 'undefined') { try { await NXLOAD('src/vendor/leaflet/leaflet.js'); } catch (e) { q('#cbMapa').textContent = 'Mapa indisponível (sem conexão para carregar o mapa).'; return; } }
     if (!mapa) { mapa = L.map(q('#cbMapa')); tiles = L.tileLayer(tileUrl(), { maxZoom: 18, subdomains: 'abcd', attribution: '© OpenStreetMap · © CARTO · ANP' }).addTo(mapa); mapa.attributionControl.setPrefix(false); camada = L.layerGroup().addTo(mapa); }
     setTimeout(() => mapa.invalidateSize(), 50);
     camada.clearLayers(); const k = q('#cbProd').value, vis = lista.slice(0, 1500);
@@ -148,7 +149,6 @@ const COMB = (function () {
     const lt = km / cons, cd = lt * preco, la = lt * arla, ca = la * arlaP;
     q('#ccOut').innerHTML = `<div class="kv"><span>${PN[q('#ccProd').value]}</span><b>${nf(lt, 0)} ${UN(q('#ccProd').value)} · ${brl(cd)}</b></div>${arla ? `<div class="kv"><span>ARLA 32</span><b>${nf(la, 0)} L · ${brl(ca)}</b></div>` : ''}<div class="kv cbtot"><span>Total</span><b>${brl(cd + ca)}</b></div><div class="kv"><span>Custo por km</span><b>${brl((cd + ca) / km, 3)}</b></div><small class="mut">${nf(km, 0)} km${ref !== 'man' ? ' · ' + PN[q('#ccProd').value] + ', preço médio ' + (ref === 'br' ? 'Brasil' : ref) + ' na semana de ' + dt(R.semana.inicio) : ''}</small>`;
   }
-
 
   /* ---------- mercado: dólar, Brent e Petrobras ---------- */
   let M = null;

@@ -95,7 +95,7 @@
   const RETORNO = 0.92;
   const retorno = (kmVolta, tipo, eixos, t) => { const c = coef(tipo, eixos, t); return c ? { ccd: c.ccd, km: kmVolta, valor: kmVolta * c.ccd * RETORNO } : null; };
   const ANTT = {
-    fonte: 'Res. ANTT 6.084/2026 com Portaria SUROC nº 22/2026, vigente desde 30/09/2026', EIXOS, TABELAS, OFICIAL, NOMES, RETORNO,
+    fonte: 'Res. ANTT 6.084/2026 com Portaria SUROC nº 22/2026, vigente desde 30/09/2026', dieselRef: 7.33, vigencia: '2026-09-30', gatilho: 5, EIXOS, TABELAS, OFICIAL, NOMES, RETORNO,
     get T() { return tab('A'); }, tabela: tab, coef, piso, retorno,
     personalizado: () => !!(ovr && ovr.tabs),
     salvar(tabs, nota) { ovr = { tabs, nota: nota || '', data: new Date().toISOString() }; try { root.localStorage.setItem(OVR_KEY, JSON.stringify(ovr)); } catch (e) {} },

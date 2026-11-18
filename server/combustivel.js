@@ -178,7 +178,7 @@ function createCombustivel(dataDir, opts = {}) {
           try { const r = PB.extrairSintese(PB.textoPdf(await baixar(u, 'application/pdf'))); if (r) achou = { ...r, url: u, em: agora }; } catch (e) { /* próxima semana */ }
         }
         if (!achou) throw new Error(`não foi possível ler a síntese (edições tentadas: ${tent.join(', ')})`);
-        pauto.sintese = achou; pauto.fontes.sintese = { ok: true, em: agora, info: `semana de ${achou.realizacao ? achou.realizacao.semana : achou.ppi.semana}` };
+        pauto.sintese = achou; pauto.fontes.sintese = { ok: true, em: agora, info: `semana terminada em ${(achou.realizacao ? achou.realizacao.semana : achou.ppi.semana).split('-').reverse().join('/')}${achou.realizacao ? ' · refinarias R$ ' + achou.realizacao.preco.toFixed(2).replace('.', ',') : ''}` };
       } catch (e) { pauto.fontes.sintese = { ...(pauto.fontes.sintese || {}), ok: false, erroEm: agora, erro: e.message }; }
       /* 1) comunicados da Agência Petrobras */
       try {
@@ -312,6 +312,6 @@ function createCombustivel(dataDir, opts = {}) {
       return json(res, SEC, 404, { erro: 'Rota não encontrada.' });
     } catch (e) { return json(res, SEC, e.status || 400, { erro: e.message }); }
   }
-  return { handle, atualizar, atualizarMercado, atualizarPetro, mercado, importar, resumo, lerSemana };
+  return { status: () => ({ ...estado, semanas: hist.length, ultima: hist.length ? { inicio: hist[hist.length - 1].inicio, fim: hist[hist.length - 1].fim } : null }), mercadoEstado: () => ({ em: merc.em, erros: merc.erros, dolar: merc.dolar.length ? merc.dolar[merc.dolar.length - 1] : null, brent: merc.brent.length ? merc.brent[merc.brent.length - 1] : null }), petroEstado: () => ({ em: pauto.em, fontes: pauto.fontes, pendentes: pauto.pendentes.length, pendLista: pauto.pendentes.map(p => ({ id: p.id, preco: p.preco, data: p.data, link: p.link, motivos: p.motivos })), ultimo: petroOrd().pop() || null }), handle, atualizar, atualizarMercado, atualizarPetro, mercado, importar, resumo, lerSemana };
 }
 module.exports = { createCombustivel, lerSemana, linksSemanais, produtoDiesel, produtoTipo, PRODUTOS, dataIso, num };

@@ -23,7 +23,7 @@
 <a href="#main" class="sr">Pular para o conteúdo</a>
 <div id="app">
 <aside id="aside" aria-label="Menu principal">
- <div class="brand"><img src="src/img/logo.png" alt="NEXORA Logistics Intelligence" class="logo-full"><img src="src/img/logo-icon.svg" alt="NEXORA" class="logo-ico"></div>
+ <div class="brand"><img src="src/img/logo.webp" alt="NEXORA Logistics Intelligence" class="logo-full"><img src="src/img/logo-icon.svg" alt="NEXORA" class="logo-ico"></div>
  <nav>
   <h3>Painel</h3>
   <button data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
@@ -32,6 +32,7 @@
   <h3>Cadastro</h3>
   <button data-go="produtos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5 9 5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>Produtos</button>
   <button data-go="frota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Veículos</button>
+  <button data-go="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a5 5 0 0 1 3.5 6"/></svg>Clientes</button>
   <h3>Expedição</h3>
   <button data-go="catalogo" data-also="carga-catalogo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Mostrar Catálogo</button>
   <button data-go="rapida"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Montagem Rápida</button>
@@ -42,21 +43,23 @@
  <h3>Consultas</h3>
   <button data-go="empresas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V7l7-4v18M10 21h11V11l-7-3"/><path d="M14 13h3M14 17h3M6 9v.01M6 13v.01M6 17v.01"/></svg>Consulta de empresas</button>
   <button data-go="combustivel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M7 7h5v4H7z"/><path d="M15 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg>Combustíveis</button>
+  <button data-go="relatorios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatórios</button>
  <h3>Comunidade</h3>
   <button data-go="forum"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M8 10h8M8 14h5"/></svg>Fórum</button>
  <h3>Sistema</h3>
+  <button data-go="saude"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Saúde do sistema</button>
   <button data-go="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Configurações</button>
  </nav>
  <button class="navtoggle" id="bNavMin" aria-label="Recolher menu lateral" aria-expanded="true" title="Recolher / abrir menu ( [ )"><span class="ic">«</span><span class="tx">Recolher menu</span></button>
  <div class="aside-foot">
   <button type="button" class="btn sm" id="bInstall" hidden style="width:100%;margin-bottom:8px">📲 Instalar o NEXORA</button>
-  <p class="mut" style="margin:0 0 4px">Dados salvos neste navegador.</p>
+  <p class="mut" style="margin:0 0 4px" id="syncSt" role="status">Dados salvos neste navegador.</p>
   <p style="margin:10px 0 0">© 2026 NEXORA</p>
  </div>
 </aside>
 
 <main id="main" tabindex="-1">
- <div class="topbar"><button class="btn sm" id="burger" aria-label="Abrir menu" aria-expanded="false">☰</button><img src="src/img/logo.png" alt="NEXORA"></div>
+ <div class="topbar"><button class="btn sm" id="burger" aria-label="Abrir menu" aria-expanded="false">☰</button><img src="src/img/logo.webp" alt="NEXORA"></div>
 </main>
 </div>
 <!-- configuração -->
@@ -71,6 +74,7 @@
 <script src="src/js/core/carga.js"></script>
 <script src="src/js/core/mascara.js"></script>
 <script src="src/js/core/storage.js"></script>
+<script src="src/js/core/sync.js"></script>
 <script src="src/js/core/xlsx.js"></script>
 <script src="src/js/core/empresa.js"></script>
 <!-- páginas -->
@@ -87,10 +91,12 @@
 <script src="src/js/pages/fretes.js"></script>
 <script src="src/js/pages/empresas.js"></script>
 <script src="src/js/pages/combustivel.js"></script>
+<script src="src/js/pages/clientes.js"></script>
+<script src="src/js/pages/saude.js"></script>
+<script src="src/js/pages/relatorios.js"></script>
 <script src="src/js/pages/modais.js"></script>
 <!-- 3D e aplicação -->
 <script src="src/js/app/cena3d.js"></script>
-<script src="src/vendor/leaflet/leaflet.js"></script>
 <script src="src/js/app/rota.js"></script>
 <script src="src/js/app/app.js"></script>
 <script src="src/js/app/forum.js"></script>
@@ -98,14 +104,17 @@
 <script src="src/js/app/grafo.js"></script>
 <script src="src/js/app/empresas.js"></script>
 <script src="src/js/app/combustivel.js"></script>
+<script src="src/js/app/servicos.js"></script>
+<script src="src/js/app/clientes.js"></script>
+<script src="src/js/app/saude.js"></script>
+<script src="src/js/app/viagem.js"></script>
+<script src="src/js/app/relatorios.js"></script>
 <script src="src/js/app/recursos.js"></script>
 <script src="src/js/app/extras.js"></script>
 <script src="src/js/app/ferramentas.js"></script>
 <script src="src/js/app/importar.js"></script>
 <script src="src/js/app/perigosos.js"></script>
 <script src="src/js/app/amarracao.js"></script>
-<script src="src/vendor/qrcode/qrcode.js"></script>
-<script src="src/vendor/qrcode/qrcode_UTF8.js"></script>
 <script src="src/js/app/etiquetas.js"></script>
 <script src="src/js/app/a11y.js"></script>
 </body>

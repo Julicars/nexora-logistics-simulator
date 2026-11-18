@@ -1,3 +1,5 @@
+/* Testes — consulta de empresas: CNPJ, fontes extras, rede de sócios e limites de uso.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 /* Consulta de empresas: servidor com as APIs públicas simuladas (sem internet nos testes). */
 const test = require('node:test'), assert = require('node:assert'), os = require('os'), fs = require('fs'), path = require('path');

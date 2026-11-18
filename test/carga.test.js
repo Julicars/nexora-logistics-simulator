@@ -1,3 +1,5 @@
+/* Testes — cálculos de carga: peso cubado, metros lineares, cintas (EN 12195-1) e VGM.
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 'use strict';
 const test = require('node:test'), assert = require('node:assert');
 const C = require('../public/src/js/core/carga.js');

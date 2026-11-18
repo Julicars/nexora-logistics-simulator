@@ -79,7 +79,8 @@ const RT = (function () {
   /* ---------- mapa: OpenStreetMap (Leaflet) com internet; mapa próprio do Brasil sem internet ---------- */
   let lmap = null, llayer = null, tilesOk = null;
   function probeTiles() {
-    if (tilesOk !== null || !window.L) return;
+    if (!window.L) { if (window.NXLOAD) NXLOAD('src/vendor/leaflet/leaflet.js').then(probeTiles).catch(() => {}); return; }
+    if (tilesOk !== null) return;
     tilesOk = false; const img = new Image(); let done = false;
     const fin = ok => { if (done) return; done = true; tilesOk = ok; if (ok) drawMap(); };
     img.onload = () => fin(true); img.onerror = () => fin(false); setTimeout(() => fin(false), 6000);
@@ -130,33 +131,105 @@ const RT = (function () {
     q('#rStops').innerHTML = st.map((s, i) => `<li data-sid="${s.id}">
       <span class="rnum" aria-hidden="true">${i + 1}</span>
       <div class="rfields">
-        <input data-rk="nome" value="${esc(s.nome || '')}" maxlength="120" placeholder="Destinatário" aria-label="Destinatário da entrega ${i + 1}">
-        <input data-rk="city" value="${esc(s.city ? label(s) : s.txt || '')}" class="cityac" role="combobox" aria-autocomplete="list" aria-expanded="false" autocomplete="off" placeholder="Digite a cidade" aria-label="Cidade da entrega ${i + 1}" ${s.txt && s.lat == null ? 'aria-invalid="true"' : ''}>
+        <input data-rk="nome" value="${esc(s.nome || '')}" maxlength="120" list="rCliList" placeholder="Cliente ou destinatário" aria-label="Cliente ou destinatário da entrega ${i + 1}" autocomplete="off">
+        <input data-rk="city" value="${esc(s.city ? label(s) : s.txt || '')}" class="cityac" role="combobox" aria-autocomplete="list" aria-expanded="false" autocomplete="off" placeholder="Cidade (ex.: Campinas - SP)" aria-label="Cidade da entrega ${i + 1}" ${s.txt && s.lat == null ? 'aria-invalid="true"' : ''}>
+        <div class="rrow"><input data-rk="cep" class="rcep" value="${esc(s.cep ? String(s.cep).replace(/^(\d{5})(\d{3})$/, '$1-$2') : '')}" inputmode="numeric" maxlength="9" data-nomask="1" placeholder="CEP" aria-label="CEP da entrega ${i + 1}"><input data-rk="data" type="date" class="rdata" value="${esc(s.data || '')}" aria-label="Data da entrega ${i + 1}" title="Data da entrega (vazio = data de saída)"></div>
+        ${s.end ? `<small class="mut">📍 ${esc(s.end)}</small>` : ''}
         ${s.txt && s.lat == null ? `<small class="bad">${ambig(s.txt)}</small>` : ''}
         ${routeInfo && routeInfo.legs[i] != null ? `<small class="mut">${i ? 'da entrega ' + i : 'da origem'}: ${fmt(routeInfo.legs[i], 0)} km${routeInfo.src === 'est' ? ' (estimado)' : ''}</small>` : ''}
+        <div class="rinfo" data-info="${s.id}" aria-live="polite"></div>
       </div>
       <div class="rbtns">
         <button class="btn sm" data-ra="up" ${i ? '' : 'disabled'} aria-label="Subir entrega ${i + 1}">↑</button>
         <button class="btn sm" data-ra="down" ${i < st.length - 1 ? '' : 'disabled'} aria-label="Descer entrega ${i + 1}">↓</button>
         <button class="btn sm" data-ra="del" aria-label="Remover entrega ${i + 1}">×</button>
-      </div></li>`).join('') || '<li class="mut" style="list-style:none">Nenhuma entrega. Clique em “+ Adicionar entrega”.</li>';
+      </div></li>`).join('') || '<li class="mut" style="list-style:none">Nenhuma entrega ainda. Use “+ Adicionar entrega”, “👥 Escolher clientes” ou “📋 Colar lista”.</li>';
+    clientesLista(); decorar();
+  }
+  /* ---------- clientes, CEP, clima e feriados nas entregas ---------- */
+  var CL = [];
+  function clientesLista() { try { CL = LS.get('clientes', []); } catch (e) { CL = []; } const dl = q('#rCliList'); if (dl) dl.innerHTML = CL.map(c => `<option value="${esc(c.nome)}">${esc((c.city ? c.city + ' - ' + c.uf : '') + (c.fantasia ? ' · ' + c.fantasia : ''))}</option>`).join(''); }
+  const endCli = c => [c.logradouro, c.numero, c.bairro].filter(Boolean).join(', ');
+  function aplicaCliente(s, c) { Object.assign(s, { nome: c.nome, cli: c.id, cep: c.cep || '', end: endCli(c), txt: '' }); if (c.lat != null) Object.assign(s, { city: c.city, uf: c.uf, lat: c.lat, lon: c.lon }); }
+  function addCliente(c) {
+    if (mode !== 'route' && typeof setMode === 'function') setMode('route');
+    const st = R().stops, vazio = st.find(x => !x.nome && x.lat == null);
+    const s = vazio || { id: uid(), nome: '', city: '', uf: '', lat: null, lon: null }; if (!vazio) st.push(s);
+    aplicaCliente(s, c); R().quote.destino = ''; changed();
+  }
+  async function porCep(s, cepTxt) {
+    const r = await SV.cep(cepTxt).catch(() => null); if (!r) return false;
+    if (r.naoEncontrado) { toast('CEP não encontrado.', true); return false; }
+    const c = find(r.cidade + ' - ' + r.uf); s.cep = r.cep; s.end = [r.logradouro, r.bairro].filter(Boolean).join(', ');
+    if (c) Object.assign(s, { city: c.nome, uf: c.uf, lat: c.lat, lon: c.lon, txt: '' }); else s.txt = r.cidade + ' - ' + r.uf;
+    R().quote.destino = ''; return true;
+  }
+  const dataDe = s => s.data || R().saida || '';
+  /* chegada estimada: hora de saída + tempo de direção acumulado + 40 min em cada entrega anterior */
+  function chegadas() {
+    const r = R(), ri = routeInfo; if (!ri || !ri.legs) return {}; const [hh, mm] = String(r.hora || '07:00').split(':').map(Number); let t = hh * 60 + (mm || 0); const out = {}, kmh = ri.km > 0 ? ri.km / Math.max(ri.h, 0.1) : 65;
+    r.stops.forEach((s, i) => { if (ri.legs[i] == null) return; t += ri.legs[i] / kmh * 60; out[s.id] = { min: t, dia: Math.floor(t / 1440) }; t += 40; });
+    return out;
+  }
+  function janela(txt) { const m = String(txt || '').toLowerCase().match(/(\d{1,2})\s*(?:h|:)?\s*(\d{2})?\s*(?:h)?\s*(?:às|as|a|-|–|até|ate)\s*(\d{1,2})\s*(?:h|:)?\s*(\d{2})?/); if (!m) return null; const a = +m[1] * 60 + (+m[2] || 0), b = +m[3] * 60 + (+m[4] || 0); return b > a ? [a, b] : null; }
+  const hm = x => { const m = Math.round(x) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+  const fdt = d => d ? d.split('-').reverse().join('/') : '';
+  async function decorar() {
+    if (typeof SV !== 'object') return;
+    const r = R();
+    if (r.saida && r.orig) { SV.feriado(r.saida, r.orig.uf).then(f => { const el = q('#rSaidaInfo'); if (el) el.innerHTML = f ? `⚠️ Saída em ${f.tipo === 'fim de semana' ? 'um domingo' : 'feriado ' + f.tipo + ': ' + esc(f.nome)}` : ''; }).catch(() => {}); }
+    for (const s of r.stops) {
+      const box = q(`[data-info="${s.id}"]`); if (!box || s.lat == null) continue; const d = dataDe(s); if (!d) { box.innerHTML = '<small class="mut">Informe a data de saída para ver clima e feriado.</small>'; continue; }
+      const cli = s.cli && CL.find(c => c.id === s.cli), parts = [];
+      const ch = chegadas()[s.id]; if (ch && !s.data) { const jw = cli && janela(cli.horario), hr = ch.min % 1440, fora = jw && (hr < jw[0] || hr > jw[1]);
+        parts.push(`<span class="rchip ${fora ? 'warn' : ''}" title="Hora de saída + tempo de direção + 40 min por entrega anterior">🚚 chegada ~${hm(ch.min)}${ch.dia ? ' (+' + ch.dia + ' dia)' : ''}${jw ? (fora ? ' · ⚠️ fora do horário do cliente' : ' · ✔ no horário') : ''}</span>`); }
+      if (cli && (cli.agenda || cli.horario || cli.restricao)) parts.push(`<span class="rchip">${cli.agenda ? '📅 agendar · ' : ''}${cli.horario ? '🕘 ' + esc(cli.horario) : ''}${cli.restricao ? ' · 🚫 veículo grande' : ''}</span>`);
+      const [cl, fe] = await Promise.all([SV.clima(s.lat, s.lon, d).catch(() => null), SV.feriado(d, s.uf).catch(() => null)]);
+      if (fe) parts.push(`<span class="rchip bad" title="${esc(fe.nome)} — feriado ${esc(fe.tipo)}">⚠️ ${fe.tipo === 'fim de semana' ? 'Domingo' : 'Feriado: ' + esc(fe.nome.replace(/^Dia (Nacional )?(de |da |do )?/i, ''))} (${fdt(d).slice(0, 5)})</span>`);
+      if (cl && !cl.foraDoPrazo) { parts.push(`<span class="rchip" title="Previsão Open-Meteo para ${fdt(d)}: ${esc(cl.texto)}, chuva ${Math.round(cl.chuva || 0)} mm${cl.prob != null ? ' (' + cl.prob + '%)' : ''}, vento ${Math.round(cl.vento || 0)} km/h">${cl.icone} ${Math.round(cl.tmin)}–${Math.round(cl.tmax)}°C · 💧${Math.round(cl.chuva || 0)}mm · 💨${Math.round(cl.vento || 0)}km/h</span>`); if (cl.alertas.length) parts.push(`<span class="rchip warn" title="${esc(cl.alertas.join('; '))}">⚠️ ${cl.alertas.map(a => esc(a.split(':')[0])).join(' · ')}</span>`); }
+      else if (cl && cl.foraDoPrazo) parts.push(`<small class="mut">Previsão do tempo disponível até 16 dias antes (${fdt(d)}).</small>`);
+      const b2 = q(`[data-info="${s.id}"]`); if (b2) b2.innerHTML = parts.join('');
+    }
   }
   function drawSum() {
     const ri = routeInfo, el = q('#rSum');
     if (!ri) { el.innerHTML = ''; return; }
     el.innerHTML = `<div class="kpis rkpis"><div class="kpi"><b>${fmt(ri.km, 0)} km</b><span>${ri.src === 'osrm' ? 'distância pela estrada' : 'distância estimada'}</span></div><div class="kpi"><b>${Math.floor(ri.h)}h${String(Math.round((ri.h % 1) * 60)).padStart(2, '0')}</b><span>tempo ${ri.src === 'osrm' ? 'de direção' : 'estimado'}</span></div><div class="kpi"><b>${R().stops.length}</b><span>entrega(s)</span></div></div>
-      <small class="mut">${ri.src === 'osrm' ? 'Rota calculada pelo OSRM sobre o OpenStreetMap, da origem até a última entrega (sem retorno).' : 'Estimativa: distância em linha reta × 1,25. Confira a quilometragem real antes de fechar o frete.'} Pedágios não são calculados.</small>`;
-    renderStopsKm();
+      <small class="mut">${ri.src === 'osrm' ? 'Rota calculada pelo OSRM sobre o OpenStreetMap, da origem até a última entrega (sem retorno).' : 'Estimativa: distância em linha reta × 1,25. Confira a quilometragem real antes de fechar o frete.'} Pedágio: veja abaixo as praças federais no caminho.</small><div id="rPed" class="rped" aria-live="polite"></div>`;
+    renderStopsKm(); pedagio();
+  }
+  var pedKey = '';
+  async function pedagio() {
+    const el = q('#rPed'), ri = routeInfo; if (!el || !ri) return;
+    if (ri.src !== 'osrm') { pedInfo = null; el.innerHTML = '<small class="mut">🛣️ Pedágio: as praças aparecem quando a rota real pela estrada estiver disponível (precisa de internet).</small>'; return; }
+    if (typeof SV !== 'object') return; const k = keyOf(); pedKey = k; el.innerHTML = '<small class="mut">🛣️ Procurando praças de pedágio no caminho…</small>';
+    let r; try { r = await SV.pedagioNaRota(ri.geom); } catch (e) { if (pedKey === k) el.innerHTML = `<small class="mut">🛣️ Pedágio: ${e.semServidor ? 'a lista oficial de praças da ANTT precisa do servidor do NEXORA (npm start).' : 'lista de praças da ANTT indisponível agora.'}</small>`; return; }
+    if (pedKey !== k || !q('#rPed')) return;
+    const ex = axlesOf(curVeh()), tar = +LS.get('pedTarifa', 0) || 0, n = r.pracas.length; pedInfo = { n, total: tar ? n * ex * tar : (n ? null : 0) }; renderCusto();
+    q('#rPed').innerHTML = `<details class="rpedd" ${n ? 'open' : ''}><summary>🛣️ <b>${n} praça(s) de pedágio federal(is)</b> no caminho${tar && n ? ` · estimativa <b>${brl(n * ex * tar)}</b> (${ex} eixos × ${brl(tar)} × ${n})` : ''}</summary>
+      ${n ? `<ol class="rpedl">${r.pracas.map(p => `<li>${esc(p.nome)} <span class="mut">— ${esc(p.rod)}${p.km ? ' km ' + fmt(p.km, 0) : ''}/${esc(p.uf)} · ${esc(p.conc)}</span></li>`).join('')}</ol>` : '<p class="mut" style="margin:4px 0">Nenhuma praça de rodovia federal concedida encontrada no traçado.</p>'}
+      <label class="f rpedt">Tarifa básica média por eixo (R$) <small class="mut">— opcional, para estimar o total; fica salva</small><input id="rPedTar" inputmode="decimal" value="${tar ? fmt(tar, 2) : ''}" placeholder="ex.: 8,50"></label>
+      <small class="mut">Praças das rodovias federais concedidas (${esc(r.fonte)}${r.atualizado ? ', atualizado em ' + fdt(String(r.atualizado).slice(0, 10)) : ''}). Rodovias estaduais (ex.: SP, PR) não entram. Caminhão paga por eixo; confira as tarifas no site da concessionária.</small></details>`;
+    q('#rPedTar').onchange = e => { LS.set('pedTarifa', +String(e.target.value).replace(/\./g, '').replace(',', '.') || 0); setTimeout(pedagio, 0); };
   }
   function renderStopsKm() { if (!document.activeElement || !q('#rStops').contains(document.activeElement)) renderStops(); }
 
   function axlesOf(v) { try { return NX.axleModel(v).ax.reduce((s, a) => s + (/triplo/i.test(a.n) ? 3 : /tandem duplo/i.test(a.n) ? 2 : 1), 0); } catch (e) { return 2; } }
   function retKm() { const r = R(); if (r.retKm > 0) return +r.retKm; const p = pts(); return p.length > 1 ? est(p[p.length - 1], p[0]) : 0; }
+  var dieselAtual = null;
+  function gatilhoAntt() {
+    const el = q('#rGatilho'); if (!el || !ANTT || !ANTT.dieselRef) return;
+    const mostra = () => { if (!dieselAtual) { el.innerHTML = ''; return; } const v = (dieselAtual.v / ANTT.dieselRef - 1) * 100, at = Math.abs(v) >= ANTT.gatilho;
+      el.innerHTML = `<div class="${at ? 'cbalerta ' + (v > 0 ? 'alta' : 'queda') : 'rgat'}">${at ? '⚠️ <b>Reajuste do piso provável:</b> ' : '⛽ '}diesel S-10 a ${brl(dieselAtual.v)} (ANP, semana de ${fdt(dieselAtual.d)}) — ${v >= 0 ? '+' : ''}${fmt(v, 1)}% sobre a referência da tabela (${brl(ANTT.dieselRef)}). ${at ? `Passou do gatilho de ${ANTT.gatilho}% da Lei 13.703/2018: a ANTT deve publicar nova tabela${v > 0 ? ' (piso maior)' : ' (piso menor)'}.` : `Gatilho de reajuste: ${ANTT.gatilho}%.`}</div>`; };
+    if (dieselAtual !== null) return mostra();
+    dieselAtual = false; fetch('/api/combustivel/resumo').then(r => r.ok && (r.headers.get('content-type') || '').includes('json') ? r.json() : null).then(j => { if (j && j.br && j.br.s10) dieselAtual = { v: j.br.s10.media, d: j.semana.inicio }; mostra(); }).catch(() => {});
+  }
   function renderAntt() {
     if (!ANTT) return;
     const r = R(), v = curVeh(), m = NX.axleModel(v), small = m.pbt <= 3500, ex = axlesOf(v);
     const tb = r.tab || 'A'; q('#rRet').checked = !!r.ret; q('#rRetBox').hidden = !r.ret; if (document.activeElement !== q('#rRetKm')) { q('#rRetKm').value = r.retKm > 0 ? r.retKm : ''; q('#rRetKm').placeholder = fmt(retKm(), 0) + ' (estimado)'; }
     q('#rTab').innerHTML = Object.entries(ANTT.TABELAS).map(([k, t]) => `<option value="${k}" ${k === tb ? 'selected' : ''}>${esc(t.nome)}</option>`).join(''); q('#rTabDesc').textContent = ANTT.TABELAS[tb].desc;
+    gatilhoAntt();
     q('#rTipo').innerHTML = Object.entries(ANTT.T).map(([k, t]) => `<option value="${k}" ${k === r.tipo ? 'selected' : ''}>${t.nome}</option>`).join('');
     /* eixos vêm do veículo escolhido no Pedido (configuração de eixos da frota) — não se escolhe aqui */
     const n = ANTT.EIXOS.includes(ex) ? ex : (ANTT.coef(r.tipo, ex) || {}).eixos;
@@ -225,6 +298,30 @@ const RT = (function () {
       <button type="button" class="btn sm" data-xdel="${i}" aria-label="Remover ${esc(x.desc || 'valor')}">×</button></div>`).join('');
     renderTotal();
   }
+  /* ---------- custo da viagem (estimativa): diesel + ARLA + pedágio, comparado ao piso ---------- */
+  var resumoAnp = null, pedInfo = null;
+  function anpResumo() { if (resumoAnp !== null) return; resumoAnp = false; fetch('/api/combustivel/resumo').then(r => r.ok && (r.headers.get('content-type') || '').includes('json') ? r.json() : null).then(j => { resumoAnp = j || false; if (j && j.br && j.br.s10) dieselAtual = { v: j.br.s10.media, d: j.semana.inicio }; renderCusto(); gatilhoAntt(); }).catch(() => {}); }
+  function renderCusto() {
+    const el = q('#rCusto'); if (!el) return; const r = R(), ri = routeInfo; anpResumo();
+    if (!ri) { el.innerHTML = '<span class="mut">💰 O custo estimado da viagem aparece quando a rota estiver pronta.</span>'; return; }
+    const km = ri.km + (r.ret ? retKm() : 0), cons = +LS.get('consumo', 2.8) || 2.8;
+    const ufP = r.orig && resumoAnp && resumoAnp.uf && resumoAnp.uf[r.orig.uf] && resumoAnp.uf[r.orig.uf].s10, brP = resumoAnp && resumoAnp.br && resumoAnp.br.s10;
+    const preco = r.dieselMan > 0 ? +r.dieselMan : ufP ? ufP.media : brP ? brP.media : null, fonteP = r.dieselMan > 0 ? 'digitado' : ufP ? `média ${r.orig.uf} (ANP)` : brP ? 'média Brasil (ANP)' : '';
+    const litros = km / cons, diesel = preco ? litros * preco : null, arla = litros * 0.05 * 3.9, ped = pedInfo && pedInfo.total != null ? pedInfo.total : null;
+    const custo = (diesel || 0) + arla + (ped || 0), ex = extras().filter(x => +x.valor > 0).reduce((a, x) => a + (+x.valor), 0);
+    el.innerHTML = `<h4 style="margin:0 0 6px">💰 Custo estimado da viagem</h4>
+      <div class="trow"><span>Distância${r.ret ? ' (com retorno)' : ''}</span><b>${fmt(km, 0)} km</b></div>
+      <div class="trow"><span>Diesel S-10 · <label class="rcinl">consumo <input id="rCons" inputmode="decimal" value="${fmt(cons, 1)}" aria-label="Consumo em km por litro"> km/L</label> · <label class="rcinl">R$/L <input id="rDieselP" inputmode="decimal" value="${preco ? fmt(preco, 2) : ''}" placeholder="preço" aria-label="Preço do diesel por litro"></label> <small class="mut">${esc(fonteP)}</small></span><b>${diesel != null ? brl(diesel) : '—'}</b></div>
+      <div class="trow"><span>ARLA 32 <small class="mut">(5% do diesel × R$ 3,90/L)</small></span><b>${brl(arla)}</b></div>
+      <div class="trow"><span>Pedágio <small class="mut">${pedInfo ? (pedInfo.n ? pedInfo.n + ' praça(s) federal(is)' + (ped == null ? ' — informe a tarifa média na aba Rota' : '') : 'nenhuma praça federal') : 'calculando…'}</small></span><b>${ped != null ? brl(ped) : '—'}</b></div>
+      ${ex ? `<div class="trow"><span>Valores adicionais (aba Frete)</span><b>${brl(ex)}</b></div>` : ''}
+      <div class="trow tsum"><span>Custos diretos estimados</span><b>${brl(custo + ex)}</b></div>
+      ${pisoTot ? `<div class="trow"><span>Frete mínimo (piso ANTT)</span><b>${brl(pisoTot)}</b></div><p class="${pisoTot - custo - ex >= 0 ? 'ok' : 'bad'}" style="margin:6px 0 0">${pisoTot - custo - ex >= 0 ? '✔ Sobram' : '⚠ Faltam'} ${brl(Math.abs(pisoTot - custo - ex))} entre o piso e os custos diretos (${fmt(km > 0 ? (custo + ex) / km : 0, 2)} R$/km).</p>` : ''}
+      <small class="mut">Estimativa: não inclui motorista, manutenção, pneus, seguro e impostos. Diesel pela ANP (semanal); pedágio só das rodovias federais concedidas.</small>`;
+    const pn = v => +String(v).replace(/\./g, '').replace(',', '.') || 0;
+    q('#rCons').onchange = e => { LS.set('consumo', pn(e.target.value) || 2.8); setTimeout(renderCusto, 0); };
+    q('#rDieselP').onchange = e => { R().dieselMan = pn(e.target.value); saveWork(); setTimeout(renderCusto, 0); };
+  }
   function renderTotal() {
     const el = q('#rTotal'); if (!el) return; const ex = extras().filter(x => +x.valor > 0);
     const add = ex.reduce((a, x) => a + (+x.valor), 0), tot = pisoTot + add;
@@ -235,8 +332,8 @@ const RT = (function () {
       + `<div class="trow tsum"><span>Total mínimo da viagem</span><b>${brl(tot)}</b></div>`
       + (fr > 0 ? `<p style="margin:6px 0 0" class="${fr + 0.005 >= tot ? 'ok' : 'bad'}">${fr + 0.005 >= tot ? '✔' : '⚠'} Cotação: ${brl(fr)} — ${fr + 0.005 >= tot ? 'cobre o total mínimo.' : 'abaixo em ' + brl(tot - fr) + '. Abaixo do piso o CIOT não é gerado e a viagem não pode sair.'}</p>` : '')
       + (pisoTot ? `<button type="button" class="btn sm" id="rToQuote" style="margin-top:8px;width:100%">Levar para a Cotação</button>` : '');
+    renderCusto();
   }
-
 
   /* qual entrega fica bloqueada por carga de entrega posterior (mais perto das portas) */
   function blocked(V) {
@@ -260,6 +357,11 @@ const RT = (function () {
     if (!on && tab.classList.contains('on')) q('[data-tab=pedido]').click();
     if (!on) return;
     const r = R();
+    if (!r.orig && !r.origTxt) { const pad = LS.get('origPad', null); if (pad && pad.orig) { r.orig = pad.orig; if (!r.sender) r.sender = pad.sender; } }
+    if (!r.saida) r.saida = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+    if (document.activeElement !== q('#rSaida')) q('#rSaida').value = r.saida;
+    if (document.activeElement !== q('#rHora')) q('#rHora').value = r.hora || '07:00';
+    if (typeof VIAGEM === 'object') VIAGEM.render();
     if (document.activeElement !== q('#rSender')) q('#rSender').value = r.sender || '';
     if (document.activeElement !== q('#rOrig')) q('#rOrig').value = r.orig ? label(r.orig) : (r.origTxt || '');
     q('#rOrigMsg').textContent = r.origTxt && !r.orig ? 'Cidade não encontrada. Escolha uma da lista (ex.: Campinas - SP).' : '';
@@ -273,7 +375,45 @@ const RT = (function () {
 
   /* ---------- eventos ---------- */
   q('#rSender').addEventListener('input', e => { R().sender = e.target.value; saveWork(); });
-  q('#rStops').addEventListener('input', e => { const k = e.target.dataset.rk; if (!k) return; const s = R().stops.find(x => x.id === e.target.closest('li').dataset.sid); if (k === 'nome') { s.nome = e.target.value; saveWork(); } });
+  q('#rStops').addEventListener('input', async e => {
+    const k = e.target.dataset.rk; if (!k) return; const s = R().stops.find(x => x.id === e.target.closest('li').dataset.sid); if (!s) return;
+    if (k === 'nome') { s.nome = e.target.value; const c = CL.find(x => norm(x.nome) === norm(s.nome)); if (c) { aplicaCliente(s, c); changed(); const li = q(`[data-sid="${s.id}"] [data-rk=data]`); if (li) li.focus(); } else saveWork(); }
+    if (k === 'cep' && e.target.value.replace(/\D/g, '').length === 8) { if (await porCep(s, e.target.value)) { changed(); const n = q(`[data-sid="${s.id}"] [data-rk=data]`); if (n) n.focus(); } }
+    if (k === 'data') { s.data = e.target.value; saveWork(); decorar(); }
+  });
+  q('#rSaida').addEventListener('change', e => { R().saida = e.target.value; saveWork(); decorar(); });
+  q('#rHora').addEventListener('change', e => { R().hora = e.target.value || '07:00'; saveWork(); decorar(); });
+  q('#rOrigPad').onclick = () => { const r = R(); if (!r.orig) return toast('Escolha a cidade de origem primeiro.', true); LS.set('origPad', { sender: r.sender || '', orig: r.orig }); toast('Origem padrão salva: as próximas rotas já começam com ela.'); };
+  /* escolher vários clientes */
+  q('#rAddCli').onclick = () => {
+    clientesLista(); let box = q('#rCliBox'); if (box) { box.remove(); return; }
+    q('.raddbar').insertAdjacentHTML('afterend', `<div id="rCliBox" class="card rpanel">${!CL.length ? '<p style="margin:0">Nenhum cliente cadastrado. <button type="button" class="btn sm" data-go="clientes">Cadastrar clientes</button></p>' : `<input type="search" id="rCliQ" placeholder="🔎 Procurar cliente" aria-label="Procurar cliente" autocomplete="off"><ul class="rclil">${CL.map(c => `<li><label><input type="checkbox" value="${c.id}" ${c.lat == null ? 'disabled' : ''}> <b>${esc(c.nome)}</b> <span class="mut">${c.city ? esc(c.city + ' - ' + c.uf) : 'sem cidade'}</span></label></li>`).join('')}</ul><div class="cbacoes"><button type="button" class="btn sm pri" id="rCliOk">Adicionar selecionados</button><button type="button" class="btn sm" id="rCliX">Fechar</button></div>`}</div>`);
+    box = q('#rCliBox'); const qi = q('#rCliQ'); if (qi) { qi.focus(); qi.oninput = () => box.querySelectorAll('.rclil li').forEach(li => { li.hidden = !norm(li.textContent).includes(norm(qi.value)); }); }
+    const ok = q('#rCliOk'); if (ok) ok.onclick = () => { const ids = [...box.querySelectorAll('input[type=checkbox]:checked')].map(x => x.value); if (!ids.length) return toast('Marque pelo menos um cliente.', true); ids.forEach(id => addCliente(CL.find(c => c.id === id))); box.remove(); toast(`${ids.length} entrega(s) adicionada(s). Use “↯ Sugerir melhor ordem” para ordenar.`); };
+    const x = q('#rCliX'); if (x) x.onclick = () => box.remove();
+  };
+  /* colar lista: uma entrega por linha — "Cliente; Cidade - UF", só a cidade, um CEP ou o nome de um cliente cadastrado */
+  q('#rCola').onclick = () => {
+    let box = q('#rColaBox'); if (box) { box.remove(); return; }
+    q('.raddbar').insertAdjacentHTML('afterend', `<div id="rColaBox" class="card rpanel"><label class="f">Cole uma entrega por linha<textarea id="rColaT" rows="5" placeholder="Mercado Bom Preço; Campinas - SP&#10;13010-000&#10;Ribeirão Preto - SP&#10;Nome de um cliente cadastrado"></textarea></label><small class="mut">Aceita: “Destinatário; Cidade - UF”, só a cidade, um CEP ou o nome de um cliente cadastrado. Pode colar do Excel.</small><div class="cbacoes" style="margin-top:6px"><button type="button" class="btn sm pri" id="rColaOk">Adicionar entregas</button><button type="button" class="btn sm" id="rColaX">Fechar</button></div></div>`);
+    box = q('#rColaBox'); q('#rColaT').focus(); q('#rColaX').onclick = () => box.remove();
+    q('#rColaOk').onclick = async () => {
+      const linhas = q('#rColaT').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean); if (!linhas.length) return; let ok = 0, ruim = [];
+      for (const l of linhas) {
+        const parts = l.split(/\t|;|\|/).map(x => x.trim()).filter(Boolean), s = { id: uid(), nome: '', city: '', uf: '', lat: null, lon: null };
+        const cli = CL.find(c => parts.some(p => norm(p) === norm(c.nome) || (c.fantasia && norm(p) === norm(c.fantasia))));
+        if (cli) aplicaCliente(s, cli);
+        else {
+          const cepP = parts.find(p => /^\d{5}-?\d{3}$/.test(p)); if (cepP) await porCep(s, cepP);
+          if (s.lat == null) { const cp = [...parts].reverse().find(p => find(p)); if (cp) { const c = find(cp); Object.assign(s, { city: c.nome, uf: c.uf, lat: c.lat, lon: c.lon }); } else s.txt = parts[parts.length - 1]; }
+          s.nome = parts.filter(p => !/^\d{5}-?\d{3}$/.test(p) && !find(p) && !(s.lat == null && p === s.txt)).join(' ') || s.nome;
+        }
+        R().stops.push(s); if (s.lat != null) ok++; else ruim.push(l);
+      }
+      R().stops = R().stops.filter(x => x.nome || x.lat != null || x.txt); R().quote.destino = ''; box.remove(); changed();
+      toast(`${ok} entrega(s) adicionada(s)${ruim.length ? ` · ${ruim.length} sem cidade reconhecida (corrija em vermelho)` : ''}.`, !!ruim.length && !ok);
+    };
+  };
   /* ---------- busca de cidade (lista própria, no lugar da lista do navegador) ---------- */
   const ac = document.createElement('div'); ac.id = 'acBox'; ac.className = 'acbox'; ac.setAttribute('role', 'listbox'); ac.hidden = true; document.body.appendChild(ac);
   let acIn = null, acHits = [], acI = -1;
@@ -335,7 +475,7 @@ const RT = (function () {
     if (!R().orig) return toast('Faltou a cidade de origem: digite o nome e escolha na lista.', true);
     if (R().stops.filter(s => s.lat != null).length < 2) return toast('São necessárias pelo menos 2 entregas com cidade.', true);
     const ch = optimize(); R().quote.destino = ''; changed();
-    toast(ch ? 'Ordem sugerida pela menor distância. Ajuste com ↑ ↓ se precisar.' : 'A ordem atual já é a de menor distância.');
+    toast((ch ? 'Ordem sugerida pela menor distância. Ajuste com ↑ ↓ se precisar.' : 'A ordem atual já é a de menor distância.') + ' Confira os avisos de horário de cada cliente.');
   };
   /* folha do motorista: uma página por entrega, na ordem de descarga */
   q('#oStop').onchange = () => { renderList(); const vb = q('#volsBox'); if (vb) vb.open = true; };
@@ -475,7 +615,7 @@ const RT = (function () {
   q('#t-cot').addEventListener('input', () => { if (mode === 'route') renderAntt(); });
   window.addEventListener('online', () => { if (mode === 'route') render(); });
 
-  return { km: () => routeInfo ? routeInfo.km : null,
+  return { addCliente, chegadas, label, info: () => routeInfo, km: () => routeInfo ? routeInfo.km : null,
     tagInfo(id) { const r = R(), k = rank(id), s = r.stops.find(x => x.id === id); return `<br><span class="tagroute">Remetente: ${esc((r.sender ? r.sender + ' · ' : '') + (r.orig ? label(r.orig) : '—'))}<br>Destino: ${k ? 'E' + k + ' · ' + esc((s.nome ? s.nome + ' · ' : '') + (s.city ? label(s) : 'cidade não informada')) : 'sem entrega definida'}</span>`; },
     renderAntt, rank, stopName, stopOptions, lastStop, render, renderUnload, find, optimize, est, hav, axlesOf,
     showTab(first) { q('#tabRota').hidden = false; q('#tabRota').click(); if (first && !R().orig) setTimeout(() => q('#rOrig').focus(), 60); },

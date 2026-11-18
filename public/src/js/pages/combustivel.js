@@ -26,7 +26,7 @@
           </div>
           <form id="cbPetroF" class="cbcalc"><label class="f">A partir de<input type="date" id="cbPetroD" required></label><label class="f">Diesel A (R$/L)<input id="cbPetroP" inputmode="decimal" placeholder="3,30" required></label><label class="f" style="grid-column:1/-1">Observação<input id="cbPetroO" maxlength="200" placeholder="ex.: comunicado da Petrobras de dd/mm"></label><button class="btn pri" type="submit">Salvar</button></form>
           <div id="cbPetroL"></div>
-          
+
         </details>
       </div>
     </div>

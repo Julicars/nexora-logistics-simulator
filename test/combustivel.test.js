@@ -1,3 +1,5 @@
+/* Testes — combustíveis: leitura da planilha da ANP, médias, histórico, variação por posto, importação e mercado (dólar/Brent/Petrobras).
+ * Rodar: npm test (usa só o node:test, sem dependências; nada acessa a internet: as fontes externas são simuladas). */
 const test = require('node:test'), assert = require('node:assert'), zlib = require('zlib'), fs = require('fs'), os = require('os'), path = require('path');
 const { lerXlsx } = require('../server/xlsxler'), { lerSemana, linksSemanais, produtoDiesel, produtoTipo } = require('../server/combustivel'), { createServer } = require('../server/index');
 
