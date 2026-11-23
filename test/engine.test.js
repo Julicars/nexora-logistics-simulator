@@ -14,7 +14,15 @@ test('medidas oficiais dos veículos não mudaram', () => {
     ['Carreta 15.4m', 15.4, 2.5, 2.7, 1], ['Carreta 14.6m', 14.6, 2.5, 2.7, 1], ['Rodo-Trem 12.50m', 12.5, 2.5, 2.7, 2],
     ['Truck 10.4m', 10.4, 2.4, 2.66, 1], ['Truck 9.7m', 9.7, 2.4, 2.66, 1], ['Truck 8.5m', 8.5, 2.4, 2.66, 1],
     ['3/4 5.5m', 5.5, 2.4, 2.4, 1], ['VAN 3.1m', 3.1, 1.8, 1.9, 1], ['IVECO BAU 3.9m', 3.9, 2.1, 2.1, 1],
-    ["Container 45' HC", 13.5, 2.33, 2.58, 1], ["Container 40' HC", 12, 2.33, 2.58, 1], ["Container 20' DC", 5.88, 2.33, 2.26, 1]]);
+    ["Container 45' HC", 13.5, 2.33, 2.58, 1], ["Container 40' HC", 12, 2.33, 2.58, 1], ["Container 20' DC", 5.88, 2.33, 2.26, 1],
+    ["Container 20' Open Top", 5.9, 2.35, 2.38, 1], ["Container 40' Open Top", 12.03, 2.35, 2.38, 1],
+    ["Container 20' Flat Rack", 5.94, 2.35, 2.35, 1], ["Container 40' Flat Rack", 12.13, 2.4, 2.14, 1], ['Prancha 3 eixos 11.5m', 11.5, 2.6, 3.45, 1]]);
+});
+test('flat rack e open top aceitam carga acima da altura; nunca viram veículo extra', () => {
+  const maq = NX.normalize({ id: 'm', nome: 'Máquina', cod: 'M', tipo: 'outro', l: 4, w: 2, h: 2.8, q: 1, pcs: 1, kg: 8000, kgp: 8000, pos: 'auto' });
+  for (const n of ["Container 40' Flat Rack", "Container 40' Open Top"]) assert.strictEqual(NX.planLoad(F, byName(n).id, [maq], { extras: false }).left.length, 0, n);
+  assert.strictEqual(NX.planLoad(F, byName("Container 40' HC").id, [maq], { extras: false }).left.length, 1);
+  const r = NX.planLoad(F, byName('VAN 3.1m').id, [maq], {}); assert.ok(r.vehs.every(V => !V.v.esp));
 });
 test('peso total = peças × peso por peça (42 × 9 = 378)', () => {
   assert.strictEqual(NX.normalize({ tipo: 'palete', pcs: 42, kgp: 9, l: 1.2, w: 1.1, h: 1.9 }).kg, 378);

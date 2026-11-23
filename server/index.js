@@ -15,6 +15,7 @@ const { createCombustivel } = require('./combustivel');
 const { createServicos } = require('./servicos');
 const { createDados } = require('./dados');
 const { createViagens } = require('./viagens');
+const { createPlanos3d } = require('./planos3d');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json; charset=utf-8', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8', '.webp': 'image/webp' };
 /* Cabeçalhos de segurança enviados em todas as respostas:
  * - nosniff / SAMEORIGIN / same-origin: o navegador não "adivinha" tipos, a página não abre dentro de sites de terceiros
@@ -28,12 +29,12 @@ const SEC = {
 };
 function createServer(opts = {}) {
   const dataDir = opts.dataDir || process.env.NEXORA_DADOS || path.join(__dirname, '..', 'data');
-  const forum = createForum(dataDir), fretes = createFretes(dataDir, 'fretes'), transportes = createFretes(dataDir, 'transportes'), empresas = createEmpresas(dataDir, opts), combustivel = createCombustivel(dataDir, opts), servicos = createServicos(dataDir, opts), dados = createDados(dataDir, opts), viagens = createViagens(dataDir, dados.autorizado);
+  const forum = createForum(dataDir), fretes = createFretes(dataDir, 'fretes'), transportes = createFretes(dataDir, 'transportes'), empresas = createEmpresas(dataDir, opts), combustivel = createCombustivel(dataDir, opts), servicos = createServicos(dataDir, opts), dados = createDados(dataDir, opts), viagens = createViagens(dataDir, dados.autorizado), planos3d = createPlanos3d(dataDir, dados.autorizado);
   const negado = res => { res.writeHead(401, { ...SEC, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify({ erro: 'Chave de acesso necessária.', chave: true })); };
   /* tarefas automáticas (também chamadas pelo /api/cron em hospedagens que "dormem") */
   async function tarefas(forcar) { const r = {}, t = async (k, f) => { try { r[k] = await f(); } catch (e) { r[k] = { erro: e.message }; } };
     await t('anp', () => combustivel.atualizar(forcar ? 'manual' : 'cron')); await t('mercado', () => combustivel.atualizarMercado().then(m => ({ erros: m.erros }))); await t('petrobras', () => combustivel.atualizarPetro(forcar ? 'manual' : 'cron'));
-    await t('servicos', () => forcar ? servicos.testar() : Promise.all([servicos.pracas(), servicos.ipca(), servicos.feriados(new Date().getFullYear())]).then(() => 'ok')); await t('backup', () => ({ arquivo: dados.backupDiario() ? 'criado' : 'já existe hoje' })); viagens.limpar(); return r; }
+    await t('servicos', () => forcar ? servicos.testar() : Promise.all([servicos.pracas(), servicos.ipca(), servicos.feriados(new Date().getFullYear())]).then(() => 'ok')); await t('backup', () => ({ arquivo: dados.backupDiario() ? 'criado' : 'já existe hoje' })); viagens.limpar(); planos3d.limpar(); return r; }
   function saude() { return { agora: new Date().toISOString(), versao: require('../package.json').version, anp: combustivel.status(), mercado: combustivel.mercadoEstado(), petrobras: combustivel.petroEstado(), servicos: servicos.estado(), backups: dados.infoBackups().slice(0, 5), dados: dados.resumo(), viagens: viagens.total(), chaveConfigurada: !!process.env.NEXORA_CHAVE }; }
   if (opts.agendar !== false && !process.env.NODE_TEST_CONTEXT) { const tb = setTimeout(() => { try { dados.backupDiario(); } catch (e) { /* segue */ } }, 8000); tb.unref(); const ti = setInterval(() => { try { dados.backupDiario(); viagens.limpar(); } catch (e) { /* segue */ } }, 6 * 36e5); ti.unref(); }
   const srv = http.createServer((req, res) => {
@@ -50,6 +51,7 @@ function createServer(opts = {}) {
     if (p.startsWith('/api/combustivel/')) { if (req.method !== 'GET' && !dados.autorizado(req)) return negado(res); return combustivel.handle(req, res, p, SEC); }
     if (p === '/api/dados' || p.startsWith('/api/dados/')) return dados.handle(req, res, p, SEC);
     if (p === '/api/viagens' || p.startsWith('/api/viagens/')) return viagens.handle(req, res, p, SEC);
+    if (p === '/api/planos3d' || p.startsWith('/api/planos3d/')) return planos3d.handle(req, res, p, SEC);
     if (p === '/api/saude') { res.writeHead(200, { ...SEC, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ ...saude(), autorizado: dados.autorizado(req) })); }
     if (p === '/api/saude/testar' || p === '/api/cron') { if (!dados.autorizado(req)) return negado(res); return tarefas(p === '/api/saude/testar').then(r => { res.writeHead(200, { ...SEC, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ ok: true, resultado: r, saude: saude() })); }); }
     if (p.startsWith('/api/servicos/')) return servicos.handle(req, res, p, SEC);
