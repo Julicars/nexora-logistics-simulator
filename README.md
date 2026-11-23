@@ -5,7 +5,7 @@
 ### Montagem de carga em 3D, peso por eixo, frete mínimo ANTT e consulta de empresas — num só lugar.
 
 <p>
-<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.30.0-f39a2b?style=for-the-badge">
+<img alt="Versão" src="https://img.shields.io/badge/vers%C3%A3o-3.31.0-f39a2b?style=for-the-badge">
 <img alt="Node" src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white">
 <img alt="Sem frameworks" src="https://img.shields.io/badge/HTML%20%2B%20CSS%20%2B%20JS-sem%20frameworks-2f8cf2?style=for-the-badge">
 <img alt="Testes" src="https://img.shields.io/badge/testes-53%20passando-32c48d?style=for-the-badge">
@@ -205,7 +205,8 @@ Para desligar a busca automática, use `NEXORA_COMBUSTIVEL=off`.
 - **Peso por eixo:** limites da Res. CONTRAN 882/2021 com as taras reais; confere como a balança (PBT até 50 t; acima, cada eixo com 12,5% de tolerância) e mostra a **multa estimada**.
 - **Regras de manuseio:** frágil, pesado, perecível, alimentício, não molhar, explosivo, inflamável, corrosivo e tóxico, com incompatibilidades.
 - **Regras próprias:** no **cadastro do produto** (“não viaja junto com”, “não pode ficar em cima de”, “só no piso”) e regras gerais da empresa.
-- **Vários veículos:** pergunta antes de cada extra — ou **divide tudo automaticamente**. Containers nunca entram como extra.
+- **Vários veículos:** pergunta antes de cada extra — ou **divide tudo automaticamente**. Containers, open top, flat rack e prancha nunca entram como extra.
+- **Frota oficial:** carretas, rodotrem, trucks, 3/4, van, Iveco baú, containers 20' DC / 40' HC / 45' HC, **20'/40' Open Top, 20'/40' Flat Rack e Prancha 3 eixos**.
 - **Qual veículo leva tudo?** compara a frota e indica o menor que leva a carga dentro da lei.
 
 ### No 3D
@@ -323,20 +324,27 @@ São 23 configurações no total, ordenadas do mais leve ao mais pesado, com o s
 
 ```
 nexora/
-├─ server/            index.js (HTTP + APIs) · forum.js · fretes.js · empresas.js · fontes.js
-├─ test/              engine · carga · palete · empresas · fretes · forum  (53 testes)
+├─ server/            index.js (HTTP + APIs) · dados (sincronização, chave, backups) · viagens (link do motorista)
+│                     planos3d (link de visualização 3D) · combustivel · petrobras · servicos · xlsxler
+│                     forum · fretes · empresas · fontes
+├─ test/              engine · carga · palete · empresas · fretes · forum · combustivel · petrobras
+│                     servicos · dados · planos3d  (66 testes)
 ├─ docs/              capturas (WebP), demo.gif e demo.mp4
 ├─ DEPLOY.md          como publicar (hospedagem Node.js, VPS, domínio, HTTPS)
 ├─ SEGURANCA.md       proteções e cuidados ao publicar
 └─ public/
    ├─ index.html · manifest.webmanifest · sw.js (app instalável e offline)
+   ├─ motorista.html  página do motorista (entregas, canhoto, GPS)
+   ├─ ver.html        visualização do plano 3D, só leitura (cliente / conferente)
    └─ src/
       ├─ config/      veiculos.js · categorias.js · antt.js   ← ajuste sem mexer no código
       ├─ data/        5.570 municípios do IBGE · mapa do Brasil offline
-      ├─ css/         base · layout · pages · responsive
+      ├─ css/         base · layout · pages · responsive · motorista · ver
       └─ js/
-         ├─ core/     engine (motor) · carga (cubado, LDM, EN 12195-1, VGM) · palete · empresa · mascara · storage · xlsx
-         ├─ app/      app · cena3d (Three.js) · rota · fretes · recursos · amarracao · grafo · empresas · etiquetas · perigosos · forum · a11y
+         ├─ core/     engine (motor) · carga (cubado, LDM, EN 12195-1, VGM) · palete · empresa · mascara · storage · sync · xlsx (gera) · xlsxler (lê .xlsx)
+         ├─ app/      app · cena3d (Three.js) · rota · alertas (conferência + link 3D) · importar · perigosos
+         │            clientes · combustivel · servicos · viagem · relatorios · saude · fretes · recursos
+         │            amarracao · grafo · empresas · etiquetas · forum · a11y
          └─ pages/    uma página por arquivo
 ```
 
@@ -348,16 +356,32 @@ nexora/
 npm test
 ```
 
-53 testes automáticos: motor de carga (encaixe, empilhamento, eixos, regras próprias, extras), cubado/LDM/cintas/VGM, paletização, consulta de empresas (fontes simuladas, CPF nunca enviado completo), fórum e registros.
+66 testes automáticos, divididos em quatro grupos:
+
+- **Motor de carga:**
+  - encaixe, empilhamento, eixos, regras próprias e extras;
+  - medidas oficiais da frota;
+  - open top e flat rack com carga acima da altura (OOG).
+- **Cálculos:** cubado, LDM, cintas, VGM e paletização.
+- **Consultas e dados públicos:**
+  - consulta de empresas (CPF nunca enviado completo);
+  - combustíveis ANP, preço da Petrobras, pedágio, IPCA e feriados (fontes simuladas).
+- **Servidor e segurança:**
+  - sincronização de dados, chave de acesso, CSRF e bloqueio por tentativas;
+  - link do plano 3D: só abre com o token e limpa o conteúdo recebido;
+  - fórum e registros.
 
 ---
 
 ## ⚠️ Limitações conhecidas
 
-- Produtos, frota e planos ficam **no navegador** de quem usa — use o **backup** em Configurações.
-- Sem internet a distância é estimada (linha reta × 1,25); pedágios não são calculados.
+- Sem o servidor do NEXORA, produtos, frota e planos ficam **no navegador** de quem usa — use o **backup** em Configurações. Com o servidor, tudo sincroniza entre aparelhos (vale a última gravação).
+- Sem internet a distância é estimada (linha reta × 1,25). O valor do pedágio não é dado aberto: o sistema localiza as praças da ANTT na rota e você informa a tarifa média.
+- Medidas de open top, flat rack e prancha são referências de mercado: confira com o seu fornecedor. A capacidade da prancha é estimada.
+- O link 3D sem servidor leva o plano dentro do endereço: planos muito grandes geram links longos (sem QR Code).
+- Importação aceita .xlsx e .csv; o formato .xls antigo precisa ser salvo como .xlsx.
 - Seguros de carga (RCTR-C/RC-DC) não existem em base pública: são anotados pelo usuário.
-- Registros e fórum não têm login: use o servidor só em rede interna.
+- Não há login por pessoa: uma chave de acesso única protege o servidor (veja SEGURANCA.md).
 
 <div align="center">
 
