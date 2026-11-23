@@ -2,6 +2,28 @@
 
 Todas as mudanças relevantes do NEXORA. Formato inspirado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [3.31.0] — 2026-11-23
+### Novo
+- **Conferência antes de liberar** (aba Resultado): um painel junta todas as checagens:
+  - volumes de fora, carga útil, PBT e eixos;
+  - desequilíbrio lateral (centro de gravidade a mais de 5% da largura);
+  - produto perigoso sem nº ONU ou classe;
+  - carga acima do container (OOG), VGM e espaço vazio no fundo;
+  - frete abaixo do piso ANTT.
+  Bloqueios impedem a liberação. Com avisos, o conferente precisa confirmar. A liberação guarda nome e hora, e vale só para aquele arranjo.
+- **Link de visualização do plano 3D** (`ver.html`):
+  - cliente ou conferente abre no celular, só leitura;
+  - permite girar, ver os dados de cada volume e acompanhar o passo a passo do carregamento;
+  - tem link curto no servidor (`/api/planos3d`, 60 dias) ou o plano compactado dentro do próprio link quando não há servidor;
+  - envio por WhatsApp e QR Code.
+- **Importar planilha Excel (.xlsx) direto**, sem salvar como CSV:
+  - acha o cabeçalho nas 15 primeiras linhas e reconhece nomes de ERP (it-codigo, desc-item, qt-pedida);
+  - converte cm, mm e toneladas.
+- **Cargas fora de padrão:** Container 20'/40' Open Top, 20'/40' Flat Rack (DSV) e Prancha 3 eixos.
+  - Open top e flat rack aceitam carga acima da altura do container, até a altura legal, com aviso de OOG.
+  - Nunca entram como veículo extra.
+  - A frota salva recebe os novos veículos sem mudar os existentes.
+
 ## [3.30.0] — 2026-11-17
 ### Segurança
 - **CSRF:** alterações na API só são aceitas vindas da própria origem.

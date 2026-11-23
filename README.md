@@ -125,6 +125,20 @@ Ou **sem instalar nada**: abra `public/index.html` no navegador. Na Home, toque 
 - **Relatórios:** frete por mês, R$/km comparado ao diesel, destinos e transportadoras.
 - **Publicar na internet:** veja [DEPLOY.md](DEPLOY.md).
 
+## ✅ Conferência, link 3D, Excel e cargas especiais
+- **Conferência antes de liberar** (aba Resultado). Um painel junta todas as checagens:
+  - 🔴 Bloqueia a liberação: volumes de fora, peso acima da carga útil, PBT ou eixo acima da tolerância, VGM acima da placa.
+  - 🟡 Pede confirmação: eixo acima do limite legal, desequilíbrio lateral, produto perigoso sem nº ONU, carga OOG, frete abaixo do piso ANTT.
+  - 🔵 Lembretes: espaço vazio no fundo e produto perigoso a bordo.
+  - A liberação registra o conferente e a hora.
+- **Link de visualização 3D** (`ver.html`): o cliente ou o conferente vê o plano no celular, sem editar:
+  - girar o 3D;
+  - tocar num volume para ver os dados;
+  - passo a passo do carregamento.
+  Envio por WhatsApp ou QR Code.
+- **Importar Excel (.xlsx)** direto na janela da carga. Colunas reconhecidas sozinhas, inclusive nomes do TOTVS (it-codigo, desc-item, qt-pedida), com medidas em m, cm ou mm.
+- **Cargas fora de padrão:** containers 20'/40' Open Top e Flat Rack e Prancha 3 eixos. A carga pode passar da altura do container (OOG), com aviso.
+
 ## ⛽ Combustíveis & Abastecimento
 
 Preços oficiais da ANP para diesel S-10 e S-500, gasolina comum e aditivada, etanol e GNV, com atualização **semanal** sobre uma amostra de cerca de 400 municípios, baixados sozinhos pelo servidor (`npm start`). A aba mostra:
