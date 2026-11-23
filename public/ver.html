@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1122">
+<meta name="robots" content="noindex">
+<title>Plano de carga 3D — NEXORA</title>
+<link rel="icon" href="src/img/logo-icon.svg">
+<link rel="stylesheet" href="src/css/ver.css">
+</head>
+<body>
+<header class="vr-top"><img src="src/img/logo.webp" alt="NEXORA" height="24"><div><b id="vrTit">Plano de carga</b><small id="vrSub">Só visualização</small></div></header>
+<nav id="vrVeh" class="vr-veh" aria-label="Veículos do plano"></nav>
+<main class="vr-main">
+  <div class="vr-cena"><canvas id="vrCv" aria-label="Visualização 3D da carga. Arraste para girar, pinça ou roda para zoom, toque num volume para ver os dados."></canvas>
+    <div class="vr-vis" role="group" aria-label="Ângulo da câmera"><button data-vis="3d" class="on">3D</button><button data-vis="lado">Lado</button><button data-vis="topo">Topo</button><button data-vis="fundo">Fundo</button></div>
+    <div id="vrInfo" class="vr-info" role="status" aria-live="polite" hidden></div>
+  </div>
+  <section class="vr-passo"><label for="vrPasso">Passo a passo do carregamento: <b id="vrPassoN"></b></label>
+    <div class="vr-pl"><button id="vrPlay" aria-label="Reproduzir carregamento">▶</button><input type="range" id="vrPasso" min="0" value="0"></div></section>
+  <section id="vrRes" class="vr-res" aria-label="Resumo"></section>
+  <section><h2>Produtos</h2><ul id="vrLeg" class="vr-leg"></ul></section>
+  <p class="vr-rod">Visualização gerada pelo NEXORA. Só leitura: alterações são feitas no sistema.</p>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="src/js/ver.js"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@ let hist = [], redo = [];
 const raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
 raycaster.params.Line.threshold = 0.001; raycaster.params.Points.threshold = 0.001; /* só superfícies sólidas contam no clique */
 const GAPW = 0.9; /* folga entre vagões do rodotrem */
-const floorOf = v => ({ 'Van': 0.55, 'Iveco baú': 0.95, '3/4': 1.05, 'Truck': 1.2, 'Container': 1.42 }[v.cat] || 1.25);
+const floorOf = v => NX.deckH(v); /* altura do assoalho (src/config/veiculos.js) */
 const wheelR = v => ({ 'Van': 0.34, 'Iveco baú': 0.38, '3/4': 0.45 }[v.cat] || 0.5);
 const wagonX = (v, g) => g * (v.L + GAPW);
 const MAT = {};
@@ -166,9 +166,12 @@ function rearDoors(gp, X, v, F, color, opacity, bars) {
 const curtain = () => canvasTex('curtain', x => { x.fillStyle = '#fff'; x.fillRect(0, 0, 256, 256); noise(x, 500, .04); x.fillStyle = 'rgba(20,40,80,.35)'; for (let i = 0; i < 256; i += 64) x.fillRect(i + 28, 0, 8, 256); x.fillStyle = 'rgba(255,255,255,.25)'; x.fillRect(0, 0, 256, 6); x.fillRect(0, 250, 256, 6); });
 const planks = () => canvasTex('planks', x => { x.fillStyle = '#b8875a'; x.fillRect(0, 0, 256, 256); noise(x, 900, .08); x.strokeStyle = 'rgba(60,30,10,.55)'; x.lineWidth = 3; for (let i = 0; i <= 256; i += 64) { x.beginPath(); x.moveTo(0, i); x.lineTo(256, i); x.stroke(); } });
 /* carroceria aberta (grade): laterais baixas de madeira, cabeceira alta, sem teto; o limite de altura do cálculo fica tracejado */
+/* contorno tracejado da altura máxima permitida (carga aberta / fora de padrão) */
+function limite(gp, X, v, F) { const H = NX.effH(v), lim = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(v.L, H, v.W)), new THREE.LineDashedMaterial({ color: 0xffd27a, dashSize: 0.25, gapSize: 0.18, transparent: true, opacity: .55 })); lim.computeLineDistances(); lim.position.set(X + v.L / 2, F + H / 2, 0); gp.add(lim); }
 function openBody(gp, X, v, F) {
   const W = v.W, t = 0.05, hb = Math.min(0.7, v.H * 0.35); v = { ...v, H: NX.effH(v) };
   const mk = rep => { const tx = planks().clone(); tx.needsUpdate = true; tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(rep, 1); const m = new THREE.MeshStandardMaterial({ map: tx, roughness: .85, transparent: true, opacity: .95 }); wallMats.push({ m, base: .95 }); return m; };
+  if (v.esp === 'prancha') { limite(gp, X, v, F); return; } /* prancha: só a plataforma e o limite de altura */
   for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(v.L, hb, t), mk(v.L / 1.2)); p.position.set(X + v.L / 2, F + hb / 2, s * (W / 2 + t / 2)); p.castShadow = true; gp.add(p);
     for (let k = 0; k <= 6; k++) { const st = boxM(0.06, hb + 0.06, 0.07, mat(0x2a303b, { metalness: .4 })); st.position.set(X + k / 6 * v.L, F + hb / 2, s * (W / 2 + t)); gp.add(st); } }
   const head = new THREE.Mesh(new THREE.BoxGeometry(t * 2, v.H, W + 2 * t), mat(0x2a303b, { metalness: .5, roughness: .5 })); head.position.set(X - t, F + v.H / 2, 0); gp.add(head);
@@ -186,7 +189,7 @@ function bodyShell(gp, X, v, F, kind) {
   const side = mk(texF, kind === 'sider' ? v.L / 1.6 : v.L / 0.6), front = mk(kind === 'sider' ? ribs : texF, W / 0.6), roof = mk(null, 1);
   for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(v.L, v.H, t), side); p.position.set(X + v.L / 2, F + v.H / 2, s * (W / 2 + t / 2)); gp.add(p); }
   const fw = new THREE.Mesh(new THREE.BoxGeometry(t, v.H, W + 2 * t), front); fw.position.set(X - t / 2, F + v.H / 2, 0); gp.add(fw);
-  const rf = new THREE.Mesh(new THREE.BoxGeometry(v.L + t, t, W + 2 * t), roof); rf.position.set(X + v.L / 2, F + v.H + t / 2, 0); gp.add(rf);
+  if (v.esp !== 'ot') { const rf = new THREE.Mesh(new THREE.BoxGeometry(v.L + t, t, W + 2 * t), roof); rf.position.set(X + v.L / 2, F + v.H + t / 2, 0); gp.add(rf); }
   const e = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(v.L, v.H, W)), new THREE.LineBasicMaterial({ color: kind === 'container' ? 0x9cc3f0 : 0xe8eef8 })); e.position.set(X + v.L / 2, F + v.H / 2, 0); gp.add(e);
   if (kind === 'container') { /* cantoneiras ISO */
     for (const cx of [X - t, X + v.L + t]) for (const cy of [F, F + v.H]) for (const cz of [-W / 2 - t, W / 2 + t]) { const k = boxM(0.18, 0.12, 0.16, mat(0x1d4f88, { metalness: .5 })); k.position.set(cx, cy, cz); gp.add(k); }
@@ -208,7 +211,8 @@ function buildVehicle(v, offZ) {
       const sk = boxM(v.L + 0.4, 0.22, 1.0, mat(0x2a303b)); sk.position.set(X + v.L / 2, 1.08, 0); gp.add(sk);
       for (const s of [-1, 1]) { const rl = boxM(v.L + 0.4, 0.12, 0.08, mat(0x2a303b)); rl.position.set(X + v.L / 2, 1.2, s * (W / 2 - 0.1)); gp.add(rl); }
       const fl = boxM(v.L, 0.12, W, mat(0x6b4a2b, { roughness: .9 })); fl.position.set(X + v.L / 2, F - 0.06, 0); gp.add(fl);
-      bodyShell(gp, X, v, F, 'container'); rearDoors(gp, X, v, F, 0x2f6fb5, 0.3, true);
+      if (v.esp === 'fr') { /* flat rack: só as cabeceiras */ for (const ex of [X - 0.06, X + v.L + 0.06]) { const cab = boxM(0.12, v.H, W, mat(0x2f6fb5, { metalness: .35 })); cab.position.set(ex, F + v.H / 2, 0); gp.add(cab); } limite(gp, X, v, F); }
+      else { bodyShell(gp, X, v, F, 'container'); rearDoors(gp, X, v, F, 0x2f6fb5, 0.3, true); if (v.esp === 'ot') limite(gp, X, v, F); }
       for (const s of [-1, 1]) { const tl = boxM(0.05, 0.12, 0.22, mat(0xff2a2a, { emissive: 0xaa0000, emissiveIntensity: .8 })); tl.position.set(X + v.L + 0.25, 1.0, s * (W / 2 - 0.3)); gp.add(tl); }
     } else if ((cat === 'Carreta' || cat === 'Rodotrem') && m.type !== 'rj') {
       floorDeck(gp, X, v, F); { const bk = NX.bodyOf(v); bodyShell(gp, X, v, F, bk); if (bk !== 'aberta') rearDoors(gp, X, v, F, bk === 'sider' ? 0xc8d6ea : 0xf4f6fa, 0.35, false); }

@@ -41,6 +41,8 @@
   /* ---------- VGM (peso bruto verificado do contêiner, SOLAS) ---------- */
   /* taras e peso bruto máximo (placa CSC) de referência; confira a placa do seu contêiner */
   const CONTEINER = { "Container 20' DC": { tara: 2230, max: 30480 }, "Container 40' HC": { tara: 3900, max: 30480 }, "Container 45' HC": { tara: 4800, max: 32500 } };
+  /* open top e flat rack: valores da configuração (src/config/veiculos.js) */
+  { const C = (root.NX_CONFIG && root.NX_CONFIG.CONT) || (typeof module === 'object' && module.exports ? require('../../config/veiculos.js').CONT : {}) || {}; for (const k in C) if (!CONTEINER[k]) CONTEINER[k] = { tara: C[k][0], max: C[k][1] }; }
   function vgm(items, v, op = {}) {
     const ref = CONTEINER[v.name] || { tara: op.tara || 0, max: op.max || 0 };
     const tara = op.tara != null && op.tara !== '' ? +op.tara : ref.tara, max = op.max ? +op.max : ref.max;

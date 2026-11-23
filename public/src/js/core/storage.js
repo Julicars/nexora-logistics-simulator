@@ -58,6 +58,8 @@ const DB = {
   /* ---- veículos ---- */
   async listVehicles() {
     let l = LS.get('vehicles', null) || JSON.parse(JSON.stringify(NX.FLEET0));
+    /* frota salva antes da 3.31: acrescenta open top, flat rack e prancha (não mexe nos veículos existentes) */
+    if (!LS.get('fleetEsp', false) && LS.get('vehicles', null)) { const ids = new Set(l.map(v => v.id)), nomes = new Set(l.map(v => v.name)); for (const v of NX.FLEET0) if (v.esp && !nomes.has(v.name)) l.push({ ...v, id: ids.has(v.id) ? 'v' + Date.now().toString(36) + v.id : v.id }); LS.set('vehicles', l); LS.set('fleetEsp', true); }
     if (!LS.get('fleetMaxV', false)) { for (const v of l) if ((v.max === null || v.max === undefined) && NX.MAXKG[v.name]) v.max = NX.MAXKG[v.name]; LS.set('vehicles', l); LS.set('fleetMaxV', true); }
     return l;
   },

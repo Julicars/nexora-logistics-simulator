@@ -14,9 +14,9 @@ const CFG = (typeof module === 'object' && module.exports)
   ? Object.assign({}, require('../../config/veiculos.js'), require('../../config/categorias.js'))
   : (root.NX_CONFIG || {});
 if (!CFG.FROTA || !CFG.PCATS) throw new Error('NEXORA: arquivos de configuração (src/config) não carregados.');
-const { MAXKG, ALT_MAX, ASSOALHO, PCATS, PROTECT, INCOMPAT, BODIES } = CFG;
-const FLEET0 = CFG.FROTA.map((r,i)=>({id:'v'+i,name:r[0],cat:r[1],L:r[2],W:r[3],H:r[4],wag:r[5],max:MAXKG[r[0]]||null}));
-const deckH = v => ASSOALHO[v.cat] || ASSOALHO.padrao;
+const { MAXKG, ALT_MAX, ASSOALHO, PCATS, PROTECT, INCOMPAT, BODIES } = CFG, ESPECIAIS = CFG.ESPECIAIS || {};
+const FLEET0 = CFG.FROTA.map((r,i)=>({id:'v'+i,name:r[0],cat:r[1],L:r[2],W:r[3],H:r[4],wag:r[5],max:MAXKG[r[0]]||null,...(r[6]?{esp:r[6]}:{})}));
+const deckH = v => (v.esp && ASSOALHO[v.esp]) || ASSOALHO[v.cat] || ASSOALHO.padrao;
 const CATS = ['Carreta','Rodotrem','Truck','3/4','Van','Iveco baú','Container'];
 
 /* ---------- TIPOS DE CARGA ---------- */
@@ -37,11 +37,14 @@ const POS = {
 POS.caixa = POS.caixa;
 
 const hasCat=(p,k)=>!!(p&&Array.isArray(p.cats)&&p.cats.includes(k));
-const bodyOptions=cat=>(['Carreta','Rodotrem','Truck','3/4'].includes(cat)?['bau','sider','aberta']:[]);
-const bodyOf=v=>{const o=bodyOptions(v.cat);return o.includes(v.body)?v.body:(o[0]||(v.cat==='Container'?'container':'bau'))};
+/* veículos especiais (open top, flat rack, prancha) têm carroceria fixa */
+const bodyOptions=(cat,v)=>(v&&v.esp?[]:['Carreta','Rodotrem','Truck','3/4'].includes(cat)?['bau','sider','aberta']:[]);
+const bodyOf=v=>{if(v.esp==='prancha')return 'aberta';const o=bodyOptions(v.cat,v);return o.includes(v.body)?v.body:(o[0]||(v.cat==='Container'?'container':'bau'))};
 /* veículo efetivo para o cálculo: carroceria aberta não tem teto -> altura útil limitada pela altura legal (4,40 m do chão) */
-const effH = v => bodyOf(v)==='aberta' ? +(ALT_MAX - deckH(v)).toFixed(2) : v.H;
-const effV = v => bodyOf(v)==='aberta' ? {...v, H: effH(v)} : v;
+/* open top e flat rack também aceitam carga acima da altura do container (OOG), até a altura legal */
+const semTeto = v => bodyOf(v)==='aberta' || v.esp==='ot' || v.esp==='fr';
+const effH = v => semTeto(v) ? +(ALT_MAX - deckH(v)).toFixed(2) : v.H;
+const effV = v => semTeto(v) ? {...v, H: effH(v)} : v;
 /* motivo para um produto NÃO poder ir neste veículo (carroceria ou mistura com o que já está nele) */
 
 /* ---------- REGRAS PRÓPRIAS DE CARREGAMENTO (definidas pelo usuário) ----------
@@ -115,7 +118,7 @@ const levelsOf = p => (p.stackable===false) ? 1 : (p.tipo==='bobina' ? (p.maxLev
  * Iveco Daily 30-160 = 1,85 t + 2,05 t, PBT legal 3,5 t; Daily 35-160 = 1,85 t + 2,55 t, PBT legal 3,5 t / técnico 4,4 t).
  * Tolerância de fiscalização (Lei 14.229/2021): 12,5% por eixo e 5% no PBT — NÃO usada no planejamento.
  * Taras: estimativas (fichas de fabricantes quando disponíveis); ajuste à sua frota. */
-const CONT_TARE = { "Container 45' HC": 4800, "Container 40' HC": 3900, "Container 20' DC": 2200 };
+const CONT_TARE = Object.assign({ "Container 45' HC": 4800, "Container 40' HC": 3900, "Container 20' DC": 2200 }, Object.fromEntries(Object.entries(CFG.CONT || {}).filter(([k]) => !/DC|HC/.test(k)).map(([k, a]) => [k, a[0]])));
 /* Configurações de eixos (modelo "Frota Certa" / CONTRAN 882/2021) */
 /* Configurações de eixos — Resolução CONTRAN 882/2021 (limites por eixo/conjunto e PBT/PBTC).
    tr: cavalo (toco 6+10 | trucado 6+17); tg: grupos da carreta [nome, limite kg, nº de eixos]. */
@@ -447,7 +450,7 @@ function buildUnits(lines){
 /* plano completo: veículo principal + até 4 extras (containers nunca entram como extra) */
 /* sugestão de UM veículo extra para os volumes que sobraram (containers nunca entram como extra) */
 function suggestExtra(fleet,left,forceId){
- const road=fleet.filter(v=>v.cat!=='Container').sort((a,b)=>vol(a)-vol(b)||vehMaxCargo(a)-vehMaxCargo(b));
+ const road=fleet.filter(v=>v.cat!=='Container'&&!v.esp).sort((a,b)=>vol(a)-vol(b)||vehMaxCargo(a)-vehMaxCargo(b));
  if(forceId){const v=road.find(x=>x.id===forceId);if(!v)return null;const r=pack(v,left);return r.items.length?{v,r,all:!r.left.length}:null}
  for(const v of road){const r=pack(v,left);if(!r.left.length&&r.items.length)return {v,r,all:true}}
  let b=null;for(const v of road){const r=pack(v,left);if(!b||r.items.length>b.r.items.length)b={v,r}}
@@ -488,7 +491,7 @@ function verifyVehicle(v,items){
  return null;
 }
 
-const NX={regrasDoProduto,setRegras,marcarRegras,regraTxt,casaRegra:casa,axDisp,multaExcesso,balanca,EPS,MAXKG,ALT_MAX,deckH,effH,effV,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
+const NX={regrasDoProduto,setRegras,marcarRegras,regraTxt,casaRegra:casa,axDisp,multaExcesso,balanca,EPS,MAXKG,ALT_MAX,deckH,effH,effV,semTeto,ESPECIAIS,PCATS,PROTECT,INCOMPAT,hasCat,BODIES,bodyOptions,bodyOf,blockReason,suggestExtra,AXCFG,axOptions,axcfgOf,FLEET0,CATS,TIPOS,POS,normalize,validateSpec,stackOf,levelsOf,axleModel,axleLoads,vehMaxCargo,vol,orientations,grid,
  overlap3,areaOv,checkPlace,commit,rebuildLoads,balanceAxles,opcoes,axLim,pack,buildUnits,planLoad,stats,verifyVehicle,vn};
 if(typeof module==='object'&&module.exports)module.exports=NX;else{root.NX=NX;for(const k in NX)if(!(k in root))root[k]=NX[k]}
 })(typeof window!=='undefined'?window:globalThis);

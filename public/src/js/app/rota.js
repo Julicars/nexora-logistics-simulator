@@ -615,7 +615,7 @@ const RT = (function () {
   q('#t-cot').addEventListener('input', () => { if (mode === 'route') renderAntt(); });
   window.addEventListener('online', () => { if (mode === 'route') render(); });
 
-  return { addCliente, chegadas, label, info: () => routeInfo, km: () => routeInfo ? routeInfo.km : null,
+  return { addCliente, chegadas, label, piso: () => pisoTot, info: () => routeInfo, km: () => routeInfo ? routeInfo.km : null,
     tagInfo(id) { const r = R(), k = rank(id), s = r.stops.find(x => x.id === id); return `<br><span class="tagroute">Remetente: ${esc((r.sender ? r.sender + ' · ' : '') + (r.orig ? label(r.orig) : '—'))}<br>Destino: ${k ? 'E' + k + ' · ' + esc((s.nome ? s.nome + ' · ' : '') + (s.city ? label(s) : 'cidade não informada')) : 'sem entrega definida'}</span>`; },
     renderAntt, rank, stopName, stopOptions, lastStop, render, renderUnload, find, optimize, est, hav, axlesOf,
     showTab(first) { q('#tabRota').hidden = false; q('#tabRota').click(); if (first && !R().orig) setTimeout(() => q('#rOrig').focus(), 60); },

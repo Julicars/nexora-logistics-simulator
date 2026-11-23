@@ -203,8 +203,9 @@ const REC = (function () {
     const lines0 = curLines(); if (!lines0.length) return toast('Inclua a carga primeiro.', true);
     const lines = mode === 'route' && RT.orderLines ? RT.orderLines(lines0) : lines0; const tot = lines.reduce((s, l) => s + (+l.q || 0), 0);
     const kgTot = lines.reduce((s, l) => s + (+l.q || 0) * (+l.kg || 0), 0);
-    const cont = curVeh().cat === 'Container';
-    const res = fleet.filter(v => (v.cat === 'Container') === cont).map(v => { let r; try { r = NX.planLoad(fleet, v.id, lines, { extras: false }); } catch (e) { return null; } const V = r.vehs[0]; if (!V) return null; const st = NX.stats(V.v, V.items);
+    const cont = curVeh().cat === 'Container', esp = !!curVeh().esp;
+    /* open top, flat rack e prancha só entram na comparação quando o veículo atual já é especial */
+    const res = fleet.filter(v => (v.cat === 'Container') === cont && (esp || !v.esp)).map(v => { let r; try { r = NX.planLoad(fleet, v.id, lines, { extras: false }); } catch (e) { return null; } const V = r.vehs[0]; if (!V) return null; const st = NX.stats(V.v, V.items);
       return { v, ok: !r.left.length, n: V.items.length, occ: st.occ, util: NX.vehMaxCargo(v), pbt: NX.balanca ? NX.balanca(st).multa === 0 : true, d: NX.axDisp(NX.axcfgOf(v)) }; }).filter(Boolean)
       .sort((a, b) => (b.ok - a.ok) || (a.ok ? a.util - b.util : b.n - a.n));
     abrir('🚚 Qual veículo leva tudo?', `<p class="mut" style="margin:0 0 8px">Testei a carga (${tot} volumes, ${fmt(kgTot / 1000, 2)} t) em cada ${cont ? 'container' : 'veículo'} da frota, sem veículo extra. O primeiro que leva tudo é o menor que serve.</p>

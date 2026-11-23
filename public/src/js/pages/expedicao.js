@@ -140,7 +140,7 @@
     <div class="ofil"><input id="oFilter" placeholder="Filtrar por nome, código ou nº" aria-label="Filtrar volumes"><select id="oStop" aria-label="Filtrar por entrega" class="ronly-b"></select></div>
     <div class="list" id="itemList"></div></details>
    </div>
-   <div class="pane" id="t-calc"><div id="calcOut"></div><div id="perigOut"></div></div>
+   <div class="pane" id="t-calc"><div id="alertOut"></div><div id="calcOut"></div><div id="perigOut"></div></div>
    <div class="pane" id="t-desc"><div id="loadOut"></div><div id="secOut"></div><div id="descOut"></div></div>
    <div class="pane" id="t-cot">
     <p class="mut" style="font-size:12px;margin-top:0">Os valores de frete são digitados por você. O sistema não inventa preços.</p>
